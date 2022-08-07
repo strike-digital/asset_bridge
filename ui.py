@@ -13,29 +13,25 @@ class AB_PT_main_panel(Panel):
     def draw(self, context: Context):
         layout: UILayout = self.layout
         ab: AssetBridgeSettings = context.scene.asset_bridge
-        op = layout.operator(AB_OT_check_for_new_assets.bl_idname)
-        op = layout.operator(AB_OT_clear_asset_folder.bl_idname)
 
-        layout.prop(ab, "filter_type", text="Type")
-        # layout.prop(ab, "asset_name", text="Asset")
+        col = layout.column(align=False)
+        row = col.row(align=True)
+        row.scale_y = 1.5
+        row.prop(ab, "filter_type", text="")
+        row.prop(ab, "filter_categories", text="")
+        col.separator(factor=.4)
 
-        if not ab.asset_name:
-            return
+        row = col.row(align=True)
+        row.scale_y = 1.3
+        row.prop(ab, "filter_search", text="", icon="VIEWZOOM")
 
         box = layout.box()
-        box.template_icon_view(
-            ab,
-            "asset_name",
-            scale=8,
-        )
+        box.template_icon_view(ab, "asset_name", scale=8, show_labels=True)
         row = box.row(align=True)
         row.alignment = "CENTER"
         row.scale_y = .5
         row.label(text=ab.asset_name.replace("_", " ").capitalize())
         box.prop(ab, "asset_quality", text="Quality")
-
-        # print(AB_OT_import_asset.asset)
-        # if asset := AB_OT_import_asset.asset:
 
         row = layout.row(align=True)
         row.scale_y = 1.5

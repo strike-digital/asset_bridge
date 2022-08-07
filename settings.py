@@ -1,9 +1,11 @@
-import bpy
 from threading import Thread
-from bpy.props import BoolProperty, EnumProperty, PointerProperty, IntProperty
-from bpy.types import PropertyGroup
+
+import bpy
+from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty)
+from bpy.types import PropertyGroup, Scene
+
 from .constants import PREVIEWS_DIR
-from .helpers import Asset, asset_list, pcolls
+from .helpers import Asset, asset_list, pcolls, singular
 
 _selected_asset = None
 loading_asset = False
@@ -43,13 +45,55 @@ class AssetBridgeSettings(PropertyGroup):
         ],
         name="Asset type",
         description="Filter the asset list on only show a specific type",
+        update=lambda self, context: setattr(self, "filter_categories", "ALL")
     )
+
+    def get_filter_categories_items(self, context):
+        items = [("ALL", "All", "All")]
+        for cat in getattr(asset_list, singular[self.filter_type] + "_categories"):
+            items.append((cat, cat.title(), f"Only show assets in the category '{cat}'"))
+        return items
+
+    # def get_filter_categories(self):
+    #     val = self.get("_filter_categories", 0)
+    #     # getattr(asset_list, singular[self.filter_type] + "_categories")
+    #     # print(0)
+    #     if val < len(getattr(asset_list, singular[self.filter_type] + "_categories")) + 1:
+    #         return val
+    #     return 0
+
+    # def set_filter_categories(self, value):
+    #     self["_filter_categories"] = value
+
+    filter_categories: EnumProperty(
+        items=get_filter_categories_items,
+        name="Asset categories",
+        description="Filter the asset list on only show a specific category",
+        # get=get_filter_categories,
+        # set=set_filter_categories,
+    )
+
+    filter_search: StringProperty(name="Search")
+
+    def get_assets(self):
+        items = {}
+        assets = getattr(asset_list, self.filter_type)
+        search = self.filter_search.lower()
+        category = self.filter_categories
+        for name, data in assets.items():
+            if search not in data["name"].lower() and search not in "@".join(
+                    data["tags"]) or (category not in data["categories"] if category != "ALL" else False):
+                continue
+
+            items[name] = data
+        return items
 
     def get_asset_name_items(self, context):
         items = []
-        assets = getattr(asset_list, self.filter_type)
+        # assets = getattr(asset_list, self.filter_type)
+        assets = self.get_assets()
         pcoll = pcolls["assets"]
-        for i, (name, data) in enumerate(list(assets.items())[:]):
+        for i, (name, data) in enumerate(assets.items()):
             if name in pcoll:
                 icon_id = pcoll[name].icon_id
             else:
@@ -60,7 +104,7 @@ class AssetBridgeSettings(PropertyGroup):
 
     def get_asset_name(self):
         name = self.get("_asset_name", 0)
-        maximum = len(getattr(asset_list, self.filter_type))
+        maximum = len(self.get_assets())
         return min(name, maximum - 1)
 
     def set_asset_name(self, value):
@@ -116,9 +160,36 @@ class AssetBridgeSettings(PropertyGroup):
     )
 
 
+def depsgraph_update_pre_handler(scene: Scene, _):
+    remove = []
+    for obj in scene.objects:
+        if obj.is_asset_bridge:
+            if tuple(obj.location) == (0., 0., 0.):
+                continue
+            print(obj.location)
+            asset = Asset(obj.asset_bridge_name)
+            # asset.download_asset(bpy.context)
+            asset.import_asset(bpy.context, location=obj.location)
+
+            asset_objs = [obj for obj in scene.objects if obj.select_get()]
+            print(asset_objs)
+            remove.append(obj)
+
+    for obj in remove:
+        bpy.data.objects.remove(obj)
+
+
 def register():
     bpy.types.Scene.asset_bridge = PointerProperty(type=AssetBridgeSettings)
+    bpy.types.Object.is_asset_bridge = BoolProperty()
+    bpy.types.Object.asset_bridge_name = bpy.props.StringProperty()
+    bpy.app.handlers.depsgraph_update_pre.append(depsgraph_update_pre_handler)
 
 
 def unregister():
     del bpy.types.Scene.asset_bridge
+    del bpy.types.Object.is_asset_bridge
+    del bpy.types.Object.asset_bridge_name
+    for handler in bpy.app.handlers.depsgraph_update_pre:
+        if handler.__name__ == depsgraph_update_pre_handler.__name__:
+            bpy.app.handlers.depsgraph_update_pre.remove(handler)

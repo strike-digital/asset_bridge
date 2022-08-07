@@ -1,6 +1,7 @@
 from pathlib import Path
 
 BASE_ASSET_NAME = "__base_asset__"
+BL_ASSET_LIB_NAME = "Asset Bridge"
 
 ADDON_DIR = Path(__file__).parent
 PREVIEWS_DIR = ADDON_DIR / "previews"
@@ -19,6 +20,7 @@ DIRS = {
 }
 
 FILES = {
+    "asset_list": ADDON_DIR / "asset_list.json",
     "setup_asset_library": SCRIPTS_DIR / "setup_asset_library.py",
     "asset_lib_blend": ADDON_DIR / "asset_lib.blend",
 }

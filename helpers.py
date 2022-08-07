@@ -1,17 +1,17 @@
+import json
 import os
 from time import perf_counter
 import bpy
 import shutil
 from pathlib import Path
 from .vendor import requests
-from .constants import DIRS, PREVIEWS_DIR
+from .constants import BL_ASSET_LIB_NAME, DIRS, FILES, PREVIEWS_DIR
 from bpy.types import Context, AddonPreferences, Operator
 from bpy.utils import previews
 from threading import Thread
+from mathutils import Vector as V
 from dataclasses import dataclass
 from queue import Queue
-
-
 """I apologise if you have to try and understand this mess."""
 
 
@@ -33,6 +33,15 @@ def ui_update_timer():
 def force_ui_update():
     """Sometimes calling tag_redraw doesn't work, but doing it in a timer does"""
     bpy.app.timers.register(ui_update_timer, first_interval=.00001)
+
+
+def ensure_asset_library():
+    """Check that asset bridge blend is loaded as an asset library in blender, and if not, add it as one."""
+    asset_libs = bpy.context.preferences.filepaths.asset_libraries
+    if BL_ASSET_LIB_NAME not in asset_libs:
+        bpy.ops.preferences.asset_library_add()
+        asset_libs[-1].name = BL_ASSET_LIB_NAME
+        asset_libs[-1].path = str(FILES["asset_lib_blend"])
 
 
 def download_file(url: str, download_path: Path, file_name: str = ""):
@@ -102,6 +111,7 @@ def get_asset_preview(asset_name: str, reload: bool = False, size: int = 128):
 
 
 singular = {
+    "all": "all",
     "hdris": "hdri",
     "textures": "texture",
     "models": "model",
@@ -111,12 +121,46 @@ plural = {y: x for x, y in singular.items()}
 
 class AssetList:
 
-    def __init__(self):
-        self.update()
+    def __init__(self, list_file: Path, update_list: bool = False, asset_list: dict = {}):
+        self.list_file = list_file
+        if update_list:
+            self.update()
+            return
+
+        # load from file if no list provided
+        if list_file.exists() and not asset_list:
+            with open(list_file, "r") as f:
+                asset_list = json.load(f)
+
+        # if no file found and no list provided, download from interntet
+        if asset_list:
+            self.hdris = asset_list["hdris"]
+            self.textures = asset_list["textures"]
+            self.models = asset_list["models"]
+            self.all = self.hdris | self.textures | self.models
+
+            self.update_categories()
+            print(self.model_categories)
+        else:
+            # Download from the internet
+            self.update()
 
     def update_category(self, url_type: str):
         result = requests.get(f"https://api.polyhaven.com/assets?t={url_type}").json()
         setattr(self, url_type, result)
+
+    def update_categories(self):
+        self.hdri_categories = {c for a in self.hdris.values() for c in a["categories"]}
+        self.hdri_tags = {t for a in self.hdris.values() for t in a["tags"]}
+
+        self.texture_categories = {c for a in self.textures.values() for c in a["categories"]}
+        self.texture_tags = {t for a in self.textures.values() for t in a["tags"]}
+
+        self.model_categories = {c for a in self.models.values() for c in a["categories"]}
+        self.model_tags = {t for a in self.models.values() for t in a["tags"]}
+
+        self.all_categories = self.hdri_categories | self.texture_categories | self.model_categories
+        self.all_tags = self.hdri_tags | self.texture_tags | self.model_tags
 
     def update(self):
         # using threading here is more complicated, but about 2x as fast,
@@ -133,11 +177,17 @@ class AssetList:
 
         self.all = self.hdris | self.textures | self.models
 
+        self.update_categories()
+
+        data = {"hdris": self.hdris, "textures": self.textures, "models": self.models}
+        with open(self.list_file, "w") as f:
+            json.dump(data, f, indent=2)
+
     def get_asset_category(self, asset_name):
         for cat in ["hdris", "textures", "models"]:
             if asset_name in getattr(self, cat):
                 return singular[cat]
-        raise KeyError(f"Asset '{asset_name}' not found in {singular.keys()}")
+        raise KeyError(f"Asset '{asset_name}' not found in {singular.values()}")
 
     def download_n_previews(self, names, reload, load, size=128):
         for name in names:
@@ -198,6 +248,7 @@ class Asset:
         self.download_progress = None
         self.download_max = 0
         self.data = asset_data if asset_data else requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
+        force_ui_update()
         print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
 
     def get_quality_dict(self) -> dict:
@@ -313,7 +364,7 @@ class Asset:
 
         return data_to.materials[0]
 
-    def import_model(self, context: Context, asset_file: Path):
+    def import_model(self, context: Context, asset_file: Path, location=(0, 0, 0)):
         with bpy.data.libraries.load(str(asset_file)) as (data_from, data_to):
             # import objects with the correct name, or if none are found, just import all objects
             found = [obj for obj in data_from.objects if self.name in obj]
@@ -327,6 +378,9 @@ class Asset:
         final_obj = None
         for obj in data_to.objects:
             if obj.type == "MESH":
+                print(obj.location, location)
+                obj.location = obj.location + V(location)
+                print(obj.location)
                 context.scene.collection.objects.link(obj)
                 obj.select_set(True)
                 context.view_layer.objects.active = obj
@@ -335,7 +389,14 @@ class Asset:
                 bpy.data.objects.remove(obj)
         return final_obj
 
-    def import_asset(self, context: Context, quality: str = "1k", reload: bool = False, format: str = ""):
+    def import_asset(
+            self,
+            context: Context,
+            quality: str = "1k",
+            reload: bool = False,
+            format: str = "",
+            location=(0, 0, 0),
+    ):
         update_prop(context.scene.asset_bridge, "import_stage", "DOWNLOADING")
         run_in_main_thread(force_ui_update, ())
 
@@ -343,7 +404,13 @@ class Asset:
         function = getattr(self, "import_" + self.category)
         update_prop(context.scene.asset_bridge, "import_stage", "IMPORTING")
         run_in_main_thread(force_ui_update, ())
-        run_in_main_thread(function, (context, asset_file))
+        if self.category == "hdri":
+            run_in_main_thread(self.import_hdri, (context, asset_file))
+        elif self.category == "texture":
+            run_in_main_thread(self.import_texture, (context, asset_file))
+        elif self.category == "model":
+            print("model:", location)
+            run_in_main_thread(self.import_model, (context, asset_file, location.copy()))
         update_prop(context.scene.asset_bridge, "import_stage", "NONE")
 
 
@@ -360,11 +427,6 @@ def run_in_main_thread(function, args):
     main_thread_queue.put((function, args))
 
 
-def update_prop(data, name, value):
-    """Update a single blender property in the main thread"""
-    run_in_main_thread(setattr, (data, name, value))
-
-
 def main_thread_timer():
     """Go through the functions in the queue and execute them.
     This is checked every n seconds, where n is the return value"""
@@ -375,9 +437,16 @@ def main_thread_timer():
     return 1
 
 
+def update_prop(data, name, value):
+    """Update a single blender property in the main thread"""
+    run_in_main_thread(setattr, (data, name, value))
+
+
 pcolls = {}
 start = perf_counter()
-asset_list = AssetList()
+asset_file = FILES["asset_list"]
+asset_list = AssetList(asset_file)
+
 print(f"Got asset list in: {perf_counter() - start:.3f}s")
 
 
