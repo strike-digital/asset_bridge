@@ -54,10 +54,31 @@ class AB_OT_clear_asset_folder(Operator):
 
 
 @Op("asset_bridge", undo=True)
-class AB_OT_check_for_new_assets(Operator):
+class AB_OT_report_message(Operator):
+
+    severity: StringProperty(default="INFO")
+
+    message: StringProperty(default="")
+
+    def invoke(self, context, event):
+        """The report needs to be done in the modal function otherwise it wont show at the bottom of the screen.
+        For some reason ¯\_(ツ)_/¯"""  # noqa
+        context.window_manager.modal_handler_add(self)
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+        self.report({self.severity}, self.message)
+        return {"FINISHED"}
+
+
+@Op("asset_bridge", undo=True)
+class AB_OT_download_asset_previews(Operator):
 
     def execute(self, context):
-        asset_list.download_all_previews(reload=False)
+        asset_list.update()
+        thread = Thread(target=asset_list.download_all_previews, args=[False])
+        thread.start()
+        # asset_list.download_all_previews(reload=False)
         # subprocess.run([
         #     bpy.app.binary_path,
         #     # FILES["asset_lib_blend"],
@@ -68,5 +89,5 @@ class AB_OT_check_for_new_assets(Operator):
         # ])
 
         # ensure_asset_library()
-        
+
         return {'FINISHED'}

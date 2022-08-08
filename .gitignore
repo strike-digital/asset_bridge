@@ -3,5 +3,9 @@
 *.hdr
 *.exr
 *.png
+!icons/*.png
 *.blend
 *.blend1
+*.pyc
+__pycache__/
+__pycache__/operators.cpython-310.pyc

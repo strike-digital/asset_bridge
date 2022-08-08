@@ -1,3 +1,4 @@
+from functools import partial
 import json
 import os
 from time import perf_counter
@@ -23,16 +24,21 @@ def file_name_from_url(url: str) -> str:
     return url.split('/')[-1].split("?")[0]
 
 
-def ui_update_timer():
-    for area in bpy.context.screen.areas:
-        for region in area.regions:
-            if region.type == "UI":
-                region.tag_redraw()
+def ui_update_timer(all):
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == "PREFERENCES":
+                region_type = "WINDOW"
+            else:
+                region_type = "UI"
+            for region in area.regions:
+                if region.type == region_type or all:
+                    region.tag_redraw()
 
 
-def force_ui_update():
+def force_ui_update(all=False):
     """Sometimes calling tag_redraw doesn't work, but doing it in a timer does"""
-    bpy.app.timers.register(ui_update_timer, first_interval=.00001)
+    bpy.app.timers.register(partial(ui_update_timer, all), first_interval=.00001)
 
 
 def ensure_asset_library():
@@ -42,6 +48,12 @@ def ensure_asset_library():
         bpy.ops.preferences.asset_library_add()
         asset_libs[-1].name = BL_ASSET_LIB_NAME
         asset_libs[-1].path = str(FILES["asset_lib_blend"])
+
+
+def asset_preview_exists(name):
+    """Whether the preview image for this asset exists"""
+    image_path = PREVIEWS_DIR / (name + ".png")
+    return image_path.exists()
 
 
 def download_file(url: str, download_path: Path, file_name: str = ""):
@@ -88,7 +100,8 @@ def download_preview(asset_name, reload=False, size=128, load=True):
     try:
         pcolls["assets"].load(asset_name, str(image_path), path_type="IMAGE")
     except KeyError as e:
-        print(e)
+        pcolls["assets"][asset_name].reload()
+        # print(e)
 
     # We need to update the UI once the preview has been loaded
     force_ui_update()
@@ -192,8 +205,10 @@ class AssetList:
     def download_n_previews(self, names, reload, load, size=128):
         for name in names:
             download_preview(name, reload=reload, size=size, load=load)
+            self.progress.increment()
 
     def download_all_previews(self, reload: bool = False):
+        start = perf_counter()
         directory = PREVIEWS_DIR
         if reload:
             for file in directory.iterdir():
@@ -201,9 +216,15 @@ class AssetList:
 
         files = {f.name.split(".")[0] for f in PREVIEWS_DIR.iterdir()}
         names = {n for n in self.all if n not in files}
+        # names = set(list(names)[:10])
+        ab = bpy.context.scene.asset_bridge
+        self.progress = Progress(len(names), ab, "preview_download_progress")
+        main_thread_timer.interval = .1
+        update_prop(ab, "download_status", "DOWNLOADING_PREVIEWS")
+        force_ui_update()
 
         threads: list[Thread] = []
-        chunk_size = 5
+        chunk_size = 50
         chunked_list = [list(names)[i:i + chunk_size] for i in range(0, len(names), chunk_size)]
         for assets in chunked_list:
             thread = Thread(
@@ -220,20 +241,36 @@ class AssetList:
         for thread in threads:
             thread.join()
 
+        # report the time in the footer bar
+        end = perf_counter()
+        run_in_main_thread(
+            bpy.ops.asset_bridge.report_message,
+            ["INVOKE_DEFAULT"],
+            {"message": f"Downloaded {len(names)} assets in {end-start:.2f} seconds"},
+        )
+
+        update_prop(ab, "download_status", "NONE")
+        force_ui_update()
+        main_thread_timer.interval = 1
+
 
 class Progress:
 
-    def __init__(self, context, max):
+    def __init__(self, max, data, propname):
         self.total = 0
         self.max = max
-        self.ab = context.scene.asset_bridge
-        self.ab.import_progress = 0
+        self.data = data
+        self.propname = propname
+        # setattr(self.data, self.propname, 0)
+        update_prop(self.data, self.propname, 0)
         force_ui_update()
 
     def increment(self, value=1):
         force_ui_update()
         self.total += value
-        self.ab.import_progress = int(self.read())
+        update_prop(self.data, self.propname, int(self.read()))
+        # setattr(self.data, self.propname, int(self.read()))
+        # self.ab.import_progress = int(self.read())
 
     def read(self):
         return self.total / self.max * 100
@@ -293,7 +330,7 @@ class Asset:
             download_max = 1
         else:
             download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
-        self.download_progress = Progress(context, download_max)
+        self.download_progress = Progress(download_max, context.scene.asset_bridge, "import_progress")
 
         asset_dir = DIRS[plural[self.category]]
         asset_path = asset_dir / file_name
@@ -397,12 +434,12 @@ class Asset:
             format: str = "",
             location=(0, 0, 0),
     ):
-        update_prop(context.scene.asset_bridge, "import_stage", "DOWNLOADING")
+        update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING")
         run_in_main_thread(force_ui_update, ())
 
         asset_file = self.download_asset(context, quality, reload, format)
         function = getattr(self, "import_" + self.category)
-        update_prop(context.scene.asset_bridge, "import_stage", "IMPORTING")
+        update_prop(context.scene.asset_bridge, "download_status", "IMPORTING")
         run_in_main_thread(force_ui_update, ())
         if self.category == "hdri":
             run_in_main_thread(self.import_hdri, (context, asset_file))
@@ -411,7 +448,7 @@ class Asset:
         elif self.category == "model":
             print("model:", location)
             run_in_main_thread(self.import_model, (context, asset_file, location.copy()))
-        update_prop(context.scene.asset_bridge, "import_stage", "NONE")
+        update_prop(context.scene.asset_bridge, "download_status", "NONE")
 
 
 # It's a bad idea to modify blend data in arbitrary threads,
@@ -420,21 +457,24 @@ class Asset:
 main_thread_queue = Queue()
 
 
-def run_in_main_thread(function, args):
+def run_in_main_thread(function, args, kwargs={}):
     """Run the given function in the main thread when it is next available.
     This is useful because it is usually a bad idea to modify blend data at arbitrary times on separate threads,
     as this can causes weird error messages, and even crashes."""
-    main_thread_queue.put((function, args))
+    main_thread_queue.put((function, args, kwargs))
 
 
 def main_thread_timer():
     """Go through the functions in the queue and execute them.
     This is checked every n seconds, where n is the return value"""
     while not main_thread_queue.empty():
-        func, args = main_thread_queue.get()
-        print(f"executing function '{func.__name__}' on main thread")
-        func(*args)
-    return 1
+        func, args, kwargs = main_thread_queue.get()
+        # print(f"executing function '{func.__name__}' on main thread")
+        func(*args, **kwargs)
+    return main_thread_timer.interval
+
+
+main_thread_timer.interval = 1
 
 
 def update_prop(data, name, value):

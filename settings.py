@@ -22,18 +22,31 @@ class AssetBridgeSettings(PropertyGroup):
         set=lambda self, value: None,
     )
 
-    import_progress: IntProperty(name="Downloading:", subtype="PERCENTAGE", min=0, max=100)
+    progress = IntProperty(name="Downloading:", subtype="PERCENTAGE", min=0, max=100)
 
-    def import_stage_update(self, context):
+    import_progress: progress
+
+    ui_preview_download_progress: IntProperty(
+        name="Downloading:",
+        subtype="PERCENTAGE",
+        min=0,
+        max=100,
+        get=lambda self: self.preview_download_progress,
+        set=lambda self, value: None,
+    )
+
+    preview_download_progress: progress
+
+    def download_status_update(self, context):
         bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
-    import_stage: EnumProperty(
+    download_status: EnumProperty(
         items=[
             ("NONE", "None", "Not downloading currently"),
-            ("DOWNLOADING", "Downloading", "Downloading the asset from the internet"),
-            ("IMPORTING", "Importing", "Importing the asset from a file"),
+            ("DOWNLOADING_ASSET", "Downloading", "Downloading the asset from the internet"),
+            ("DOWNLOADING_PREVIEWS", "Downloading previews", "Downloading all previews"),
         ],
-        update=import_stage_update,
+        update=download_status_update,
     )
 
     filter_type: EnumProperty(
@@ -45,12 +58,14 @@ class AssetBridgeSettings(PropertyGroup):
         ],
         name="Asset type",
         description="Filter the asset list on only show a specific type",
-        update=lambda self, context: setattr(self, "filter_categories", "ALL")
+        update=lambda self, context: setattr(self, "filter_categories", "ALL"),
     )
 
     def get_filter_categories_items(self, context):
         items = [("ALL", "All", "All")]
-        for cat in getattr(asset_list, singular[self.filter_type] + "_categories"):
+        categories = list(getattr(asset_list, singular[self.filter_type] + "_categories"))
+        categories.sort()
+        for cat in categories:
             items.append((cat, cat.title(), f"Only show assets in the category '{cat}'"))
         return items
 
@@ -73,7 +88,9 @@ class AssetBridgeSettings(PropertyGroup):
         # set=set_filter_categories,
     )
 
-    filter_search: StringProperty(name="Search")
+    filter_search: StringProperty(name="Search",
+                                  description="Search assets based on whether the query is contain in the name or tags",
+                                  options={"TEXTEDIT_UPDATE"})
 
     def get_assets(self):
         items = {}
@@ -86,6 +103,8 @@ class AssetBridgeSettings(PropertyGroup):
                 continue
 
             items[name] = data
+        global asset_len
+        asset_len = len(items)
         return items
 
     def get_asset_name_items(self, context):
@@ -100,6 +119,8 @@ class AssetBridgeSettings(PropertyGroup):
                 image_path = PREVIEWS_DIR / (name + ".png")
                 icon_id = pcoll.load(name, str(image_path), path_type="IMAGE").icon_id
             items.append((name, data["name"], data["name"], icon_id, i))
+        if not items:
+            items.append(("NONE", "", "", 19, self.get_asset_name()))
         return items
 
     def get_asset_name(self):
@@ -138,6 +159,9 @@ class AssetBridgeSettings(PropertyGroup):
 
     def get_asset_quality_items(self, context):
         items = []
+        if self.asset_name == "NONE":
+            return [("1k", "1k", "1k")]
+        # print(self.selected_asset)
         if self.selected_asset:
             quality_levels = self.selected_asset.get_quality_dict()
             for q in sorted(quality_levels.keys(), key=lambda q: int(q[:-1])):
