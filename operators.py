@@ -43,14 +43,14 @@ class AB_OT_import_asset(Operator):
 class AB_OT_set_prop(Operator):
     """Set a blender property with a specific value"""
 
-    description_string: StringProperty(
+    doc_string: StringProperty(
         description="The description to show when the operator is hovered over in the UI",
         default="",
     )
 
     @classmethod
     def description(cls, context, props):
-        return props.description_string
+        return props.doc_string
         # return props["_description"]
 
     data_path: StringProperty(description="The path to the property's parent")
@@ -83,7 +83,21 @@ class AB_OT_clear_asset_folder(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge", undo=True)
+@Op("asset_bridge", register=False)
+class AB_OT_none(Operator):
+    """Do nothing :). Useful for some UI stuff"""
+
+    doc_string: StringProperty()
+
+    @classmethod
+    def description(cls, context, props):
+        return props.doc_string
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+
+@Op("asset_bridge")
 class AB_OT_report_message(Operator):
 
     severity: StringProperty(default="INFO")

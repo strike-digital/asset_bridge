@@ -56,14 +56,31 @@ class AssetBridgeSettings(PropertyGroup):
         options={"HIDDEN", "SKIP_SAVE"},
     )
 
-    def sort_options_items(self, context):
+    def sort_method_items(self, context):
         items = [
             ("NAME", "Name", "Sort assets alphabetically", "SORTALPHA", 0),
             ("DOWNLOADS", "Downloads", "Sort assets by number of downloads", "IMPORT", 1),
+            ("DATE", "Date", "Sort assets by publishing date", "TIME", 2),
         ]
+        if self.filter_type == "hdris":
+            items.append(("EVS", "EVs", "Sort assets by exposure range", "LIGHT_SUN", len(items)))
         return items
 
-    sort_options: EnumProperty(items=sort_options_items)
+    def sort_method_update(self, context):
+        asset_list.sort(self.sort_method, self.sort_ascending)
+        self.asset_name = list(self.get_assets())[0]
+
+    sort_method: EnumProperty(items=sort_method_items, update=sort_method_update)
+
+    sort_order: EnumProperty(
+        items=[
+            ("ASC", "Ascending", "Sort assets in from lowest to highest", "SORT_DESC", 0),
+            ("DESC", "Descending", "Sort assets in from highest to lowest", "SORT_ASC", 1),
+        ],
+        default="DESC",
+        update=sort_method_update,
+    )
+    sort_ascending: BoolProperty(get=lambda self: self.sort_order == "ASC")
 
     filter_type: EnumProperty(
         items=[
@@ -74,10 +91,10 @@ class AssetBridgeSettings(PropertyGroup):
         ],
         name="Asset type",
         description="Filter the asset list on only show a specific type",
-        update=lambda self, context: setattr(self, "filter_categories", "ALL"),
+        update=lambda self, context: setattr(self, "filter_category", "ALL"),
     )
 
-    def filter_categories_items(self, context):
+    def filter_category_items(self, context):
         items = [("ALL", "All", "All")]
         categories = list(getattr(asset_list, singular[self.filter_type] + "_categories"))
         categories.sort()
@@ -85,8 +102,8 @@ class AssetBridgeSettings(PropertyGroup):
             items.append((cat, cat.title(), f"Only show assets in the category '{cat}'"))
         return items
 
-    filter_categories: EnumProperty(
-        items=filter_categories_items,
+    filter_category: EnumProperty(
+        items=filter_category_items,
         name="Asset categories",
         description="Filter the asset list on only show a specific category",
     )
@@ -101,7 +118,7 @@ class AssetBridgeSettings(PropertyGroup):
         items = {}
         assets = getattr(asset_list, self.filter_type)
         search = self.filter_search.lower()
-        category = self.filter_categories
+        category = self.filter_category
         for name, data in assets.items():
             if search not in data["name"].lower() and search not in "@".join(
                     data["tags"]) or (category not in data["categories"] if category != "ALL" else False):
@@ -200,7 +217,7 @@ class AssetBridgeSettings(PropertyGroup):
 
     def info_categories_set(self, value):
         asset_name = self.asset_name
-        self.filter_categories = self.selected_asset.categories[value]
+        self.filter_category = self.selected_asset.categories[value]
         self.asset_name = asset_name
 
     info_categories: EnumProperty(

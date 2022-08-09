@@ -2,7 +2,7 @@ from datetime import datetime
 import bpy
 from bpy.types import Panel, UILayout, Context
 from .operators import AB_OT_import_asset, AB_OT_download_asset_previews
-from .helpers import asset_preview_exists, Asset
+from .helpers import asset_preview_exists, Asset, asset_list
 from .settings import AssetBridgeSettings
 
 
@@ -25,21 +25,33 @@ def draw_download_previews(layout: UILayout):
 
 def draw_info_row(layout: UILayout, label: str, value: str, prop: str = "") -> UILayout:
     row = layout.row(align=True)
-    col1 = row.box().column(align=True)
-    col1.scale_y = .75
+    split = row.split(align=True)
+    col1 = split.box().column(align=True)
     col1.label(text=label)
+    col1.scale_y = .75
     if isinstance(value, str):
         value = [value]
-    col = row.box().column(align=True)
+    col = split.box().column(align=True)
     col.scale_y = col1.scale_y
     for val in value:
-        if not prop:
-            col.label(text="  " + val)
+        row = col.row(align=True)
+        row.alignment = "LEFT"
+        row.label(text=" " + val)
+
+        """This is some magic that places the operator button on top of the label,
+        which allows the text to be left aligned rather than in the center.
+        It works by creating a dummy row above the operator, and then giving it a negative scale,
+        which pushes the operator up to be directly over the text.
+        If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter."""
+        if prop:
+            subcol = col.column(align=True)
+            sub = subcol.column(align=True)
+            sub.scale_y = -1
+            sub.prop(bpy.context.scene.asset_bridge, "sort_ascending")
+            subrow = subcol.row(align=True)
+            op = subrow.operator("asset_bridge.report_message", text="", emboss=False)
         if val != list(value)[0]:
             col1.label(text="")
-    if prop:
-        col.scale_y = col1.scale_y - .025
-        col.prop(bpy.context.scene.asset_bridge, prop, expand=True, emboss=False)
 
 
 class AB_PT_sort_panel(Panel):
@@ -49,14 +61,20 @@ class AB_PT_sort_panel(Panel):
     bl_label = "Sort"
 
     def draw(self, context: Context):
-        layout: UILayout = self.layout.column(align=True)
+        layout: UILayout = self.layout
         ab: AssetBridgeSettings = context.scene.asset_bridge
 
         row = layout.row(align=True)
         split = row.split(align=True, factor=.3)
         split.label(text="Sort by:")
         col = split.column(align=True)
-        col.prop(ab, "sort_options", expand=True)
+        col.prop(ab, "sort_method", expand=True)
+
+        row = layout.row(align=True)
+        split = row.split(align=True, factor=.3)
+        split.label(text="Sort order:")
+        col = split.column(align=True)
+        col.prop(ab, "sort_order", expand=True)
 
 
 class AB_PT_main_panel(Panel):
@@ -75,11 +93,16 @@ class AB_PT_main_panel(Panel):
             if not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS":
                 draw_download_previews(layout)
 
+        # The asset list can't be sorted at register because scene properties can't be accessed,
+        # So sort it here
+        if not asset_list.sorted:
+            asset_list.sort(ab.sort_method, ab.sort_ascending)
+
         col = layout.column(align=False)
         row = col.row(align=True)
         row.scale_y = 1.5
         row.prop(ab, "filter_type", text="")
-        row.prop(ab, "filter_categories", text="")
+        row.prop(ab, "filter_category", text="")
         col.separator(factor=.4)
 
         # Search bar
@@ -88,7 +111,8 @@ class AB_PT_main_panel(Panel):
         width = context.region.width
         button_size_px = 28
         split = row.split(factor=(button_size_px * dpifac()) / width, align=True)
-        split.popover(AB_PT_sort_panel.__name__, text="", icon="SORTSIZE")
+        icon = {i[0]: i[3] for i in ab.sort_method_items(context)}[ab.sort_method]
+        split.popover(AB_PT_sort_panel.__name__, text="", icon=icon)
 
         button_size = (button_size_px * dpifac()) / (width - button_size_px - 3)
         split = split.split(factor=1 - button_size, align=True)

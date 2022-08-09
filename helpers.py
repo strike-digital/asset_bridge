@@ -141,6 +141,7 @@ class AssetList:
 
     def __init__(self, list_file: Path, update_list: bool = False, asset_list: dict = {}):
         self.list_file = list_file
+        self.sorted = False
         if update_list:
             self.update()
             return
@@ -200,28 +201,35 @@ class AssetList:
         with open(self.list_file, "w") as f:
             json.dump(data, f, indent=2)
 
+        self.sorted = False
+
     def sort(self, method: str = "NAME", ascending=False):
 
         if method == "NAME":
-
             def sort(item):
                 return item[0].lower()
-
-            self.hdris = ODict(sorted(self.hdris.items(), key=sort))
-            self.textures = ODict(sorted(self.textures.items(), key=sort))
-            self.models = ODict(sorted(self.models.items(), key=sort))
-
         elif method == "DOWNLOADS":
-
             def sort(item):
                 return item[1]["download_count"]
+        elif method == "DATE":
+            def sort(item):
+                return item[1]["date_published"]
+        elif method == "AUTHOR":
+            def sort(item):
+                return list(item[1]["authors"])[0]
+        elif method == "AUTHOR":
+            def sort(item):
+                return list(item[1]["authors"])[0]
+        elif method == "EVS":
+            def sort(item):
+                return item[1]["evs_cap"]
 
-            self.hdris = ODict(sorted(self.hdris.items(), key=sort, reverse=not ascending))
+        self.hdris = ODict(sorted(self.hdris.items(), key=sort, reverse=not ascending))
+        if method not in {"EVS"}:
             self.textures = ODict(sorted(self.textures.items(), key=sort, reverse=not ascending))
             self.models = ODict(sorted(self.models.items(), key=sort, reverse=not ascending))
-
         self.all = self.hdris | self.textures | self.models
-        # self.all = ODict(sorted(self.all.items(), key=lambda name: name[0]))
+        self.sorted = True
 
     def get_asset_category(self, asset_name):
         data = self.all[asset_name]
@@ -525,20 +533,20 @@ pcolls = {}
 start = perf_counter()
 asset_file = FILES["asset_list"]
 asset_list = AssetList(asset_file)
-asset_list.sort()
 
 print(f"Got asset list in: {perf_counter() - start:.3f}s")
+
+pcoll = previews.new()
+pcolls["assets"] = pcoll
+
+pcoll = previews.new()
+pcolls["icons"] = pcoll
+for file in ICONS_DIR.iterdir():
+    pcoll.load(file.name.split(".")[0], str(file), path_type="IMAGE")
 
 
 def register():
     bpy.app.timers.register(main_thread_timer)
-    pcoll = previews.new()
-    pcolls["assets"] = pcoll
-
-    pcoll = previews.new()
-    pcolls["icons"] = pcoll
-    for file in ICONS_DIR.iterdir():
-        pcoll.load(file.name.split(".")[0], str(file), path_type="IMAGE")
 
 
 def unregister():
