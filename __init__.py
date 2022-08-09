@@ -17,10 +17,10 @@ bl_info = {
     "description": "",
     "blender": (3, 0, 0),
     "version": (0, 0, 1),
-    "location": "",
+    "location": "3D View > N-Panel > Asset Bridge",
     "warning": "",
     "doc_url": "",
-    "category": "Generic",
+    "category": "3D View",
 }
 
 from . import auto_load

@@ -7,6 +7,7 @@ ADDON_DIR = Path(__file__).parent
 PREVIEWS_DIR = ADDON_DIR / "previews"
 DOWNLOADS_DIR = ADDON_DIR / "downloads"
 SCRIPTS_DIR = ADDON_DIR / "scripts"
+ICONS_DIR = ADDON_DIR / "icons"
 
 DIRS = {
     "previews": PREVIEWS_DIR,

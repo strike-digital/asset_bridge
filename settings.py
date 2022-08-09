@@ -3,15 +3,21 @@ from threading import Thread
 import bpy
 from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty)
 from bpy.types import PropertyGroup, Scene
-
+from .vendor import requests
 from .constants import PREVIEWS_DIR
-from .helpers import Asset, asset_list, pcolls, singular
+from .helpers import Asset, asset_list, get_icon, pcolls, singular
 
 _selected_asset = None
 loading_asset = False
 
 
 class AssetBridgeSettings(PropertyGroup):
+
+    show_asset_info: BoolProperty(
+        name="Show asset info",
+        description="Show extra info about this asset",
+        default=False,
+    )
 
     ui_import_progress: IntProperty(
         name="Downloading:",
@@ -47,7 +53,17 @@ class AssetBridgeSettings(PropertyGroup):
             ("DOWNLOADING_PREVIEWS", "Downloading previews", "Downloading all previews"),
         ],
         update=download_status_update,
+        options={"HIDDEN", "SKIP_SAVE"},
     )
+
+    def sort_options_items(self, context):
+        items = [
+            ("NAME", "Name", "Sort assets alphabetically", "SORTALPHA", 0),
+            ("DOWNLOADS", "Downloads", "Sort assets by number of downloads", "IMPORT", 1),
+        ]
+        return items
+
+    sort_options: EnumProperty(items=sort_options_items)
 
     filter_type: EnumProperty(
         items=[
@@ -61,7 +77,7 @@ class AssetBridgeSettings(PropertyGroup):
         update=lambda self, context: setattr(self, "filter_categories", "ALL"),
     )
 
-    def get_filter_categories_items(self, context):
+    def filter_categories_items(self, context):
         items = [("ALL", "All", "All")]
         categories = list(getattr(asset_list, singular[self.filter_type] + "_categories"))
         categories.sort()
@@ -69,28 +85,17 @@ class AssetBridgeSettings(PropertyGroup):
             items.append((cat, cat.title(), f"Only show assets in the category '{cat}'"))
         return items
 
-    # def get_filter_categories(self):
-    #     val = self.get("_filter_categories", 0)
-    #     # getattr(asset_list, singular[self.filter_type] + "_categories")
-    #     # print(0)
-    #     if val < len(getattr(asset_list, singular[self.filter_type] + "_categories")) + 1:
-    #         return val
-    #     return 0
-
-    # def set_filter_categories(self, value):
-    #     self["_filter_categories"] = value
-
     filter_categories: EnumProperty(
-        items=get_filter_categories_items,
+        items=filter_categories_items,
         name="Asset categories",
         description="Filter the asset list on only show a specific category",
-        # get=get_filter_categories,
-        # set=set_filter_categories,
     )
 
-    filter_search: StringProperty(name="Search",
-                                  description="Search assets based on whether the query is contain in the name or tags",
-                                  options={"TEXTEDIT_UPDATE"})
+    filter_search: StringProperty(
+        name="Search",
+        description="Search assets based on whether the query is contain in the name or tags",
+        options={"TEXTEDIT_UPDATE", "HIDDEN"},
+    )
 
     def get_assets(self):
         items = {}
@@ -109,7 +114,6 @@ class AssetBridgeSettings(PropertyGroup):
 
     def get_asset_name_items(self, context):
         items = []
-        # assets = getattr(asset_list, self.filter_type)
         assets = self.get_assets()
         pcoll = pcolls["assets"]
         for i, (name, data) in enumerate(assets.items()):
@@ -119,8 +123,10 @@ class AssetBridgeSettings(PropertyGroup):
                 image_path = PREVIEWS_DIR / (name + ".png")
                 icon_id = pcoll.load(name, str(image_path), path_type="IMAGE").icon_id
             items.append((name, data["name"], data["name"], icon_id, i))
+
+        # Show not found icon
         if not items:
-            items.append(("NONE", "", "", 19, self.get_asset_name()))
+            items.append(("NONE", "", "", get_icon("not_found").icon_id, self.get_asset_name()))
         return items
 
     def get_asset_name(self):
@@ -136,6 +142,8 @@ class AssetBridgeSettings(PropertyGroup):
     def get_selected_asset(self):
         global _selected_asset
         global loading_asset
+        if self.asset_name == "NONE":
+            return None
         if _selected_asset and self.asset_name == _selected_asset.name or loading_asset:
             return _selected_asset
         else:
@@ -155,13 +163,12 @@ class AssetBridgeSettings(PropertyGroup):
             else:
                 return None
 
-    selected_asset = property(get_selected_asset)
+    selected_asset: Asset = property(get_selected_asset)
 
     def get_asset_quality_items(self, context):
         items = []
         if self.asset_name == "NONE":
             return [("1k", "1k", "1k")]
-        # print(self.selected_asset)
         if self.selected_asset:
             quality_levels = self.selected_asset.get_quality_dict()
             for q in sorted(quality_levels.keys(), key=lambda q: int(q[:-1])):
@@ -183,6 +190,59 @@ class AssetBridgeSettings(PropertyGroup):
         description="Whether to redownload the assets files from the internet when it is imported",
     )
 
+    # Info section
+
+    def info_categories_items(self, context):
+        return [(c, c, c) for c in self.selected_asset.categories]
+
+    def info_categories_get(self):
+        return -1
+
+    def info_categories_set(self, value):
+        asset_name = self.asset_name
+        self.filter_categories = self.selected_asset.categories[value]
+        self.asset_name = asset_name
+
+    info_categories: EnumProperty(
+        items=info_categories_items,
+        get=info_categories_get,
+        set=info_categories_set,
+    )
+
+    def info_tags_items(self, context):
+        return [(t, t, t) for t in self.selected_asset.tags]
+
+    def info_tags_set(self, value):
+        asset_name = self.asset_name
+        self.filter_search = self.selected_asset.tags[value]
+        self.asset_name = asset_name
+
+    info_tags: EnumProperty(
+        items=info_tags_items,
+        get=lambda self: -1,
+        set=info_tags_set,
+    )
+
+    def info_authors_items(self, context):
+        return [(a, a, a) for a in self.selected_asset.authors]
+
+    def info_authors_set(self, value):
+        author = list(self.selected_asset.authors)[value]
+        data = requests.get(f"https://api.polyhaven.com/author/{author}").json()
+        if "link" in data:
+            link = data["link"]
+        elif "email" in data:
+            link = "mailto:" + data["email"]
+        else:
+            return
+        bpy.ops.wm.url_open(url=link)
+
+    info_authors: EnumProperty(
+        items=info_authors_items,
+        get=lambda self: -1,
+        set=info_authors_set,
+    )
+
 
 def depsgraph_update_pre_handler(scene: Scene, _):
     remove = []
@@ -190,13 +250,11 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         if obj.is_asset_bridge:
             if tuple(obj.location) == (0., 0., 0.):
                 continue
-            print(obj.location)
             asset = Asset(obj.asset_bridge_name)
             # asset.download_asset(bpy.context)
             asset.import_asset(bpy.context, location=obj.location)
 
             asset_objs = [obj for obj in scene.objects if obj.select_get()]
-            print(asset_objs)
             remove.append(obj)
 
     for obj in remove:

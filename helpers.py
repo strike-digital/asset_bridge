@@ -1,3 +1,4 @@
+from collections import OrderedDict as ODict
 from functools import partial
 import json
 import os
@@ -6,7 +7,7 @@ import bpy
 import shutil
 from pathlib import Path
 from .vendor import requests
-from .constants import BL_ASSET_LIB_NAME, DIRS, FILES, PREVIEWS_DIR
+from .constants import BL_ASSET_LIB_NAME, DIRS, FILES, ICONS_DIR, PREVIEWS_DIR
 from bpy.types import Context, AddonPreferences, Operator
 from bpy.utils import previews
 from threading import Thread
@@ -18,6 +19,10 @@ from queue import Queue
 
 def get_prefs(context: Context) -> AddonPreferences:
     return context.preferences.addons[__package__].preferences
+
+
+def get_icon(name: str):
+    return pcolls["icons"][name]
 
 
 def file_name_from_url(url: str) -> str:
@@ -153,14 +158,13 @@ class AssetList:
             self.all = self.hdris | self.textures | self.models
 
             self.update_categories()
-            print(self.model_categories)
         else:
             # Download from the internet
             self.update()
 
     def update_category(self, url_type: str):
         result = requests.get(f"https://api.polyhaven.com/assets?t={url_type}").json()
-        setattr(self, url_type, result)
+        setattr(self, url_type, ODict(result))
 
     def update_categories(self):
         self.hdri_categories = {c for a in self.hdris.values() for c in a["categories"]}
@@ -188,7 +192,7 @@ class AssetList:
         for thread in threads:
             thread.join()
 
-        self.all = self.hdris | self.textures | self.models
+        self.all: ODict = self.hdris | self.textures | self.models
 
         self.update_categories()
 
@@ -196,11 +200,33 @@ class AssetList:
         with open(self.list_file, "w") as f:
             json.dump(data, f, indent=2)
 
+    def sort(self, method: str = "NAME", ascending=False):
+
+        if method == "NAME":
+
+            def sort(item):
+                return item[0].lower()
+
+            self.hdris = ODict(sorted(self.hdris.items(), key=sort))
+            self.textures = ODict(sorted(self.textures.items(), key=sort))
+            self.models = ODict(sorted(self.models.items(), key=sort))
+
+        elif method == "DOWNLOADS":
+
+            def sort(item):
+                return item[1]["download_count"]
+
+            self.hdris = ODict(sorted(self.hdris.items(), key=sort, reverse=not ascending))
+            self.textures = ODict(sorted(self.textures.items(), key=sort, reverse=not ascending))
+            self.models = ODict(sorted(self.models.items(), key=sort, reverse=not ascending))
+
+        self.all = self.hdris | self.textures | self.models
+        # self.all = ODict(sorted(self.all.items(), key=lambda name: name[0]))
+
     def get_asset_category(self, asset_name):
-        for cat in ["hdris", "textures", "models"]:
-            if asset_name in getattr(self, cat):
-                return singular[cat]
-        raise KeyError(f"Asset '{asset_name}' not found in {singular.values()}")
+        data = self.all[asset_name]
+        types = {0: "hdris", 1: "textures", 2: "models"}
+        return singular[types[data["type"]]]
 
     def download_n_previews(self, names, reload, load, size=128):
         for name in names:
@@ -280,13 +306,31 @@ class Asset:
 
     def __init__(self, asset_name: str, asset_data: dict = {}):
         start = perf_counter()
-        self.category = asset_list.get_asset_category(asset_name)
-        self.name = asset_name
         self.download_progress = None
         self.download_max = 0
+        self.name = asset_name
+        self.update(asset_data)
+        print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
+
+    def update(self, asset_data={}):
+        asset_name = self.name
+        self.category = asset_list.get_asset_category(asset_name)
         self.data = asset_data if asset_data else requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
         force_ui_update()
-        print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
+
+        list_data = asset_list.all[asset_name]
+
+        self.date_published: int = list_data["date_published"]
+        self.categories: list = list_data["categories"]
+        self.tags: list = list_data["tags"]
+        self.authors: dict = ODict(list_data["authors"])
+        self.download_count: int = list_data["download_count"]
+        if self.category == "hdri":
+            self.whitebalance: int = list_data["whitebalance"] if "whitebalance" in list_data else -1
+            self.evs: int = list_data["evs_cap"]
+            self.date_taken: int = list_data["date_taken"]
+        if self.category == "texture":
+            self.dimensions: V = V(list_data["dimensions"])
 
     def get_quality_dict(self) -> dict:
         return self.data["hdri"] if "hdri" in self.data else self.data["blend"]
@@ -415,9 +459,7 @@ class Asset:
         final_obj = None
         for obj in data_to.objects:
             if obj.type == "MESH":
-                print(obj.location, location)
                 obj.location = obj.location + V(location)
-                print(obj.location)
                 context.scene.collection.objects.link(obj)
                 obj.select_set(True)
                 context.view_layer.objects.active = obj
@@ -434,19 +476,16 @@ class Asset:
             format: str = "",
             location=(0, 0, 0),
     ):
-        update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING")
+        update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING_ASSET")
         run_in_main_thread(force_ui_update, ())
 
         asset_file = self.download_asset(context, quality, reload, format)
-        function = getattr(self, "import_" + self.category)
-        update_prop(context.scene.asset_bridge, "download_status", "IMPORTING")
         run_in_main_thread(force_ui_update, ())
         if self.category == "hdri":
             run_in_main_thread(self.import_hdri, (context, asset_file))
         elif self.category == "texture":
             run_in_main_thread(self.import_texture, (context, asset_file))
         elif self.category == "model":
-            print("model:", location)
             run_in_main_thread(self.import_model, (context, asset_file, location.copy()))
         update_prop(context.scene.asset_bridge, "download_status", "NONE")
 
@@ -486,6 +525,7 @@ pcolls = {}
 start = perf_counter()
 asset_file = FILES["asset_list"]
 asset_list = AssetList(asset_file)
+asset_list.sort()
 
 print(f"Got asset list in: {perf_counter() - start:.3f}s")
 
@@ -494,6 +534,11 @@ def register():
     bpy.app.timers.register(main_thread_timer)
     pcoll = previews.new()
     pcolls["assets"] = pcoll
+
+    pcoll = previews.new()
+    pcolls["icons"] = pcoll
+    for file in ICONS_DIR.iterdir():
+        pcoll.load(file.name.split(".")[0], str(file), path_type="IMAGE")
 
 
 def unregister():
