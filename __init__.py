@@ -15,7 +15,7 @@ bl_info = {
     "name": "Asset bridge",
     "author": "Andrew Stevenson",
     "description": "",
-    "blender": (3, 0, 0),
+    "blender": (3, 2, 0),
     "version": (0, 0, 1),
     "location": "3D View > N-Panel > Asset Bridge",
     "warning": "",

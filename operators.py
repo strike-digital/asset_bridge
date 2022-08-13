@@ -26,11 +26,10 @@ class AB_OT_import_asset(Operator):
 
     def execute(self, context):
         ab = context.scene.asset_bridge
-        asset = Asset(self.asset_name if self.asset_name else ab.asset_name)
-        quality = self.asset_quality if self.asset_quality else ab.asset_quality
-        thread = Thread(target=asset.import_asset,
-                        args=(context, quality, self.reload),
-                        kwargs={"location": context.scene.cursor.location})
+        asset = Asset(self.asset_name or ab.asset_name)
+        quality = self.asset_quality or ab.asset_quality
+        thread = Thread(target=asset.import_asset, args=(context, quality, self.reload), kwargs={"location": context.scene.cursor.location})
+
         thread.start()
         for area in context.screen.areas:
             for region in area.regions:

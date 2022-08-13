@@ -36,20 +36,20 @@ def draw_info_row(layout: UILayout, label: str, value: str, prop: str = "") -> U
     for val in value:
         row = col.row(align=True)
         row.alignment = "LEFT"
-        row.label(text=" " + val)
+        row.label(text=f" {val}")
 
-        """This is some magic that places the operator button on top of the label,
-        which allows the text to be left aligned rather than in the center.
-        It works by creating a dummy row above the operator, and then giving it a negative scale,
-        which pushes the operator up to be directly over the text.
-        If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter."""
-        if prop:
-            subcol = col.column(align=True)
-            sub = subcol.column(align=True)
-            sub.scale_y = -1
-            sub.prop(bpy.context.scene.asset_bridge, "sort_ascending")
-            subrow = subcol.row(align=True)
-            op = subrow.operator("asset_bridge.report_message", text="", emboss=False)
+        # """This is some magic that places the operator button on top of the label,
+        # which allows the text to be left aligned rather than in the center.
+        # It works by creating a dummy row above the operator, and then giving it a negative scale,
+        # which pushes the operator up to be directly over the text.
+        # If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter."""
+        # if prop:
+        #     subcol = col.column(align=True)
+        #     sub = subcol.column(align=True)
+        #     sub.scale_y = -1
+        #     sub.prop(bpy.context.scene.asset_bridge, "sort_ascending")
+        #     subrow = subcol.row(align=True)
+        #     op = subrow.operator("asset_bridge.report_message", text="", emboss=False)
         if val != list(value)[0]:
             col1.label(text="")
 

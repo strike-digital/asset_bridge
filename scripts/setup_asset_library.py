@@ -26,7 +26,8 @@ for name, asset in asset_list["models"].items():
     for tag in asset["tags"]:
         obj.asset_data.tags.new(tag)
     with bpy.context.temp_override(id=obj):
-        bpy.ops.ed.lib_id_load_custom_preview(filepath=str(PREVIEWS_DIR / (name + ".png")))
+        bpy.ops.ed.lib_id_load_custom_preview(filepath=str(PREVIEWS_DIR / f"{name}.png"))
+
 
 bpy.ops.wm.save_mainfile(filepath=str(FILES["asset_lib_blend"]))
 bpy.ops.wm.quit_blender()

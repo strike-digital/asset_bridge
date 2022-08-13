@@ -32,10 +32,7 @@ def file_name_from_url(url: str) -> str:
 def ui_update_timer(all):
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
-            if area.type == "PREFERENCES":
-                region_type = "WINDOW"
-            else:
-                region_type = "UI"
+            region_type = "WINDOW" if area.type == "PREFERENCES" else "UI"
             for region in area.regions:
                 if region.type == region_type or all:
                     region.tag_redraw()
@@ -57,7 +54,7 @@ def ensure_asset_library():
 
 def asset_preview_exists(name):
     """Whether the preview image for this asset exists"""
-    image_path = PREVIEWS_DIR / (name + ".png")
+    image_path = PREVIEWS_DIR / f"{name}.png"
     return image_path.exists()
 
 
@@ -65,17 +62,14 @@ def download_file(url: str, download_path: Path, file_name: str = ""):
     """Download an image from the provided url to the given file path"""
     download_path = Path(download_path)
     download_path.mkdir(exist_ok=True)
-    file_name = file_name_from_url(url) if not file_name else file_name
+    file_name = file_name or file_name_from_url(url)
     download_path = download_path / file_name
-
     res = requests.get(url, stream=True)
-
     if res.status_code != 200:
         with open(Path.cwd() / "log.txt", "w") as f:
             f.write(url)
             f.write(res.status_code)
         raise requests.ConnectionError()
-
     with open(download_path, 'wb') as f:
         shutil.copyfileobj(res.raw, f)
     print('File sucessfully Downloaded: ', file_name)
@@ -88,25 +82,19 @@ downloading_previews = {}
 def download_preview(asset_name, reload=False, size=128, load=True):
     downloading_previews[asset_name] = True
     url = f"https://cdn.polyhaven.com/asset_img/thumbs/{asset_name}.png?width={size}&height={size}"
-    file_name = asset_name + ".png"
+
+    file_name = f"{asset_name}.png"
     if not (Path(PREVIEWS_DIR) / file_name).is_file() or reload:
-        # # Remove leftover previews
-        # for file in os.listdir(PREVIEWS_DIR):
-        #     try:
-        #         os.remove(PREVIEWS_DIR / file)
-        #     except PermissionError:
-        #         pass
         download_file(url, PREVIEWS_DIR, file_name)
     image_path = PREVIEWS_DIR / file_name
+
     if not load:
         downloading_previews[asset_name] = False
         return image_path
-
     try:
         pcolls["assets"].load(asset_name, str(image_path), path_type="IMAGE")
     except KeyError as e:
         pcolls["assets"][asset_name].reload()
-        # print(e)
 
     # We need to update the UI once the preview has been loaded
     force_ui_update()
@@ -206,21 +194,28 @@ class AssetList:
     def sort(self, method: str = "NAME", ascending=False):
 
         if method == "NAME":
+            ascending = not ascending
+
             def sort(item):
                 return item[0].lower()
         elif method == "DOWNLOADS":
+
             def sort(item):
                 return item[1]["download_count"]
         elif method == "DATE":
+
             def sort(item):
                 return item[1]["date_published"]
         elif method == "AUTHOR":
+
             def sort(item):
                 return list(item[1]["authors"])[0]
         elif method == "AUTHOR":
+
             def sort(item):
                 return list(item[1]["authors"])[0]
         elif method == "EVS":
+
             def sort(item):
                 return item[1]["evs_cap"]
 
@@ -312,7 +307,9 @@ class Progress:
 
 class Asset:
 
-    def __init__(self, asset_name: str, asset_data: dict = {}):
+    def __init__(self, asset_name: str, asset_data: dict = None):
+        if asset_data is None:
+            asset_data = {}
         start = perf_counter()
         self.download_progress = None
         self.download_max = 0
@@ -320,14 +317,15 @@ class Asset:
         self.update(asset_data)
         print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
 
-    def update(self, asset_data={}):
+    def update(self, asset_data=None):
+        if asset_data is None:
+            asset_data = {}
         asset_name = self.name
         self.category = asset_list.get_asset_category(asset_name)
-        self.data = asset_data if asset_data else requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
+        self.data = asset_data or requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
+
         force_ui_update()
-
         list_data = asset_list.all[asset_name]
-
         self.date_published: int = list_data["date_published"]
         self.categories: list = list_data["categories"]
         self.tags: list = list_data["tags"]
@@ -335,6 +333,7 @@ class Asset:
         self.download_count: int = list_data["download_count"]
         if self.category == "hdri":
             self.whitebalance: int = list_data["whitebalance"] if "whitebalance" in list_data else -1
+
             self.evs: int = list_data["evs_cap"]
             self.date_taken: int = list_data["date_taken"]
         if self.category == "texture":
@@ -345,18 +344,17 @@ class Asset:
 
     def get_texture_urls(self, quality: str) -> list[str]:
         quality_dict = self.get_quality_dict()[quality]
-        urls = [t["url"] for t in quality_dict["blend"]["include"].values()]
-        return urls
+        return [t["url"] for t in quality_dict["blend"]["include"].values()]
+
+    def get_asset_url(self, quality, file_format):
+        quality_dict = self.get_quality_dict()[quality]
+        return quality_dict[file_format]["url"]
 
     def get_blend_url(self, quality: str) -> str:
-        quality_dict = self.get_quality_dict()[quality]
-        url = quality_dict["blend"]["url"]
-        return url
+        return self.get_asset_url(quality, "blend")
 
-    def get_hdri_url(self, quality: str, format: str = "exr") -> str:
-        quality_dict = self.get_quality_dict()[quality]
-        url = quality_dict[format]["url"]
-        return url
+    def get_hdri_url(self, quality: str) -> str:
+        return self.get_asset_url(quality, "exr")
 
     def download_asset_file(self, url, dir, file_name=""):
         if file_name:
@@ -366,52 +364,44 @@ class Asset:
         self.download_progress.increment()
         # bpy.data.window_managers[0].progress_update(self.download_progress)
 
-    def download_asset(self, context: Context, quality: str = "1k", reload: bool = False, format: str = "") -> str:
-        if not format:
-            if self.category == "hdri":
-                format = ".exr"
-            else:
-                format = ".blend"
-        else:
-            if self.category == "hdri":
-                if format not in [".exr", ".hdr"]:
-                    raise ValueError(f"Invalid format: '{format}'")
-        file_name = self.name + format
-
+    def download_asset(self, context: Context, quality: str = "1k", reload: bool = False, file_format: str = "") -> str:
+        if not file_format:
+            file_format = ".exr" if self.category == "hdri" else ".blend"
+        elif self.category == "hdri" and file_format not in [".exr", ".hdr"]:
+            raise ValueError(f"Invalid format: '{file_format}'")
+        file_name = self.name + file_format
         if self.category == "hdri":
             download_max = 1
         else:
             download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
+
         self.download_progress = Progress(download_max, context.scene.asset_bridge, "import_progress")
 
+        # Download the blend file
+        # Using threading here makes this soooo much faster
         asset_dir = DIRS[plural[self.category]]
         asset_path = asset_dir / file_name
         threads = []
         if not asset_path.exists() or reload:
-            # Download the blend file
-            # Using threading here makes this soooo much faster
             if self.category == "hdri":
                 asset_url = self.get_hdri_url(quality)
             else:
                 asset_url = self.get_blend_url(quality)
-
             thread = Thread(target=self.download_asset_file, args=(asset_url, asset_dir, file_name))
+
             threads.append(thread)
             thread.start()
-
-        # Download the textures
         if self.category != "hdri":
             texture_urls = self.get_texture_urls(quality)
-            texture_dir = DIRS[self.category + "_textures"]
+            texture_dir = DIRS[f"{self.category}_textures"]
             for texture_url in texture_urls:
                 if not (texture_dir / file_name_from_url(texture_url)).exists() or reload:
                     thread = Thread(target=self.download_asset_file, args=(texture_url, texture_dir))
+
                     threads.append(thread)
                     thread.start()
-
         for thread in threads:
             thread.join()
-
         return asset_path
 
     def import_hdri(self, context: Context, asset_file: Path):
@@ -444,13 +434,10 @@ class Asset:
                     break
             else:
                 data_to.materials.append(data_from.materials[0])
-
-        obj = context.object
-        if obj:
+        if obj := context.object:
             if not obj.material_slots:
                 obj.data.materials.append(None)
             obj.material_slots[0].material = data_to.materials[0]
-
         return data_to.materials[0]
 
     def import_model(self, context: Context, asset_file: Path, location=(0, 0, 0)):
@@ -504,10 +491,12 @@ class Asset:
 main_thread_queue = Queue()
 
 
-def run_in_main_thread(function, args, kwargs={}):
+def run_in_main_thread(function, args, kwargs=None):
     """Run the given function in the main thread when it is next available.
     This is useful because it is usually a bad idea to modify blend data at arbitrary times on separate threads,
     as this can causes weird error messages, and even crashes."""
+    if kwargs is None:
+        kwargs = {}
     main_thread_queue.put((function, args, kwargs))
 
 
@@ -529,7 +518,6 @@ def update_prop(data, name, value):
     run_in_main_thread(setattr, (data, name, value))
 
 
-pcolls = {}
 start = perf_counter()
 asset_file = FILES["asset_list"]
 asset_list = AssetList(asset_file)
@@ -537,8 +525,7 @@ asset_list = AssetList(asset_file)
 print(f"Got asset list in: {perf_counter() - start:.3f}s")
 
 pcoll = previews.new()
-pcolls["assets"] = pcoll
-
+pcolls = {"assets": pcoll}
 pcoll = previews.new()
 pcolls["icons"] = pcoll
 for file in ICONS_DIR.iterdir():
@@ -613,14 +600,9 @@ class Op():
     def __call__(self, cls):
         """This takes the decorated class and populate's the bl_ attributes with either the supplied values,
         or a best guess based on the other values"""
-
         cls_name_end = cls.__name__.split("OT_")[-1]
-        idname = self.category + "." + (self.idname if self.idname else cls_name_end)
-
-        if self.label:
-            label = self.label
-        else:
-            label = cls_name_end.replace("_", " ").title()
+        idname = f"{self.category}." + (self.idname or cls_name_end)
+        label = self.label or cls_name_end.replace("_", " ").title()
 
         if self.description:
             description = self.description
@@ -641,28 +623,22 @@ class Op():
             "PRESET": self.preset,
             "MACRO": self.macro,
         }
-        options = {k for k, v in options.items() if v}
 
+        options = {k for k, v in options.items() if v}
         if hasattr(cls, "bl_options"):
             options = options.union(cls.bl_options)
-
-        if self.logging == -1:
-            log = self._logging
-        else:
-            log = bool(self.logging)
+        log = self._logging if self.logging == -1 else bool(self.logging)
 
         class Wrapped(cls, Operator):
             bl_idname = idname
             bl_label = label
             bl_description = description
             bl_options = options
-
             if self.invoke:
 
                 def invoke(_self, context, event):
                     """Here we can log whenever an operator using this decorator is invoked"""
                     if log:
-                        # I could use the actual logging module here, but I can't be bothered.
                         print(f"Invoke: {idname}")
                     if hasattr(super(), "invoke"):
                         return super().invoke(context, event)

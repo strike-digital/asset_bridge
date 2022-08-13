@@ -96,10 +96,10 @@ class AssetBridgeSettings(PropertyGroup):
 
     def filter_category_items(self, context):
         items = [("ALL", "All", "All")]
-        categories = list(getattr(asset_list, singular[self.filter_type] + "_categories"))
-        categories.sort()
-        for cat in categories:
-            items.append((cat, cat.title(), f"Only show assets in the category '{cat}'"))
+        categories = sorted(getattr(asset_list, f"{singular[self.filter_type]}_categories"))
+
+        items.extend((cat, cat.title(), f"Only show assets in the category '{cat}'") for cat in categories)
+
         return items
 
     filter_category: EnumProperty(
@@ -137,13 +137,12 @@ class AssetBridgeSettings(PropertyGroup):
             if name in pcoll:
                 icon_id = pcoll[name].icon_id
             else:
-                image_path = PREVIEWS_DIR / (name + ".png")
+                image_path = PREVIEWS_DIR / f"{name}.png"
                 icon_id = pcoll.load(name, str(image_path), path_type="IMAGE").icon_id
             items.append((name, data["name"], data["name"], icon_id, i))
-
-        # Show not found icon
         if not items:
             items.append(("NONE", "", "", get_icon("not_found").icon_id, self.get_asset_name()))
+
         return items
 
     def get_asset_name(self):
@@ -163,22 +162,21 @@ class AssetBridgeSettings(PropertyGroup):
             return None
         if _selected_asset and self.asset_name == _selected_asset.name or loading_asset:
             return _selected_asset
+
+        if self.asset_name:
+            loading_asset = True
+
+            def get_asset_info():
+                """Load the asset info from the internet in another thread"""
+                global loading_asset
+                global _selected_asset
+                _selected_asset = Asset(self.asset_name)
+                loading_asset = False
+
+            thread = Thread(target=get_asset_info)
+            thread.start()
         else:
-            if self.asset_name:
-                loading_asset = True
-
-                def get_asset_info():
-                    """Load the asset info from the internet in another thread"""
-                    global loading_asset
-                    global _selected_asset
-                    _selected_asset = Asset(self.asset_name)
-                    loading_asset = False
-
-                thread = Thread(target=get_asset_info)
-                thread.start()
-                # _selected_asset = Asset(self.asset_name)
-            else:
-                return None
+            return None
 
     selected_asset: Asset = property(get_selected_asset)
 
@@ -188,8 +186,9 @@ class AssetBridgeSettings(PropertyGroup):
             return [("1k", "1k", "1k")]
         if self.selected_asset:
             quality_levels = self.selected_asset.get_quality_dict()
-            for q in sorted(quality_levels.keys(), key=lambda q: int(q[:-1])):
-                items.append((q, q, f"Load this asset at {q} resolution."))
+            levels = sorted(quality_levels.keys(), key=lambda q: int(q[:-1]))
+            items.extend((q, q, f"Load this asset at {q} resolution.") for q in levels)
+
         return items
 
     def get_asset_quality(self):
