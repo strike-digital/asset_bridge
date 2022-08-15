@@ -9,6 +9,7 @@ from pathlib import Path
 from .vendor import requests
 from .constants import BL_ASSET_LIB_NAME, DIRS, FILES, ICONS_DIR, PREVIEWS_DIR
 from bpy.types import Context, AddonPreferences, Operator
+from bpy.props import StringProperty
 from bpy.utils import previews
 from threading import Thread
 from mathutils import Vector as V
@@ -132,6 +133,7 @@ class AssetList:
         self.sorted = False
         if update_list:
             self.update()
+
             return
 
         # load from file if no list provided
@@ -556,6 +558,7 @@ class Op():
         `idname` (str): The second part of the name used to call the operator (e.g. "select_all" in "object.select_all")
         `label` (str): The name of the operator that is displayed in the UI.
         `description` (str): The description of the operator that is displayed in the UI.
+        `dynamic_description` (bool): Whether to automatically allow bl_description to be altered from the UI.
         `register` (bool): Whether to display the operator in the info window and support the redo panel.
         `undo` (bool): Whether to push an undo step after the operator is executed.
         `undo_grouped` (bool): Whether to group multiple consecutive executions of the operator into one undo step.
@@ -582,6 +585,7 @@ class Op():
     idname: str = ""
     label: str = ""
     description: str = ""
+    dynamic_description: bool = True
     invoke: bool = True
     register: bool = True
     undo: bool = False
@@ -605,11 +609,11 @@ class Op():
         label = self.label or cls_name_end.replace("_", " ").title()
 
         if self.description:
-            description = self.description
+            op_description = self.description
         elif cls.__doc__:
-            description = cls.__doc__
+            op_description = cls.__doc__
         else:
-            description = label
+            op_description = label
 
         options = {
             "REGISTER": self.register,
@@ -632,8 +636,17 @@ class Op():
         class Wrapped(cls, Operator):
             bl_idname = idname
             bl_label = label
-            bl_description = description
             bl_options = options
+
+            if self.dynamic_description:
+                bl_description: StringProperty(default=op_description)
+
+                @classmethod
+                def description(cls, context, props):
+                    return props.bl_description
+            else:
+                bl_description = op_description
+
             if self.invoke:
 
                 def invoke(_self, context, event):
@@ -645,6 +658,6 @@ class Op():
                     else:
                         return _self.execute(context)
 
-        Wrapped.__doc__ = description
+        Wrapped.__doc__ = op_description
         Wrapped.__name__ = cls.__name__
         return Wrapped

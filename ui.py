@@ -1,7 +1,7 @@
 from datetime import datetime
 import bpy
 from bpy.types import Panel, UILayout, Context
-from .operators import AB_OT_import_asset, AB_OT_download_asset_previews
+from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website, AB_OT_set_ab_prop
 from .helpers import asset_preview_exists, Asset, asset_list
 from .settings import AssetBridgeSettings
 
@@ -23,35 +23,46 @@ def draw_download_previews(layout: UILayout):
     return layout
 
 
-def draw_info_row(layout: UILayout, label: str, value: str, prop: str = "") -> UILayout:
+def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "") -> UILayout:
     row = layout.row(align=True)
     split = row.split(align=True)
-    col1 = split.box().column(align=True)
-    col1.label(text=label)
-    col1.scale_y = .75
-    if isinstance(value, str):
-        value = [value]
-    col = split.box().column(align=True)
-    col.scale_y = col1.scale_y
-    for val in value:
-        row = col.row(align=True)
-        row.alignment = "LEFT"
-        row.label(text=f" {val}")
-
-        # """This is some magic that places the operator button on top of the label,
-        # which allows the text to be left aligned rather than in the center.
-        # It works by creating a dummy row above the operator, and then giving it a negative scale,
-        # which pushes the operator up to be directly over the text.
-        # If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter."""
-        # if prop:
-        #     subcol = col.column(align=True)
-        #     sub = subcol.column(align=True)
-        #     sub.scale_y = -1
-        #     sub.prop(bpy.context.scene.asset_bridge, "sort_ascending")
-        #     subrow = subcol.row(align=True)
-        #     op = subrow.operator("asset_bridge.report_message", text="", emboss=False)
-        if val != list(value)[0]:
-            col1.label(text="")
+    left = split.box().column(align=True)
+    left.label(text=label)
+    left.scale_y = .75
+    if isinstance(values, str):
+        values = [values]
+    right_row = split.box().row(align=True)
+    right = right_row.column(align=True)
+    right.scale_y = left.scale_y
+    ops = []
+    for val in values:
+        right.alignment = "LEFT"
+        right.label(text=f" {val}")
+        # if operator:
+        #     subrow = row.row(align=True)
+        #     subrow.alignment = "RIGHT"
+        #     subrow.active = False
+        #     op = subrow.operator(operator, text="", emboss=False, icon=icon)
+        """This is some magic that places the operator button on top of the label,
+        which allows the text to be left aligned rather than in the center.
+        It works by creating a dummy row above the operator, and then giving it a negative scale,
+        which pushes the operator up to be directly over the text.
+        If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter."""
+        if operator:
+            subcol = right.column(align=True)
+            sub = subcol.column(align=True)
+            sub.scale_y = -1
+            sub.prop(bpy.context.scene.asset_bridge, "sort_ascending")
+            subrow = subcol.row(align=True)
+            op = subrow.operator(operator, text="", emboss=True)
+            ops.append(op)
+        if val != list(values)[0]:
+            left.label(text="")
+    # col = right_row.column(align=True)
+    # col.alignment = "RIGHT"
+    # col.scale_y = left.scale_y
+    # col.active = False
+    return ops
 
 
 class AB_PT_sort_panel(Panel):
@@ -89,9 +100,8 @@ class AB_PT_main_panel(Panel):
         ab: AssetBridgeSettings = context.scene.asset_bridge
 
         asset_found = ab.asset_name != "NONE"
-        if asset_found:
-            if not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS":
-                draw_download_previews(layout)
+        if asset_found and (not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS"):
+            draw_download_previews(layout)
 
         # The asset list can't be sorted at register because scene properties can't be accessed,
         # So sort it here
@@ -111,6 +121,7 @@ class AB_PT_main_panel(Panel):
         width = context.region.width
         button_size_px = 28
         split = row.split(factor=(button_size_px * dpifac()) / width, align=True)
+        # if ab.sort_method:
         icon = {i[0]: i[3] for i in ab.sort_method_items(context)}[ab.sort_method]
         split.popover(AB_PT_sort_panel.__name__, text="", icon=icon)
 
@@ -144,16 +155,48 @@ class AB_PT_main_panel(Panel):
         if ab.show_asset_info:
             asset: Asset = ab.selected_asset
             if asset:
+                emboss = False
                 box = col.box().column(align=True)
-                date_text = datetime.fromtimestamp(asset.date_published).strftime(format="%d/%m/%Y")
+
+                # Authors
                 suffix = "s" if len(asset.authors) > 1 else ""
-                draw_info_row(box, f"Author{suffix}:", asset.authors.keys(), prop="info_authors")
-                draw_info_row(box, "Downloads:", [f"{asset.download_count:,}"])
+                ops = draw_info_row(
+                    box,
+                    f"Author{suffix}:",
+                    asset.authors.keys(),
+                    operator=AB_OT_open_author_website.bl_idname,
+                )
+                for author, op in zip(asset.authors, ops):
+                    op.author_name = author
+                    op.bl_description = f"Open {author}'s website"
+
+                op = draw_info_row(
+                    box,
+                    "Downloads:",
+                    [f"{asset.download_count:,}"],
+                    # operator=AB_OT_set_ab_prop.bl_idname,
+                )
+                # op.prop_name = "sort_method"
+                # op.value = "DOWNLOADS"
+                # op.bl_description = "Sort assets by number of downloads"
+                # op.message = "Sorting assets by number of downloads"
+                # row = col.row(align=True)
+                # row.alignment = "RIGHT"
+                # op: AB_OT_set_ab_prop = row.operator(
+                #     AB_OT_set_ab_prop.bl_idname,
+                #     text="",
+                #     icon="SORTSIZE",
+                #     emboss=emboss,
+                # )
+                # op.prop_name = "sort_method"
+                # op.value = "DOWNLOADS"
+                # op.bl_description = "Sort assets by downloads"
+
                 if hasattr(asset, "dimensions"):
                     # Show dimensions in metric or imperial units depending on scene settings.
                     # This is my gift to the americans, burmese and the liberians of the world.
                     unit_system = context.scene.unit_settings.system
-                    if unit_system == "METRIC" or unit_system == "NONE":
+                    if unit_system in ["METRIC", "NONE"]:
                         coefficient = 1
                         suffix = "m"
                     else:
@@ -166,19 +209,19 @@ class AB_PT_main_panel(Panel):
                 if hasattr(asset, "evs"):
                     draw_info_row(box, "EVs:", str(asset.evs))
                 if hasattr(asset, "whitebalance"):
-                    draw_info_row(box, "Whitebalance:", str(asset.whitebalance) + "K")
+                    draw_info_row(box, "Whitebalance:", f"{str(asset.whitebalance)}K")
 
+                date_text = datetime.fromtimestamp(asset.date_published).strftime(format="%d/%m/%Y")
                 draw_info_row(box, "Date published:", date_text)
                 if hasattr(asset, "date_taken"):
                     date_text = datetime.fromtimestamp(asset.date_taken).strftime(format="%d/%m/%Y")
                     draw_info_row(box, "Date taken:", date_text)
 
                 suffix = "ies" if len(asset.categories) > 1 else "y"
-                draw_info_row(box, f"Categor{suffix}:", asset.categories, prop="info_categories")
+                draw_info_row(box, f"Categor{suffix}:", asset.categories)
 
                 suffix = "s" if len(asset.tags) > 1 else ""
-                draw_info_row(box, f"Tag{suffix}:", asset.tags, prop="info_tags")
-                # draw_info_row(box, f"Categor{suffix}:", asset.tags, prop="info_categories")
+                draw_info_row(box, f"Tag{suffix}:", asset.tags)
 
         row = layout.row(align=True)
         row.enabled = asset_found

@@ -1,6 +1,8 @@
 import os
+import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty, BoolProperty
+from .vendor import requests
 from .constants import DOWNLOADS_DIR
 from .helpers import Asset, Op, asset_list
 from threading import Thread
@@ -8,6 +10,7 @@ from threading import Thread
 
 @Op("asset_bridge", undo=True)
 class AB_OT_import_asset(Operator):
+    """Import the given asset into the current scene"""
 
     asset_name: StringProperty(
         description="The name of the asset to import. Leave empty to import the currently selected asset",
@@ -28,7 +31,11 @@ class AB_OT_import_asset(Operator):
         ab = context.scene.asset_bridge
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
-        thread = Thread(target=asset.import_asset, args=(context, quality, self.reload), kwargs={"location": context.scene.cursor.location})
+        thread = Thread(
+            target=asset.import_asset,
+            args=(context, quality, self.reload),
+            kwargs={"location": context.scene.cursor.location},
+        )
 
         thread.start()
         for area in context.screen.areas:
@@ -42,16 +49,6 @@ class AB_OT_import_asset(Operator):
 class AB_OT_set_prop(Operator):
     """Set a blender property with a specific value"""
 
-    doc_string: StringProperty(
-        description="The description to show when the operator is hovered over in the UI",
-        default="",
-    )
-
-    @classmethod
-    def description(cls, context, props):
-        return props.doc_string
-        # return props["_description"]
-
     data_path: StringProperty(description="The path to the property's parent")
 
     prop_name: StringProperty(description="The name of the property to set")
@@ -63,8 +60,30 @@ class AB_OT_set_prop(Operator):
     def execute(self, context):
         # I know people hate eval(), but is it really dangerous here?
         # if you downloaded this addon then it's already executing arbitrary code.
-        value = eval(value) if self.eval_value else self.value
+        value = eval(self.value) if self.eval_value else self.value
         setattr(eval(self.data_path), self.prop_name, value)
+        return {'FINISHED'}
+
+
+@Op("asset_bridge")
+class AB_OT_set_ab_prop(Operator):
+    """Set an asset bridge property with a specific value"""
+
+    prop_name: StringProperty(description="The name of the property to set")
+
+    value: StringProperty(description="The value to set the property to")
+
+    eval_value: BoolProperty(default=False, description="Whether to evaluate the value, or keep it as a string")
+
+    message: StringProperty(description="A message to report once the property has been changed")
+
+    def execute(self, context):
+        # I know people hate eval(), but is it really dangerous here?
+        # if you downloaded this addon then it's already executing arbitrary code.
+        value = eval(self.value) if self.eval_value else self.value
+        setattr(context.scene.asset_bridge, self.prop_name, value)
+        if self.message:
+            self.report({"INFO"}, self.message)
         return {'FINISHED'}
 
 
@@ -85,12 +104,6 @@ class AB_OT_clear_asset_folder(Operator):
 @Op("asset_bridge", register=False)
 class AB_OT_none(Operator):
     """Do nothing :). Useful for some UI stuff"""
-
-    doc_string: StringProperty()
-
-    @classmethod
-    def description(cls, context, props):
-        return props.doc_string
 
     def execute(self, context):
         return {"FINISHED"}
@@ -114,7 +127,7 @@ class AB_OT_report_message(Operator):
         return {"FINISHED"}
 
 
-@Op("asset_bridge", undo=True)
+@Op("asset_bridge")
 class AB_OT_download_asset_previews(Operator):
 
     def execute(self, context):
@@ -133,4 +146,32 @@ class AB_OT_download_asset_previews(Operator):
 
         # ensure_asset_library()
 
+        return {'FINISHED'}
+
+
+@Op("asset_bridge")
+class AB_OT_set_category(Operator):
+
+    category_name: StringProperty()
+
+    def execute(self, context):
+        
+        return {'FINISHED'}
+
+
+@Op("asset_bridge")
+class AB_OT_open_author_website(Operator):
+    """Open the website of the given author"""
+
+    author_name: StringProperty()
+
+    def execute(self, context):
+        data = requests.get(f"https://api.polyhaven.com/author/{self.author_name}").json()
+        if "link" in data:
+            link = data["link"]
+        elif "email" in data:
+            link = "mailto:" + data["email"]
+        else:
+            return
+        bpy.ops.wm.url_open(url=link)
         return {'FINISHED'}

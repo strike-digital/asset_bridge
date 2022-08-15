@@ -69,8 +69,20 @@ class AssetBridgeSettings(PropertyGroup):
     def sort_method_update(self, context):
         asset_list.sort(self.sort_method, self.sort_ascending)
         self.asset_name = list(self.get_assets())[0]
+        context.region.tag_redraw()
 
-    sort_method: EnumProperty(items=sort_method_items, update=sort_method_update)
+    def sort_method_get(self):
+        return min(self.get("_sort_method", 0), len(self.sort_method_items(bpy.context)) - 1)
+
+    def sort_method_set(self, value):
+        self["_sort_method"] = value
+
+    sort_method: EnumProperty(
+        items=sort_method_items,
+        update=sort_method_update,
+        get=sort_method_get,
+        set=sort_method_set,
+    )
 
     sort_order: EnumProperty(
         items=[
