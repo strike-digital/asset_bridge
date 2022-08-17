@@ -7,4 +7,5 @@
 *.blend
 *.blend1
 *.pyc
+asset_list.json
 __pycache__/
