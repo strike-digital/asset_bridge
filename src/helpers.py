@@ -1,20 +1,22 @@
-from collections import OrderedDict as ODict
-from functools import partial
-import json
 import os
-from time import perf_counter
-import bpy
+import json
 import shutil
+from queue import Queue
 from pathlib import Path
+from threading import Thread
+from time import perf_counter
+from functools import partial
+from dataclasses import dataclass
+from collections import OrderedDict as ODict
+
+import bpy
+from bpy.utils import previews
+from mathutils import Vector as V
+from bpy.props import StringProperty
+from bpy.types import AddonPreferences, Context, Operator
+
 from .vendor import requests
 from .constants import ADDON_DIR, BL_ASSET_LIB_NAME, DIRS, FILES, ICONS_DIR, PREVIEWS_DIR
-from bpy.types import Context, AddonPreferences, Operator
-from bpy.props import StringProperty
-from bpy.utils import previews
-from threading import Thread
-from mathutils import Vector as V
-from dataclasses import dataclass
-from queue import Queue
 """I apologise if you have to try and understand this mess."""
 
 

@@ -1,11 +1,13 @@
 import os
+from threading import Thread
+
 import bpy
 from bpy.types import Operator
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import BoolProperty, StringProperty
+
 from .vendor import requests
 from .constants import DOWNLOADS_DIR
 from .helpers import Asset, Op, asset_list
-from threading import Thread
 
 
 @Op("asset_bridge", undo=True)

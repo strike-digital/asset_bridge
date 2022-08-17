@@ -8,4 +8,5 @@
 *.blend1
 *.pyc
 asset_list.json
+build.py
 __pycache__/

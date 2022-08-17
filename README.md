@@ -6,3 +6,4 @@ Currently the addon works with [PolyHaven](https://polyhaven.com), which gives i
 
 If there's enough interest I might also try to add support for other free websites as well, such as [AmbientCG](https://ambientcg.com/) and [CGBookcase](https://www.cgbookcase.com/)
 
+![The main addon UI](images/ui.jpg)
