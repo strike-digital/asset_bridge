@@ -103,6 +103,7 @@ class AssetBridgeSettings(PropertyGroup):
         ],
         name="Asset type",
         description="Filter the asset list on only show a specific type",
+        default="hdris",
         update=lambda self, context: setattr(self, "filter_category", "ALL"),
     )
 
@@ -154,7 +155,6 @@ class AssetBridgeSettings(PropertyGroup):
             items.append((name, data["name"], data["name"], icon_id, i))
         if not items:
             items.append(("NONE", "", "", get_icon("not_found").icon_id, self.get_asset_name()))
-
         return items
 
     def get_asset_name(self):

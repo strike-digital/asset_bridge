@@ -7,7 +7,7 @@ import bpy
 import shutil
 from pathlib import Path
 from .vendor import requests
-from .constants import BL_ASSET_LIB_NAME, DIRS, FILES, ICONS_DIR, PREVIEWS_DIR
+from .constants import ADDON_DIR, BL_ASSET_LIB_NAME, DIRS, FILES, ICONS_DIR, PREVIEWS_DIR
 from bpy.types import Context, AddonPreferences, Operator
 from bpy.props import StringProperty
 from bpy.utils import previews
@@ -67,10 +67,11 @@ def download_file(url: str, download_path: Path, file_name: str = ""):
     download_path = download_path / file_name
     res = requests.get(url, stream=True)
     if res.status_code != 200:
-        with open(Path.cwd() / "log.txt", "w") as f:
+        with open(ADDON_DIR / "log.txt", "w") as f:
             f.write(url)
             f.write(res.status_code)
         raise requests.ConnectionError()
+
     with open(download_path, 'wb') as f:
         shutil.copyfileobj(res.raw, f)
     print('File sucessfully Downloaded: ', file_name)
@@ -313,11 +314,15 @@ class Asset:
         if asset_data is None:
             asset_data = {}
         start = perf_counter()
+        self.asset_webpage_url = f"https://polyhaven.com/a/{asset_name}"
         self.download_progress = None
         self.download_max = 0
         self.name = asset_name
         self.update(asset_data)
         print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
+
+    # @property
+    # def is_downloaded(self):
 
     def update(self, asset_data=None):
         if asset_data is None:
@@ -325,6 +330,11 @@ class Asset:
         asset_name = self.name
         self.category = asset_list.get_asset_category(asset_name)
         self.data = asset_data or requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
+        self.download_dir = download = DIRS[plural[self.category]]
+        self.file_paths = {
+            q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}"
+            for q in self.get_quality_dict()
+        }
 
         force_ui_update()
         list_data = asset_list.all[asset_name]
@@ -340,6 +350,9 @@ class Asset:
             self.date_taken: int = list_data["date_taken"]
         if self.category == "texture":
             self.dimensions: V = V(list_data["dimensions"])
+
+    def get_file_path(self, quality):
+        return self.file_paths[quality]
 
     def get_quality_dict(self) -> dict:
         return self.data["hdri"] if "hdri" in self.data else self.data["blend"]
@@ -366,12 +379,7 @@ class Asset:
         self.download_progress.increment()
         # bpy.data.window_managers[0].progress_update(self.download_progress)
 
-    def download_asset(self, context: Context, quality: str = "1k", reload: bool = False, file_format: str = "") -> str:
-        if not file_format:
-            file_format = ".exr" if self.category == "hdri" else ".blend"
-        elif self.category == "hdri" and file_format not in [".exr", ".hdr"]:
-            raise ValueError(f"Invalid format: '{file_format}'")
-        file_name = self.name + file_format
+    def download_asset(self, context: Context, quality: str = "1k", reload: bool = False, format="") -> str:
         if self.category == "hdri":
             download_max = 1
         else:
@@ -381,8 +389,9 @@ class Asset:
 
         # Download the blend file
         # Using threading here makes this soooo much faster
-        asset_dir = DIRS[plural[self.category]]
-        asset_path = asset_dir / file_name
+        asset_path = self.get_file_path(quality)
+        file_name = asset_path.name
+        asset_dir = asset_path.parent
         threads = []
         if not asset_path.exists() or reload:
             if self.category == "hdri":
@@ -643,7 +652,10 @@ class Op():
 
                 @classmethod
                 def description(cls, context, props):
-                    return props.bl_description
+                    if props:
+                        return props.bl_description
+                    else:
+                        return op_description
             else:
                 bl_description = op_description
 

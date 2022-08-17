@@ -17,10 +17,12 @@ class AddonPreferences(AddonPreferences):
 
         row = layout.row(align=True)
         row.scale_y = 1.5
-        row.operator(AB_OT_clear_asset_folder.bl_idname)
-        op: AB_OT_set_prop = row.operator(AB_OT_set_prop.bl_idname, text="Reset download progress")
-        op.data_path = "context.scene.asset_bridge"
-        op.prop_name = "download_status"
-        op.value = "NONE"
-        op.eval_value = False
-        op.doc_string = "Reset the download progress bar in case of an error causing it to get stuck"
+        draw_download_previews(row, reload=True)
+        row.operator(AB_OT_clear_asset_folder.bl_idname, icon="FILE_REFRESH")
+        if context.scene.asset_bridge.download_status != "NONE":
+            op: AB_OT_set_prop = row.operator(AB_OT_set_prop.bl_idname, text="Reset download progress")
+            op.data_path = "context.scene.asset_bridge"
+            op.prop_name = "download_status"
+            op.value = "NONE"
+            op.eval_value = False
+            op.bl_description = "Reset the download progress bar in case of an error causing it to get stuck"

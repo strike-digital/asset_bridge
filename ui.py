@@ -1,7 +1,7 @@
 from datetime import datetime
 import bpy
 from bpy.types import Panel, UILayout, Context
-from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website, AB_OT_set_ab_prop
+from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website
 from .helpers import asset_preview_exists, Asset, asset_list
 from .settings import AssetBridgeSettings
 
@@ -12,18 +12,26 @@ def dpifac() -> float:
     return prefs.dpi * prefs.pixel_size / 72  # Why 72?
 
 
-def draw_download_previews(layout: UILayout):
-    layout = layout.box().column()
-    layout.scale_y = 1.5
+def draw_download_previews(layout: UILayout, reload: bool = False):
+    if not reload:
+        layout = layout.box().column()
+        layout.scale_y = 1.5
+
     ab = bpy.context.scene.asset_bridge
     if ab.download_status == "DOWNLOADING_PREVIEWS":
         layout.prop(ab, "preview_download_progress", text="Downloading")
     else:
-        layout.operator(AB_OT_download_asset_previews.bl_idname, icon="IMPORT")
+        if reload:
+            op = layout.operator(AB_OT_download_asset_previews.bl_idname, icon="IMPORT", text="Check for new assets")
+        else:
+            op = layout.operator(AB_OT_download_asset_previews.bl_idname, icon="IMPORT")
+        op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes\
+            depending on internet access."
+
     return layout
 
 
-def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "") -> UILayout:
+def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "", icon="NONE") -> UILayout:
     row = layout.row(align=True)
     split = row.split(align=True)
     left = split.box().column(align=True)
@@ -37,7 +45,7 @@ def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "")
     ops = []
     for val in values:
         right.alignment = "LEFT"
-        right.label(text=f" {val}")
+        right.label(text=f" {val}", icon=icon)
         # if operator:
         #     subrow = row.row(align=True)
         #     subrow.alignment = "RIGHT"
@@ -102,6 +110,7 @@ class AB_PT_main_panel(Panel):
         asset_found = ab.asset_name != "NONE"
         if asset_found and (not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS"):
             draw_download_previews(layout)
+            return
 
         # The asset list can't be sorted at register because scene properties can't be accessed,
         # So sort it here
@@ -152,88 +161,99 @@ class AB_PT_main_panel(Panel):
         row.prop(ab, "asset_quality", text="")
 
         # Asset info
-        if ab.show_asset_info:
-            asset: Asset = ab.selected_asset
-            if asset:
-                emboss = False
-                box = col.box().column(align=True)
+        asset: Asset = ab.selected_asset
+        if ab.show_asset_info and asset:
+            box = col.box().column(align=True)
 
-                # Authors
-                suffix = "s" if len(asset.authors) > 1 else ""
-                ops = draw_info_row(
-                    box,
-                    f"Author{suffix}:",
-                    asset.authors.keys(),
-                    operator=AB_OT_open_author_website.bl_idname,
-                )
-                for author, op in zip(asset.authors, ops):
-                    op.author_name = author
-                    op.bl_description = f"Open {author}'s website"
+            # Authors
+            suffix = "s" if len(asset.authors) > 1 else ""
+            ops = draw_info_row(
+                box,
+                f"Author{suffix}:",
+                asset.authors.keys(),
+                operator=AB_OT_open_author_website.bl_idname,
+            )
+            for author, op in zip(asset.authors, ops):
+                op.author_name = author
+                op.bl_description = f"Open {author}'s website"
 
-                op = draw_info_row(
-                    box,
-                    "Downloads:",
-                    [f"{asset.download_count:,}"],
-                    # operator=AB_OT_set_ab_prop.bl_idname,
-                )
-                # op.prop_name = "sort_method"
-                # op.value = "DOWNLOADS"
-                # op.bl_description = "Sort assets by number of downloads"
-                # op.message = "Sorting assets by number of downloads"
-                # row = col.row(align=True)
-                # row.alignment = "RIGHT"
-                # op: AB_OT_set_ab_prop = row.operator(
-                #     AB_OT_set_ab_prop.bl_idname,
-                #     text="",
-                #     icon="SORTSIZE",
-                #     emboss=emboss,
-                # )
-                # op.prop_name = "sort_method"
-                # op.value = "DOWNLOADS"
-                # op.bl_description = "Sort assets by downloads"
+            op = draw_info_row(
+                box,
+                "Downloads:",
+                [f"{asset.download_count:,}"],
+                # operator=AB_OT_set_ab_prop.bl_idname,
+            )
+            # op.prop_name = "sort_method"
+            # op.value = "DOWNLOADS"
+            # op.bl_description = "Sort assets by number of downloads"
+            # op.message = "Sorting assets by number of downloads"
+            # row = col.row(align=True)
+            # row.alignment = "RIGHT"
+            # op: AB_OT_set_ab_prop = row.operator(
+            #     AB_OT_set_ab_prop.bl_idname,
+            #     text="",
+            #     icon="SORTSIZE",
+            #     emboss=emboss,
+            # )
+            # op.prop_name = "sort_method"
+            # op.value = "DOWNLOADS"
+            # op.bl_description = "Sort assets by downloads"
 
-                if hasattr(asset, "dimensions"):
-                    # Show dimensions in metric or imperial units depending on scene settings.
-                    # This is my gift to the americans, burmese and the liberians of the world.
-                    unit_system = context.scene.unit_settings.system
-                    if unit_system in ["METRIC", "NONE"]:
-                        coefficient = 1
-                        suffix = "m"
-                    else:
-                        coefficient = 3.2808399
-                        suffix = "ft"
-                    size_x = int((asset.dimensions.x // 1000) * coefficient)
-                    size_y = int((asset.dimensions.y // 1000) * coefficient)
-                    draw_info_row(box, "Dimensions:", f"{size_x}{suffix} x {size_y}{suffix}")
+            if hasattr(asset, "dimensions"):
+                # Show dimensions in metric or imperial units depending on scene settings.
+                # This is my gift to the americans, burmese and the liberians of the world.
+                unit_system = context.scene.unit_settings.system
+                if unit_system in ["METRIC", "NONE"]:
+                    coefficient = 1
+                    suffix = "m"
+                else:
+                    coefficient = 3.2808399
+                    suffix = "ft"
+                size_x = int((asset.dimensions.x // 1000) * coefficient)
+                size_y = int((asset.dimensions.y // 1000) * coefficient)
+                draw_info_row(box, "Dimensions:", f"{size_x}{suffix} x {size_y}{suffix}")
 
-                if hasattr(asset, "evs"):
-                    draw_info_row(box, "EVs:", str(asset.evs))
-                if hasattr(asset, "whitebalance"):
-                    draw_info_row(box, "Whitebalance:", f"{str(asset.whitebalance)}K")
+            if hasattr(asset, "evs"):
+                draw_info_row(box, "EVs:", str(asset.evs))
+            if hasattr(asset, "whitebalance"):
+                draw_info_row(box, "Whitebalance:", f"{str(asset.whitebalance)}K")
 
-                date_text = datetime.fromtimestamp(asset.date_published).strftime(format="%d/%m/%Y")
-                draw_info_row(box, "Date published:", date_text)
-                if hasattr(asset, "date_taken"):
-                    date_text = datetime.fromtimestamp(asset.date_taken).strftime(format="%d/%m/%Y")
-                    draw_info_row(box, "Date taken:", date_text)
+            date_text = datetime.fromtimestamp(asset.date_published).strftime(format="%d/%m/%Y")
+            draw_info_row(box, "Date published:", date_text)
+            if hasattr(asset, "date_taken"):
+                date_text = datetime.fromtimestamp(asset.date_taken).strftime(format="%d/%m/%Y")
+                draw_info_row(box, "Date taken:", date_text)
 
-                suffix = "ies" if len(asset.categories) > 1 else "y"
-                draw_info_row(box, f"Categor{suffix}:", asset.categories)
+            suffix = "ies" if len(asset.categories) > 1 else "y"
+            draw_info_row(box, f"Categor{suffix}:", asset.categories)
 
-                suffix = "s" if len(asset.tags) > 1 else ""
-                draw_info_row(box, f"Tag{suffix}:", asset.tags)
+            suffix = "s" if len(asset.tags) > 1 else ""
+            draw_info_row(box, f"Tag{suffix}:", asset.tags)
 
         row = layout.row(align=True)
         row.enabled = asset_found
         row.scale_y = 1.5
         row.scale_x = 1.25
 
+        downloaded = asset.get_file_path(ab.asset_quality).exists() if asset else False
         if ab.download_status == "DOWNLOADING_ASSET":
             row.prop(ab, "ui_import_progress", text="Downloading:")
         else:
-            op = row.operator(AB_OT_import_asset.bl_idname)
-            op.reload = ab.reload_asset
-        row.prop(ab, "reload_asset", text="", icon="FILE_REFRESH")
+            if downloaded:
+                op = row.operator_menu_hold(
+                    AB_OT_import_asset.bl_idname,
+                    menu=AB_MT_import_menu.bl_idname,
+                    text="Import Asset",
+                    icon="CHECKMARK",
+                )
+                op.reload = False
+            else:
+                op = row.operator(AB_OT_import_asset.bl_idname, icon="IMPORT", text="Download Asset")
+                op.reload = ab.reload_asset
+        op = row.operator("wm.url_open", text="", icon="URL")
+        op.url = asset.asset_webpage_url if asset else "https://polyhaven.com/"
+        if downloaded and False:
+            row.prop(ab, "reload_asset", text="", icon="FILE_REFRESH")
 
         if context.object and (mat := context.object.active_material):
             nodes = mat.node_tree.nodes
@@ -244,3 +264,15 @@ class AB_PT_main_panel(Panel):
             if displace_node := nodes.get("Displacement"):
                 layout = layout.box()
                 layout.prop(displace_node, "mute", text="Use displacement", invert_checkbox=True)
+
+
+class AB_MT_import_menu(bpy.types.Menu):
+    bl_label = "Import asset options"
+    bl_idname = "AB_MT_import_menu"
+
+    def draw(self, context):
+        layout: UILayout = self.layout
+        layout.scale_y = 1.5
+        op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
+        op.reload = True
+        # layout.label(text="hsks")

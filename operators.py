@@ -91,13 +91,41 @@ class AB_OT_set_ab_prop(Operator):
 class AB_OT_clear_asset_folder(Operator):
     """Remove all downloaded assets"""
 
+    def invoke(self, context, event):
+        self.files = 0
+        for _, _, files in os.walk(DOWNLOADS_DIR):
+            self.files += len(files)
+        
+        if self.files:
+            return context.window_manager.invoke_props_dialog(self)
+        else:
+            self.report({"WARNING"}, "There are no asset files to delete")
+            return {'FINISHED'}
+
+        # print(context.window_manager.invoke_props_dialog(self))
+
+    def draw_line(self, layout, text):
+        row = layout.row(align=True)
+        row.alignment = "CENTER"
+        row.label(text=text)
+
+    def draw(self, context):
+        layout = self.layout.column(align=True)
+        layout.scale_y = .75
+        layout.alert = True
+        self.draw_line(layout, "Warning:")
+        layout.separator()
+        self.draw_line(layout, f"You are about to delete {self.files} asset files")
+        self.draw_line(layout, "This cannot be undone")
+        layout.separator()
+
     def execute(self, context):
         downloads = DOWNLOADS_DIR
         for dirpath, dirnames, file_names in os.walk(downloads):
             for file in file_names:
-                if os.path.isdir(file):
-                    continue
-                os.remove(os.path.join(dirpath, file))
+                if not os.path.isdir(file):
+                    os.remove(os.path.join(dirpath, file))
+        self.report({"INFO"}, f"Successfully deleted {self.files} asset files")
         return {'FINISHED'}
 
 
@@ -155,7 +183,7 @@ class AB_OT_set_category(Operator):
     category_name: StringProperty()
 
     def execute(self, context):
-        
+
         return {'FINISHED'}
 
 
