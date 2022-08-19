@@ -46,8 +46,7 @@ From there, you can use the interface to select the type and category of asset y
 # Support Polyhaven ♥
 I'm not affiliated with them, but without the amazing work of the Polyhaven devs and contributers, this addon wouldn't be possible, so be sure to send them some love :)
 
-Join the patreon here:
-https://www.patreon.com/polyhaven/overview
+## [♥Join the Patreon here](https://www.patreon.com/polyhaven/overview)
 
-And visit the site here:
-https://polyhaven.com/
+
+## [��And visit the site here](https://polyhaven.com)
