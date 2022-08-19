@@ -19,6 +19,11 @@ class AddonPreferences(AddonPreferences):
         row.scale_y = 1.5
         draw_download_previews(row, reload=True)
         row.operator(AB_OT_clear_asset_folder.bl_idname, icon="FILE_REFRESH")
+        row.operator(
+            "wm.url_open",
+            icon="FUND",
+            text="Support Polyhaven",
+        ).url = "https://www.patreon.com/polyhaven/overview"
         if context.scene.asset_bridge.download_status != "NONE":
             op: AB_OT_set_prop = row.operator(AB_OT_set_prop.bl_idname, text="Reset download progress")
             op.data_path = "context.scene.asset_bridge"
