@@ -64,6 +64,14 @@ class AssetBridgeSettings(PropertyGroup):
         ]
         if self.filter_type == "hdris":
             items.append(("EVS", "EVs", "Sort assets by exposure range", "LIGHT_SUN", len(items)))
+        elif self.filter_type == "textures":
+            items.append((
+                "DIMENSIONS",
+                "Dimensions",
+                "Sort assets by the real world size of the textures",
+                "MOD_LENGTH",
+                len(items),
+            ))
         return items
 
     def sort_method_update(self, context):
@@ -119,6 +127,7 @@ class AssetBridgeSettings(PropertyGroup):
         items=filter_category_items,
         name="Asset categories",
         description="Filter the asset list on only show a specific category",
+        update=lambda self, context: self.sort_method_update(context)
     )
 
     filter_search: StringProperty(

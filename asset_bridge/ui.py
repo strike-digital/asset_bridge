@@ -19,7 +19,7 @@ def draw_download_previews(layout: UILayout, reload: bool = False):
 
     ab = bpy.context.scene.asset_bridge
     if ab.download_status == "DOWNLOADING_PREVIEWS":
-        layout.prop(ab, "preview_download_progress", text="Downloading")
+        layout.prop(ab, "preview_download_progress", text="Downloading...")
     else:
         if reload:
             op = layout.operator(AB_OT_download_asset_previews.bl_idname, icon="IMPORT", text="Check for new assets")

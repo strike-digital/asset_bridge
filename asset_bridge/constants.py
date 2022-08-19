@@ -13,12 +13,19 @@ DIRS = {
     "previews": PREVIEWS_DIR,
     "downloads": DOWNLOADS_DIR,
     "scripts": SCRIPTS_DIR,
+    "icons": ICONS_DIR,
     "hdris": DOWNLOADS_DIR / "hdris",
     "textures": DOWNLOADS_DIR / "textures",
     "texture_textures": DOWNLOADS_DIR / "textures" / "textures",
     "models": DOWNLOADS_DIR / "models",
     "model_textures": DOWNLOADS_DIR / "models" / "textures",
 }
+
+for dir in DIRS.values():
+    try:
+        dir.mkdir()
+    except FileExistsError:
+        pass
 
 FILES = {
     "asset_list": ADDON_DIR / "asset_list.json",

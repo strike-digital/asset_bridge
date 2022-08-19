@@ -12,9 +12,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bl_info = {
-    "name": "Asset bridge",
+    "name": "Asset Bridge 0.0.1",
     "author": "Andrew Stevenson",
-    "description": "",
+    "description": "Easily download and import free assets from the internet.",
     "blender": (3, 2, 0),
     "version": (0, 0, 1),
     "location": "3D View > N-Panel > Asset Bridge",

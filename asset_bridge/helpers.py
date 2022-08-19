@@ -198,37 +198,42 @@ class AssetList:
 
     def sort(self, method: str = "NAME", ascending=False):
 
+        # for a list of all queriable attributes, see the contents of asset_list.json
+        accepted = {"hdris", "textures", "models"}
         if method == "NAME":
-            ascending = not ascending
-
             def sort(item):
                 return item[0].lower()
+            ascending = not ascending
         elif method == "DOWNLOADS":
-
             def sort(item):
                 return item[1]["download_count"]
         elif method == "DATE":
-
             def sort(item):
                 return item[1]["date_published"]
         elif method == "AUTHOR":
-
             def sort(item):
                 return list(item[1]["authors"])[0]
         elif method == "AUTHOR":
-
             def sort(item):
                 return list(item[1]["authors"])[0]
         elif method == "EVS":
-
             def sort(item):
                 return item[1]["evs_cap"]
+            accepted = {"hdris"}
+        elif method == "DIMENSIONS":
+            def sort(item):
+                return sum(item[1]["dimensions"])
+            accepted = {"textures"}
 
-        self.hdris = ODict(sorted(self.hdris.items(), key=sort, reverse=not ascending))
-        if method not in {"EVS"}:
-            self.textures = ODict(sorted(self.textures.items(), key=sort, reverse=not ascending))
-            self.models = ODict(sorted(self.models.items(), key=sort, reverse=not ascending))
+        for category in accepted:
+            category_dict: dict = getattr(self, category)
+            setattr(self, category, ODict(sorted(category_dict.items(), key=sort, reverse=not ascending)))
+        # self.hdris = ODict(sorted(self.hdris.items(), key=sort, reverse=not ascending))
+        # if method not in {"EVS"}:
+        #     self.textures = ODict(sorted(self.textures.items(), key=sort, reverse=not ascending))
+        #     self.models = ODict(sorted(self.models.items(), key=sort, reverse=not ascending))
         self.all = self.hdris | self.textures | self.models
+        # self.all = ODict(sorted(self.all.items(), key=sort, reverse=not ascending))
         self.sorted = True
 
     def get_asset_category(self, asset_name):
