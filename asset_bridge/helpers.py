@@ -328,16 +328,13 @@ class Asset:
         self.update(asset_data)
         print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
 
-    # @property
-    # def is_downloaded(self):
-
     def update(self, asset_data=None):
         if asset_data is None:
             asset_data = {}
         asset_name = self.name
         self.category = asset_list.get_asset_category(asset_name)
         self.data = asset_data or requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
-        self.download_dir = download = DIRS[plural[self.category]]
+        self.download_dir = download = getattr(DIRS, plural[self.category])
         self.file_paths = {
             q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}"
             for q in self.get_quality_dict()

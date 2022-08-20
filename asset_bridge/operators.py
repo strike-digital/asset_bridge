@@ -6,7 +6,7 @@ from bpy.types import Operator
 from bpy.props import BoolProperty, StringProperty
 
 from .vendor import requests
-from .constants import DOWNLOADS_DIR
+from .constants import DIRS
 from .helpers import Asset, Op, asset_list
 
 
@@ -95,9 +95,9 @@ class AB_OT_clear_asset_folder(Operator):
 
     def invoke(self, context, event):
         self.files = 0
-        for _, _, files in os.walk(DOWNLOADS_DIR):
+        for _, _, files in os.walk(DIRS.library):
             self.files += len(files)
-        
+
         if self.files:
             return context.window_manager.invoke_props_dialog(self)
         else:
@@ -122,7 +122,7 @@ class AB_OT_clear_asset_folder(Operator):
         layout.separator()
 
     def execute(self, context):
-        downloads = DOWNLOADS_DIR
+        downloads = DIRS.library
         for dirpath, dirnames, file_names in os.walk(downloads):
             for file in file_names:
                 if not os.path.isdir(file):
@@ -202,6 +202,7 @@ class AB_OT_open_author_website(Operator):
         elif "email" in data:
             link = "mailto:" + data["email"]
         else:
-            return
+            self.report({"WARNING"}, "No website found for this author")
+            return {'FINISHED'}
         bpy.ops.wm.url_open(url=link)
         return {'FINISHED'}

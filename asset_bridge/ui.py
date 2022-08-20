@@ -252,8 +252,6 @@ class AB_PT_main_panel(Panel):
                 op.reload = ab.reload_asset
         op = row.operator("wm.url_open", text="", icon="URL")
         op.url = asset.asset_webpage_url if asset else "https://polyhaven.com/"
-        if downloaded and False:
-            row.prop(ab, "reload_asset", text="", icon="FILE_REFRESH")
 
         if context.object and (mat := context.object.active_material):
             nodes = mat.node_tree.nodes
@@ -272,7 +270,7 @@ class AB_MT_import_menu(bpy.types.Menu):
 
     def draw(self, context):
         layout: UILayout = self.layout
-        layout.scale_y = 1.5
+        layout.scale_y = 1.2
         op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
         op.reload = True
         # layout.label(text="hsks")
