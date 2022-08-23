@@ -25,14 +25,18 @@ class Dirs():
     models: Path
     model_textures: Path
 
+    @property
+    def all_dirs(self):
+        return [v for v in (self.__dict__ | self.__class__.__dict__).values() if isinstance(v, Path)]
+
     def __init__(self):
-        self.update(ADDON_DIR)
+        self.update(ADDON_DIR / "downloads")
 
     def update(self, lib_path):
         """Update the directories to be relative to the given library path"""
         lib_path = Path(lib_path)
         if str(lib_path) == "." or not lib_path.exists():
-            lib_path = ADDON_DIR
+            lib_path = ADDON_DIR / "downloads"
         self.library = lib_path
         self.hdris = lib_path / "hdris"
         self.textures = lib_path / "textures"
@@ -40,7 +44,7 @@ class Dirs():
         self.models = lib_path / "models"
         self.model_textures = self.models / "textures"
 
-        for dir in [v for v in self.__dict__.values() if isinstance(v, Path)]:
+        for dir in self.all_dirs:
             try:
                 dir.mkdir()
             except FileExistsError:

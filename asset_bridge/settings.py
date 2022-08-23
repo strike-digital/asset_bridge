@@ -3,7 +3,6 @@ from threading import Thread
 import bpy
 from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty)
 from bpy.types import PropertyGroup, Scene
-from .vendor import requests
 from .constants import PREVIEWS_DIR
 from .helpers import Asset, asset_list, get_icon, pcolls, singular
 
@@ -16,6 +15,12 @@ class AssetBridgeSettings(PropertyGroup):
     show_asset_info: BoolProperty(
         name="Show asset info",
         description="Show extra info about this asset",
+        default=False,
+    )
+
+    show_import_settings: BoolProperty(
+        name="Show import settings",
+        description="Show extra settings for importing",
         default=False,
     )
 
@@ -123,12 +128,10 @@ class AssetBridgeSettings(PropertyGroup):
 
         return items
 
-    filter_category: EnumProperty(
-        items=filter_category_items,
-        name="Asset categories",
-        description="Filter the asset list on only show a specific category",
-        update=lambda self, context: self.sort_method_update(context)
-    )
+    filter_category: EnumProperty(items=filter_category_items,
+                                  name="Asset categories",
+                                  description="Filter the asset list on only show a specific category",
+                                  update=lambda self, context: self.sort_method_update(context))
 
     filter_search: StringProperty(
         name="Search",
@@ -227,57 +230,30 @@ class AssetBridgeSettings(PropertyGroup):
         description="Whether to redownload the assets files from the internet when it is imported",
     )
 
-    # Info section
+    # Import settings
 
-    def info_categories_items(self, context):
-        return [(c, c, c) for c in self.selected_asset.categories]
-
-    def info_categories_get(self):
-        return -1
-
-    def info_categories_set(self, value):
-        asset_name = self.asset_name
-        self.filter_category = self.selected_asset.categories[value]
-        self.asset_name = asset_name
-
-    info_categories: EnumProperty(
-        items=info_categories_items,
-        get=info_categories_get,
-        set=info_categories_set,
-    )
-
-    def info_tags_items(self, context):
-        return [(t, t, t) for t in self.selected_asset.tags]
-
-    def info_tags_set(self, value):
-        asset_name = self.asset_name
-        self.filter_search = self.selected_asset.tags[value]
-        self.asset_name = asset_name
-
-    info_tags: EnumProperty(
-        items=info_tags_items,
-        get=lambda self: -1,
-        set=info_tags_set,
-    )
-
-    def info_authors_items(self, context):
-        return [(a, a, a) for a in self.selected_asset.authors]
-
-    def info_authors_set(self, value):
-        author = list(self.selected_asset.authors)[value]
-        data = requests.get(f"https://api.polyhaven.com/author/{author}").json()
-        if "link" in data:
-            link = data["link"]
-        elif "email" in data:
-            link = "mailto:" + data["email"]
-        else:
-            return
-        bpy.ops.wm.url_open(url=link)
-
-    info_authors: EnumProperty(
-        items=info_authors_items,
-        get=lambda self: -1,
-        set=info_authors_set,
+    # import_link: BoolProperty(name="Link")
+    import_method: EnumProperty(
+        items=[
+            (
+                "APPEND",
+                "Append",
+                "Append the assets directly into the file\
+        (this can cause the file size to grow quickly, but allows more control over the asset data)",
+                "UNLINKED",
+                0,
+            ),
+            (
+                "LINK",
+                "Link",
+                "Link the asset data from the downloaded file.\
+        This keeps file size low, but doesn't allow as much control over the asset data",
+                "LINKED",
+                1,
+            ),
+        ],
+        name="Import method",
+        description="How to import the downloaded assets into the current file.",
     )
 
 
@@ -289,7 +265,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 continue
             asset = Asset(obj.asset_bridge_name)
             # asset.download_asset(bpy.context)
-            asset.import_asset(bpy.context, location=obj.location)
+            asset.import_asset(bpy.context, link=False, location=obj.location)
 
             asset_objs = [obj for obj in scene.objects if obj.select_get()]
             remove.append(obj)

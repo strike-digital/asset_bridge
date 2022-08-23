@@ -61,7 +61,7 @@ def asset_preview_exists(name):
     return image_path.exists()
 
 
-def download_file(url: str, download_path: Path, file_name: str = ""):
+def download_file(url: str, download_path: Path, file_name: str = "", print_end=True):
     """Download an image from the provided url to the given file path"""
     download_path = Path(download_path)
     download_path.mkdir(exist_ok=True)
@@ -76,7 +76,8 @@ def download_file(url: str, download_path: Path, file_name: str = ""):
 
     with open(download_path, 'wb') as f:
         shutil.copyfileobj(res.raw, f)
-    print('File sucessfully Downloaded: ', file_name)
+    if print_end:
+        print('File sucessfully Downloaded: ', file_name)
     return download_path
 
 
@@ -89,7 +90,7 @@ def download_preview(asset_name, reload=False, size=128, load=True):
 
     file_name = f"{asset_name}.png"
     if not (Path(PREVIEWS_DIR) / file_name).is_file() or reload:
-        download_file(url, PREVIEWS_DIR, file_name)
+        download_file(url, PREVIEWS_DIR, file_name, print_end = False)
     image_path = PREVIEWS_DIR / file_name
 
     if not load:
@@ -326,7 +327,7 @@ class Asset:
         self.download_max = 0
         self.name = asset_name
         self.update(asset_data)
-        print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
+        # print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
 
     def update(self, asset_data=None):
         if asset_data is None:
@@ -408,7 +409,7 @@ class Asset:
             thread.start()
         if self.category != "hdri":
             texture_urls = self.get_texture_urls(quality)
-            texture_dir = DIRS[f"{self.category}_textures"]
+            texture_dir = getattr(DIRS, f"{self.category}_textures")
             for texture_url in texture_urls:
                 if not (texture_dir / file_name_from_url(texture_url)).exists() or reload:
                     thread = Thread(target=self.download_asset_file, args=(texture_url, texture_dir))
@@ -455,8 +456,8 @@ class Asset:
             obj.material_slots[0].material = data_to.materials[0]
         return data_to.materials[0]
 
-    def import_model(self, context: Context, asset_file: Path, location=(0, 0, 0)):
-        with bpy.data.libraries.load(str(asset_file)) as (data_from, data_to):
+    def import_model(self, context: Context, asset_file: Path, link: bool, location=(0, 0, 0)):
+        with bpy.data.libraries.load(filepath=str(asset_file), link=link) as (data_from, data_to):
             # import objects with the correct name, or if none are found, just import all objects
             found = [obj for obj in data_from.objects if self.name in obj]
             if not found:
@@ -481,11 +482,19 @@ class Asset:
     def import_asset(
             self,
             context: Context,
+            link: bool = False,
             quality: str = "1k",
             reload: bool = False,
             format: str = "",
             location=(0, 0, 0),
     ):
+        """Import the asset in another thread.
+        Args:
+            link (bool): Whether to link or append the asset (Only for  models)
+            quality (str): The quality of the asset to import. Defaults to "1k".
+            reload (bool): Whether to redownload an asset if it has already been downloaded. Defaults to False
+            location (tuple): The location to place the imported asset (models only). Defaults to (0, 0, 0).
+        """
         update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING_ASSET")
         run_in_main_thread(force_ui_update, ())
 
@@ -496,7 +505,7 @@ class Asset:
         elif self.category == "texture":
             run_in_main_thread(self.import_texture, (context, asset_file))
         elif self.category == "model":
-            run_in_main_thread(self.import_model, (context, asset_file, location.copy()))
+            run_in_main_thread(self.import_model, (context, asset_file, link, location.copy()))
         update_prop(context.scene.asset_bridge, "download_status", "NONE")
 
 
@@ -552,7 +561,8 @@ def register():
 
 
 def unregister():
-    bpy.app.timers.unregister(main_thread_timer)
+    if bpy.app.timers.is_registered(main_thread_timer):
+        bpy.app.timers.unregister(main_thread_timer)
     for pcoll in pcolls.values():
         pcoll.close()
 

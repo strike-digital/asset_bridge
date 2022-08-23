@@ -73,29 +73,6 @@ def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "",
     return ops
 
 
-class AB_PT_sort_panel(Panel):
-    """Change the sorting options of the asset list"""
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "WINDOW"
-    bl_label = "Sort"
-
-    def draw(self, context: Context):
-        layout: UILayout = self.layout
-        ab: AssetBridgeSettings = context.scene.asset_bridge
-
-        row = layout.row(align=True)
-        split = row.split(align=True, factor=.3)
-        split.label(text="Sort by:")
-        col = split.column(align=True)
-        col.prop(ab, "sort_method", expand=True)
-
-        row = layout.row(align=True)
-        split = row.split(align=True, factor=.3)
-        split.label(text="Sort order:")
-        col = split.column(align=True)
-        col.prop(ab, "sort_order", expand=True)
-
-
 class AB_PT_main_panel(Panel):
     """The main Asset Bridge panel"""
     bl_space_type = "VIEW_3D"
@@ -165,6 +142,8 @@ class AB_PT_main_panel(Panel):
         if ab.show_asset_info and asset:
             box = col.box().column(align=True)
 
+            op = draw_info_row(box, "Link:", ["Polyhaven.com"], operator="wm.url_open")[0]
+            op.url = asset.asset_webpage_url
             # Authors
             suffix = "s" if len(asset.authors) > 1 else ""
             ops = draw_info_row(
@@ -230,7 +209,8 @@ class AB_PT_main_panel(Panel):
             suffix = "s" if len(asset.tags) > 1 else ""
             draw_info_row(box, f"Tag{suffix}:", asset.tags)
 
-        row = layout.row(align=True)
+        col = layout.column(align=True)
+        row = col.row(align=True)
         row.enabled = asset_found
         row.scale_y = 1.5
         row.scale_x = 1.25
@@ -239,6 +219,7 @@ class AB_PT_main_panel(Panel):
         if ab.download_status == "DOWNLOADING_ASSET":
             row.prop(ab, "ui_import_progress", text="Downloading:")
         else:
+            # hello there my name is you mum hoho
             if downloaded:
                 op = row.operator_menu_hold(
                     AB_OT_import_asset.bl_idname,
@@ -248,10 +229,27 @@ class AB_PT_main_panel(Panel):
                 )
                 op.reload = False
             else:
-                op = row.operator(AB_OT_import_asset.bl_idname, icon="IMPORT", text="Download Asset")
+                op = row.operator(
+                    AB_OT_import_asset.bl_idname,
+                    icon="IMPORT",
+                    text="Download Asset",
+                )
                 op.reload = ab.reload_asset
-        op = row.operator("wm.url_open", text="", icon="URL")
-        op.url = asset.asset_webpage_url if asset else "https://polyhaven.com/"
+            # op.link = True
+            op.link = ab.import_method == "LINK"
+
+        row.prop(ab, "show_import_settings", text="", icon="PREFERENCES")
+        if ab.show_import_settings:
+            box = col.box().box().column()
+            box.prop(ab, "import_method", text="")
+            # box.label(text="hoho")
+        # row.prop(ab, "show_import_settings", text="", icon="TRIA_DOWN" if ab.show_import_settings else "TRIA_")
+        # row.prop(ab, "asset_quality", text="", icon="PREFERENCES", icon_only=True)
+        # row.scale_x = .7
+        # row.popover(AB_PT_sort_panel.__name__, text="", icon="PREFERENCES")
+        # row.popover_group("VIEW_3D", "UI", "", "Alpha Trees")
+        # op = row.operator("wm.url_open", text="", icon="URL")
+        # op.url = asset.asset_webpage_url if asset else "https://polyhaven.com/"
 
         if context.object and (mat := context.object.active_material):
             nodes = mat.node_tree.nodes
@@ -264,8 +262,42 @@ class AB_PT_main_panel(Panel):
                 layout.prop(displace_node, "mute", text="Use displacement", invert_checkbox=True)
 
 
+# class AB_MT_import_settings_menu(bpy.types.Menu):
+#     bl_label = "Import asset settings"
+#     bl_idname = "AB_MT_import_menu"
+
+#     def draw(self, context):
+#         layout: UILayout = self.layout
+#         layout.scale_y = 1.2
+#         op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
+#         op.reload = True
+
+
+class AB_PT_sort_panel(Panel):
+    """Change the sorting options of the asset list"""
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "WINDOW"
+    bl_label = "Sort"
+
+    def draw(self, context: Context):
+        layout: UILayout = self.layout
+        ab: AssetBridgeSettings = context.scene.asset_bridge
+
+        row = layout.row(align=True)
+        split = row.split(align=True, factor=.3)
+        split.label(text="Sort by:")
+        col = split.column(align=True)
+        col.prop(ab, "sort_method", expand=True)
+
+        row = layout.row(align=True)
+        split = row.split(align=True, factor=.3)
+        split.label(text="Sort order:")
+        col = split.column(align=True)
+        col.prop(ab, "sort_order", expand=True)
+
+
 class AB_MT_import_menu(bpy.types.Menu):
-    bl_label = "Import asset options"
+    bl_label = "Import options"
     bl_idname = "AB_MT_import_menu"
 
     def draw(self, context):
@@ -273,4 +305,3 @@ class AB_MT_import_menu(bpy.types.Menu):
         layout.scale_y = 1.2
         op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
         op.reload = True
-        # layout.label(text="hsks")

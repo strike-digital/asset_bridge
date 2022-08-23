@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from threading import Thread
 
 import bpy
@@ -29,13 +30,17 @@ class AB_OT_import_asset(Operator):
         default=False,
     )
 
+    link: BoolProperty(
+        description="Whether to link the asset from the downloaded file, or to append it fully into the scene"
+    )
+
     def execute(self, context):
         ab = context.scene.asset_bridge
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
         thread = Thread(
             target=asset.import_asset,
-            args=(context, quality, self.reload),
+            args=(context, self.link, quality, self.reload),
             kwargs={"location": context.scene.cursor.location},
         )
 
@@ -124,6 +129,8 @@ class AB_OT_clear_asset_folder(Operator):
     def execute(self, context):
         downloads = DIRS.library
         for dirpath, dirnames, file_names in os.walk(downloads):
+            if Path(dirpath) not in DIRS.all_dirs:
+                continue
             for file in file_names:
                 if not os.path.isdir(file):
                     os.remove(os.path.join(dirpath, file))
