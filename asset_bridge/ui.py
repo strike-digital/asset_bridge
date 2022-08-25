@@ -2,7 +2,8 @@ from datetime import datetime
 import bpy
 from bpy.types import Panel, UILayout, Context
 from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website
-from .helpers import asset_preview_exists, Asset, asset_list
+from .helpers import asset_preview_exists
+from .assets import Asset, asset_list
 from .settings import AssetBridgeSettings
 
 

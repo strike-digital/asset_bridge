@@ -8,7 +8,8 @@ from bpy.props import BoolProperty, StringProperty
 
 from .vendor import requests
 from .constants import DIRS
-from .helpers import Asset, Op, asset_list
+from .helpers import Op
+from .assets import Asset, asset_list
 
 
 @Op("asset_bridge", undo=True)
@@ -31,8 +32,7 @@ class AB_OT_import_asset(Operator):
     )
 
     link: BoolProperty(
-        description="Whether to link the asset from the downloaded file, or to append it fully into the scene"
-    )
+        description="Whether to link the asset from the downloaded file, or to append it fully into the scene")
 
     def execute(self, context):
         ab = context.scene.asset_bridge
@@ -50,6 +50,16 @@ class AB_OT_import_asset(Operator):
                 region.tag_redraw()
         print("Importing:", ab.asset_name)
         return {'FINISHED'}
+
+
+@Op("asset_bridge", undo=True)
+class AB_OT_import_model(Operator):
+    """Import the given model into the current scene"""
+
+    name: StringProperty()
+
+    def execute(self, context):
+        return {"FINISHED"}
 
 
 @Op("asset_bridge")

@@ -4,7 +4,9 @@ import bpy
 from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty)
 from bpy.types import PropertyGroup, Scene
 from .constants import PREVIEWS_DIR
-from .helpers import Asset, asset_list, get_icon, pcolls, singular
+from .helpers import get_icon, pcolls
+from .assets import singular
+from .assets import Asset, asset_list
 
 _selected_asset = None
 loading_asset = False

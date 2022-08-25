@@ -10,6 +10,7 @@
 *.blend1
 *.pyc
 *.zip
+*.idea
 asset_list.json
 build.py
 __pycache__/
