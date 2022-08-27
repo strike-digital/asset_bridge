@@ -1,4 +1,3 @@
-import importlib
 import json
 import bpy
 from os import walk
