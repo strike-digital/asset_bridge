@@ -1,6 +1,8 @@
 import json
+import math
 import bpy
 import os
+import subprocess
 from pathlib import Path
 from threading import Thread
 from bpy.types import Context
@@ -8,7 +10,7 @@ from mathutils import Vector as V
 from collections import OrderedDict as ODict
 from time import perf_counter
 
-from .constants import PREVIEWS_DIR, DIRS, FILES
+from .constants import DIRS, FILES
 from .helpers import Progress, download_preview, main_thread_timer, update_prop,\
     force_ui_update, run_in_main_thread, download_file, file_name_from_url
 from .vendor import requests
@@ -151,12 +153,12 @@ class AssetList:
 
     def download_all_previews(self, reload: bool = False):
         start = perf_counter()
-        directory = PREVIEWS_DIR
+        directory = DIRS.previews
         if reload:
             for file in directory.iterdir():
                 os.remove(file)
 
-        files = {f.name.split(".")[0] for f in PREVIEWS_DIR.iterdir()}
+        files = {f.name.split(".")[0] for f in DIRS.previews.iterdir()}
         names = {n for n in self.all if n not in files}
         # names = set(list(names)[:10])
         ab = bpy.context.scene.asset_bridge
@@ -262,7 +264,50 @@ class Asset:
         else:
             download_file(url, dir)
         self.download_progress.increment()
-        # bpy.data.window_managers[0].progress_update(self.download_progress)
+
+    def download_blend_file(self, url, dir, file_name, script_path):
+        """Download the blend file, and then run a script in it."""
+        self.download_asset_file(url, dir, file_name)
+        if script_path:
+            subprocess.run([
+                bpy.app.binary_path,
+                Path(dir) / file_name,
+                "--factory-startup",
+                "-b",
+                "--python",
+                script_path,
+            ])
+
+    def download_asset_with_blend_file(self, context: Context, quality: str, reload: bool, script_path: Path = ""):
+        """Download an asset that has a blend file and textures (aka texture and model assets)"""
+        download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
+
+        self.download_progress = Progress(download_max, context.scene.asset_bridge, "import_progress")
+
+        # Download the blend file
+        # Using threading here makes this soooo much faster
+        threads = []
+        asset_path = self.get_file_path(quality)
+        if not asset_path.exists() or reload:
+            asset_url = self.get_blend_url(quality)
+            thread = Thread(
+                target=self.download_blend_file,
+                args=(asset_url, asset_path.parent, asset_path.name, script_path),
+            )
+            threads.append(thread)
+            thread.start()
+
+        texture_urls = self.get_texture_urls(quality)
+        texture_dir = getattr(DIRS, f"{self.category}_textures")
+        for texture_url in texture_urls:
+            if not (texture_dir / file_name_from_url(texture_url)).exists() or reload:
+                thread = Thread(target=self.download_asset_file, args=(texture_url, texture_dir))
+
+                threads.append(thread)
+                thread.start()
+        for thread in threads:
+            thread.join()
+        return asset_path
 
     def download_hdri(self, context: Context, quality: str, reload: bool):
         download_max = 1
@@ -276,73 +321,23 @@ class Asset:
         return asset_path
 
     def download_texture(self, context: Context, quality: str, reload: bool):
-        asset_path = self.get_file_path(quality)
-        download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
+        return self.download_asset_with_blend_file(context, quality, reload)
 
-        self.download_progress = Progress(download_max, context.scene.asset_bridge, "import_progress")
+    def download_model(self, context: Context, quality: str, reload: bool):
+        return self.download_asset_with_blend_file(
+            context,
+            quality,
+            reload,
+            script_path=FILES.setup_model_blend,
+        )
 
-        # Download the blend file
-        # Using threading here makes this soooo much faster
-        file_name = asset_path.name
-        asset_dir = asset_path.parent
-        threads = []
-        if not asset_path.exists() or reload:
-            if self.category == "hdri":
-                asset_url = self.get_hdri_url(quality)
-            else:
-                asset_url = self.get_blend_url(quality)
-            thread = Thread(target=self.download_asset_file, args=(asset_url, asset_dir, file_name))
-
-            threads.append(thread)
-            thread.start()
-        if self.category != "hdri":
-            texture_urls = self.get_texture_urls(quality)
-            texture_dir = getattr(DIRS, f"{self.category}_textures")
-            for texture_url in texture_urls:
-                if not (texture_dir / file_name_from_url(texture_url)).exists() or reload:
-                    thread = Thread(target=self.download_asset_file, args=(texture_url, texture_dir))
-
-                    threads.append(thread)
-                    thread.start()
-        for thread in threads:
-            thread.join()
-        return asset_path
-
-    def download_asset(self, context: Context, quality: str = "1k", reload: bool = False, format="") -> str:
-        asset_path = self.get_file_path(quality)
+    def download_asset(self, context: Context, quality: str = "1k", reload: bool = False) -> str:
         if self.category == "hdri":
             return self.download_hdri(context, quality, reload)
-        else:
-            download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
-
-        self.download_progress = Progress(download_max, context.scene.asset_bridge, "import_progress")
-
-        # Download the blend file
-        # Using threading here makes this soooo much faster
-        file_name = asset_path.name
-        asset_dir = asset_path.parent
-        threads = []
-        if not asset_path.exists() or reload:
-            if self.category == "hdri":
-                asset_url = self.get_hdri_url(quality)
-            else:
-                asset_url = self.get_blend_url(quality)
-            thread = Thread(target=self.download_asset_file, args=(asset_url, asset_dir, file_name))
-
-            threads.append(thread)
-            thread.start()
-        if self.category != "hdri":
-            texture_urls = self.get_texture_urls(quality)
-            texture_dir = getattr(DIRS, f"{self.category}_textures")
-            for texture_url in texture_urls:
-                if not (texture_dir / file_name_from_url(texture_url)).exists() or reload:
-                    thread = Thread(target=self.download_asset_file, args=(texture_url, texture_dir))
-
-                    threads.append(thread)
-                    thread.start()
-        for thread in threads:
-            thread.join()
-        return asset_path
+        elif self.category == "texture":
+            return self.download_texture(context, quality, reload)
+        elif self.category == "model":
+            return self.download_model(context, quality, reload)
 
     def import_hdri(self, context: Context, asset_file: Path, quality: str):
         if (context.scene.world and context.scene.use_nodes) or not context.scene.world:
@@ -367,7 +362,7 @@ class Asset:
         world.name = f"{self.name}_{quality}"
         return world
 
-    def import_texture(self, context: Context, asset_file: Path, link:bool, quality: str):
+    def import_texture(self, context: Context, asset_file: Path, link: bool, quality: str):
         with bpy.data.libraries.load(str(asset_file), link=link) as (data_from, data_to):
             for mat in data_from.materials:
                 if mat == self.name:
@@ -386,26 +381,38 @@ class Asset:
     def import_model(self, context: Context, asset_file: Path, link: bool, quality: str, location=(0, 0, 0)):
         with bpy.data.libraries.load(filepath=str(asset_file), link=link) as (data_from, data_to):
             # import objects with the correct name, or if none are found, just import all objects
-            found = [obj for obj in data_from.objects if self.name in obj]
-            if not found:
-                found = data_from.objects
-            data_to.objects = found
-
-        # Set the selection and remove imported objects that arent meshes
+            for coll in data_from.collections:
+                if coll == f"{self.name}_{quality}":
+                    data_to.collections.append(coll)
+                    break
+            # found = [obj for obj in data_from.objects if self.name in obj]
+            # if not found:
+            #     found = data_from.objects
+            # data_to.objects = found
         for obj in bpy.data.objects:
             obj.select_set(False)
-        final_obj = None
-        for obj in data_to.objects:
-            if obj.type == "MESH":
+
+        collection: bpy.types.Collection = data_to.collections[0]
+        if link:
+            empty = bpy.data.objects.new(collection.name, None)
+            empty.instance_type = "COLLECTION"
+            empty.instance_collection = collection
+            context.collection.objects.link(empty)
+            empty.empty_display_size = math.hypot(*list(collection.objects[0].dimensions))
+            empty.select_set(True)
+            final_obj = empty
+        else:
+            context.collection.children.link(collection)
+
+            # Set the selection and remove imported objects that arent meshes
+            final_obj = None
+            for obj in collection.objects:
                 obj.location = obj.location + V(location)
-                context.collection.objects.link(obj)
                 obj.select_set(True)
                 obj.name = f"{self.name}_{quality}"
-                context.view_layer.objects.active = obj
                 final_obj = obj
-            else:
-                bpy.data.objects.remove(obj)
 
+        context.view_layer.objects.active = final_obj
         # Blender is weird, and without pushing an undo step
         # linking the object to the active collection will cause a crash.
         bpy.ops.ed.undo_push()
@@ -417,7 +424,6 @@ class Asset:
             link: bool = False,
             quality: str = "1k",
             reload: bool = False,
-            format: str = "",
             location=(0, 0, 0),
     ):
         """Import the asset in another thread.
@@ -430,7 +436,7 @@ class Asset:
         update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING_ASSET")
         run_in_main_thread(force_ui_update, ())
 
-        asset_file = self.download_asset(context, quality, reload, format)
+        asset_file = self.download_asset(context, quality, reload)
         run_in_main_thread(force_ui_update, ())
         if self.category == "hdri":
             run_in_main_thread(self.import_hdri, (context, asset_file, quality))
@@ -441,4 +447,4 @@ class Asset:
         update_prop(context.scene.asset_bridge, "download_status", "NONE")
 
 
-asset_list = AssetList(FILES["asset_list"])
+asset_list = AssetList(FILES.asset_list)

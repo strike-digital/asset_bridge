@@ -1,9 +1,14 @@
+import importlib
+import json
+import bpy
+from os import walk
 from pathlib import Path
+import subprocess
 from bpy.types import AddonPreferences, UILayout
 from .operators import AB_OT_clear_asset_folder, AB_OT_set_prop
 from .ui import draw_download_previews
-from .helpers import asset_preview_exists
-from .constants import DIRS
+from .helpers import asset_preview_exists, update_prefs_file
+from .constants import ASSET_LIB_VERSION, DIRS, FILES
 from bpy.props import StringProperty
 
 
@@ -13,6 +18,9 @@ class AddonPreferences(AddonPreferences):
 
     def lib_path_update(self, context):
         """Update all references to library paths"""
+
+        update_prefs_file()
+
         path = Path(self.lib_path)
         if not path.exists():
             return
@@ -21,12 +29,29 @@ class AddonPreferences(AddonPreferences):
         if ab.selected_asset:
             ab.selected_asset.update()
 
+        # If old, update to the new blend file format
+        if not FILES.lib_info.exists():
+            for path, dirs, files in walk(DIRS.library):
+                for file in files:
+                    if file.endswith(".blend"):
+                        subprocess.Popen([
+                            bpy.app.binary_path,
+                            Path(path) / file,
+                            "--factory-startup",
+                            "-b",
+                            "--python",
+                            FILES.setup_model_blend,
+                        ])
+            with open(FILES.lib_info, "w") as f:
+                json.dump({"version": ASSET_LIB_VERSION}, f)
+
     lib_path: StringProperty(
         name="External Downloads path",
-        description="The path in which to save the downloaded assets. If left blank, the addon directory is used.\n\
-            However, this is not ideal, as you will lose all downloaded assets if you upgrade or remove the addon.\n\
-            As such, it's reccommended that you select\
-            a directory that won't be moved in the future".replace("            ", ""),
+        description="\n".join((
+            "The path in which to save the downloaded assets. If left blank, the addon directory is used.",
+            "However, this is not ideal, as you will lose all downloaded assets if you upgrade or remove the addon.",
+            "As such, it's reccommended that you select a directory that won't be moved in the future",
+        )),
         default="",
         subtype="DIR_PATH",
         update=lib_path_update,
@@ -39,18 +64,20 @@ class AddonPreferences(AddonPreferences):
             draw_download_previews(layout)
             return
 
-        row = layout.row(align=True)
+        col = layout.box().column(align=True)
+        col.label(text="External Downloads Path:")
+        # col.scale_y = .5
+        row = col.row(align=True)
         row.scale_y = row.scale_x = 1.5
-        split = row.split(align=True, factor=.3)
         path = Path(self.lib_path)
         if not path.exists():
             row.alert = True
-            row2 = layout.row(align=True)
+            row2 = col.row(align=True)
             row2.alert = True
             row2.label(text="The given path does not exist")
-        row.prop(self, "lib_path")
-        layout
-        row = layout.row(align=True)
+        row.prop(self, "lib_path", text="")
+
+        row = layout.box().row(align=True)
         row.scale_y = 1.5
         draw_download_previews(row, reload=True)
         row.operator(AB_OT_clear_asset_folder.bl_idname, icon="FILE_REFRESH")

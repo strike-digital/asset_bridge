@@ -1,3 +1,4 @@
+import json
 import shutil
 from queue import Queue
 from pathlib import Path
@@ -12,8 +13,13 @@ from bpy.props import StringProperty
 from bpy.types import AddonPreferences, Context, Operator
 
 from .vendor import requests
-from .constants import ADDON_DIR, BL_ASSET_LIB_NAME, FILES, ICONS_DIR, PREVIEWS_DIR
+from .constants import DIRS, BL_ASSET_LIB_NAME, FILES
 """I apologise if you have to try and understand this mess."""
+
+
+def update_prefs_file():
+    with open(FILES.prefs_file, "w") as f:
+        json.dump({"lib_path": get_prefs(bpy.context).lib_path}, f)
 
 
 def get_prefs(context: Context) -> AddonPreferences:
@@ -48,12 +54,12 @@ def ensure_asset_library():
     if BL_ASSET_LIB_NAME not in asset_libs:
         bpy.ops.preferences.asset_library_add()
         asset_libs[-1].name = BL_ASSET_LIB_NAME
-        asset_libs[-1].path = str(FILES["asset_lib_blend"])
+        asset_libs[-1].path = str(FILES.asset_lib_blend)
 
 
 def asset_preview_exists(name):
     """Whether the preview image for this asset exists"""
-    image_path = PREVIEWS_DIR / f"{name}.png"
+    image_path = DIRS.previews / f"{name}.png"
     return image_path.exists()
 
 
@@ -65,7 +71,7 @@ def download_file(url: str, download_path: Path, file_name: str = "", print_end=
     download_path = download_path / file_name
     res = requests.get(url, stream=True)
     if res.status_code != 200:
-        with open(ADDON_DIR / "log.txt", "w") as f:
+        with open(DIRS.addon / "log.txt", "w") as f:
             f.write(url)
             f.write(res.status_code)
         raise requests.ConnectionError()
@@ -85,9 +91,9 @@ def download_preview(asset_name, reload=False, size=128, load=True):
     url = f"https://cdn.polyhaven.com/asset_img/thumbs/{asset_name}.png?width={size}&height={size}"
 
     file_name = f"{asset_name}.png"
-    if not (Path(PREVIEWS_DIR) / file_name).is_file() or reload:
-        download_file(url, PREVIEWS_DIR, file_name, print_end=False)
-    image_path = PREVIEWS_DIR / file_name
+    if not (Path(DIRS.previews) / file_name).is_file() or reload:
+        download_file(url, DIRS.previews, file_name, print_end=False)
+    image_path = DIRS.previews / file_name
 
     if not load:
         downloading_previews[asset_name] = False
@@ -181,7 +187,7 @@ pcoll = previews.new()
 pcolls = {"assets": pcoll}
 pcoll = previews.new()
 pcolls["icons"] = pcoll
-for file in ICONS_DIR.iterdir():
+for file in DIRS.icons.iterdir():
     pcoll.load(file.name.split(".")[0], str(file), path_type="IMAGE")
 
 

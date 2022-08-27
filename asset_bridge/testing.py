@@ -18,27 +18,3 @@ def download_image(download_path: Path, url):
         print('Image sucessfully Downloaded: ', file_name)
     else:
         print('Image Couldn\'t be retrieved')
-
-
-headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0"}
-# res = requests.get("https://api.polyhaven.com/assets", headers=headers)
-# res = requests.get("https://api.polyhaven.com/assets")
-
-# from time import perf_counter
-# threads = []
-# start = perf_counter()
-# for i, asset in enumerate(res.json()):
-#     if i > 30:
-#         break
-#     thread = Thread(target=download_image,
-#            args=(Path.cwd() / "images", f"https://cdn.polyhaven.com/asset_img/thumbs/{asset}.png?width=125&height=125"))
-#     thread.start()
-#     threads.append(thread)
-#     # download_image(Path.cwd() / "images", f"https://cdn.polyhaven.com/asset_img/thumbs/{asset}.png?width=125&height=125")
-
-# for thread in threads:
-#     thread.join()
-
-# print(perf_counter()-start)
-
-# download_image("", "https://cdn.polyhaven.com/asset_img/thumbs/grass_medium_01.png?width=125&height=125")

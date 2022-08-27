@@ -3,8 +3,8 @@ from threading import Thread
 import bpy
 from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty)
 from bpy.types import PropertyGroup, Scene
-from .constants import PREVIEWS_DIR
-from .helpers import get_icon, pcolls
+from .constants import __IS_DEV__, DIRS
+from .helpers import get_icon, get_prefs, pcolls
 from .assets import singular
 from .assets import Asset, asset_list
 
@@ -164,7 +164,7 @@ class AssetBridgeSettings(PropertyGroup):
             if name in pcoll:
                 icon_id = pcoll[name].icon_id
             else:
-                image_path = PREVIEWS_DIR / f"{name}.png"
+                image_path = DIRS.previews / f"{name}.png"
                 icon_id = pcoll.load(name, str(image_path), path_type="IMAGE").icon_id
             items.append((name, data["name"], data["name"], icon_id, i))
         if not items:
@@ -240,16 +240,16 @@ class AssetBridgeSettings(PropertyGroup):
             (
                 "APPEND",
                 "Append",
-                "Append the assets directly into the file\
-        (this can cause the file size to grow quickly, but allows more control over the asset data)",
+                "\n".join(("Append the assets directly into the file (this can cause the file size to grow quickly,",
+                          "but allows more control over the asset data)")),
                 "UNLINKED",
                 0,
             ),
             (
                 "LINK",
                 "Link",
-                "Link the asset data from the downloaded file.\
-        This keeps file size low, but doesn't allow as much control over the asset data",
+                "\n".join(("Link the asset data from the downloaded file.",
+                           "This keeps file size low, but doesn't allow as much control over the asset data")),
                 "LINKED",
                 1,
             ),
@@ -281,6 +281,12 @@ def register():
     bpy.types.Object.is_asset_bridge = BoolProperty()
     bpy.types.Object.asset_bridge_name = bpy.props.StringProperty()
     bpy.app.handlers.depsgraph_update_pre.append(depsgraph_update_pre_handler)
+
+    prefs = get_prefs(bpy.context)
+    if __IS_DEV__:
+        prefs.lib_path = "D:\\Documents\\Blender\\addons\\AA Own addons\\Asset Bridge\\Asset Bridge Downloads\\"
+    else:
+        prefs.lib_path = prefs.lib_path
 
 
 def unregister():
