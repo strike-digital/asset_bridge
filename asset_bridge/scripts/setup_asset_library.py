@@ -8,7 +8,6 @@ addon_path = Path(__file__).parents[1]
 sys.path.append(str(addon_path))
 from constants import FILES, DIRS
 
-
 list_file = FILES.asset_list
 with open(list_file, "r") as f:
     asset_list = json.load(f)
@@ -28,6 +27,8 @@ for name, asset in asset_list["models"].items():
     with bpy.context.temp_override(id=obj):
         bpy.ops.ed.lib_id_load_custom_preview(filepath=str(DIRS.previews / f"{name}.png"))
 
-
+print(FILES.asset_lib_blend)
+print(bpy.data.filepath)
 bpy.ops.wm.save_mainfile(filepath=str(FILES.asset_lib_blend))
+print(bpy.data.filepath)
 bpy.ops.wm.quit_blender()

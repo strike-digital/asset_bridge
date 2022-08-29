@@ -1,8 +1,10 @@
 from threading import Thread
 
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty)
+from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty, FloatVectorProperty)
 from bpy.types import PropertyGroup, Scene
+from mathutils import Vector as V
+from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
 from .constants import __IS_DEV__, DIRS
 from .helpers import get_icon, get_prefs, pcolls
 from .assets import singular
@@ -13,6 +15,8 @@ loading_asset = False
 
 
 class AssetBridgeSettings(PropertyGroup):
+
+    mouse_pos: FloatVectorProperty(size=2)
 
     show_asset_info: BoolProperty(
         name="Show asset info",
@@ -125,15 +129,15 @@ class AssetBridgeSettings(PropertyGroup):
     def filter_category_items(self, context):
         items = [("ALL", "All", "All")]
         categories = sorted(getattr(asset_list, f"{singular[self.filter_type]}_categories"))
-
         items.extend((cat, cat.title(), f"Only show assets in the category '{cat}'") for cat in categories)
-
         return items
 
-    filter_category: EnumProperty(items=filter_category_items,
-                                  name="Asset categories",
-                                  description="Filter the asset list on only show a specific category",
-                                  update=lambda self, context: self.sort_method_update(context))
+    filter_category: EnumProperty(
+        items=filter_category_items,
+        name="Asset categories",
+        description="Filter the asset list on only show a specific category",
+        update=lambda self, context: self.sort_method_update(context),
+    )
 
     filter_search: StringProperty(
         name="Search",
@@ -241,7 +245,7 @@ class AssetBridgeSettings(PropertyGroup):
                 "APPEND",
                 "Append",
                 "\n".join(("Append the assets directly into the file (this can cause the file size to grow quickly,",
-                          "but allows more control over the asset data)")),
+                           "but allows more control over the asset data)")),
                 "UNLINKED",
                 0,
             ),
@@ -261,19 +265,61 @@ class AssetBridgeSettings(PropertyGroup):
 
 def depsgraph_update_pre_handler(scene: Scene, _):
     remove = []
+    assets: list[Asset] = []
     for obj in scene.objects:
         if obj.is_asset_bridge:
-            if tuple(obj.location) == (0., 0., 0.):
-                continue
-            asset = Asset(obj.asset_bridge_name)
-            # asset.download_asset(bpy.context)
-            asset.import_asset(bpy.context, link=False, location=obj.location)
-
-            asset_objs = [obj for obj in scene.objects if obj.select_get()]
             remove.append(obj)
+            assets.append(Asset(obj.asset_bridge_name))
+            # if tuple(obj.location) == (0., 0., 0.):
+            #     continue
+            # asset = Asset(obj.asset_bridge_name)
 
+            # scene.cursor.location = loc
+
+            # asset_objs = [obj for obj in scene.objects if obj.select_get()]
     for obj in remove:
         bpy.data.objects.remove(obj)
+
+    for asset in assets:
+        # asset.download_asset(bpy.context)
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        region = bpy.context.region
+        r3d = region.data
+        coord = (region.width / 2, region.height / 2)
+
+        ab = scene.asset_bridge
+        bpy.ops.asset_bridge.get_mouse_pos("INVOKE_DEFAULT")
+        coord = ab.mouse_pos
+        view_vector = region_2d_to_vector_3d(region, r3d, coord)
+        ray_origin = region_2d_to_origin_3d(region, r3d, coord)
+
+        result = scene.ray_cast(depsgraph, ray_origin, view_vector)
+        normal = result[2]
+        object = result[4]
+
+        # scene.cursor.location = result[1]
+
+        # from mathutils import Quaternion
+
+        # def on_completion():
+        #     objs = [o for o in scene.objects if o.select_get()]
+        #     # rotation = V((0, 0, 1)).rotation_difference(normal)
+        #     for obj in objs:
+        #         print(obj.location)
+        #         # bpy.ops.object.transform_apply(rotation=True)
+        #         obj.rotation_mode = "QUATERNION"
+        #         print(rotation)
+        #         # obj.rotation_quaternion = rotation
+        #         obj.rotation_quaternion = object.matrix_world.to_quaternion() @ rotation
+        #         # obj.location = object.matrix_world @ result[1]
+
+        asset.import_asset(bpy.context, link=False, location=result[1])
+        # objs = [o for o in scene.objects if o.select_get()]
+        # for obj in objs:
+        #     print(obj.location)
+        # obj.rotation_mode = "QUATERNION"
+        # obj.rotation_quaternion = Quaternion() @ rotation
+        # print(obj.rotation_quaternion)
 
 
 def register():

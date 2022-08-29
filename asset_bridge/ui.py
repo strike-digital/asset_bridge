@@ -1,8 +1,9 @@
 from datetime import datetime
+from .constants import DIRS
 import bpy
 from bpy.types import Panel, UILayout, Context
 from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website
-from .helpers import asset_preview_exists
+from .helpers import asset_preview_exists, get_prefs
 from .assets import Asset, asset_list
 from .settings import AssetBridgeSettings
 
@@ -11,6 +12,21 @@ def dpifac() -> float:
     """Taken from Node Wrangler. Not sure exacly why it works, but it is needed to get the visual position of nodes"""
     prefs = bpy.context.preferences.system
     return prefs.dpi * prefs.pixel_size / 72  # Why 72?
+
+
+def draw_downloads_path(layout: UILayout, context: Context):
+    col = layout.box().column(align=True)
+    col.label(text="External Downloads Path:")
+    prefs = get_prefs(context)
+    row = col.row(align=True)
+    row.scale_y = row.scale_x = 1.5
+    if not DIRS.is_valid:
+        row.alert = True
+        row2 = col.row(align=True)
+        row2.alert = True
+        row2.label(text=DIRS.invalid_message)
+    row.prop(prefs, "lib_path", text="")
+    return DIRS.is_valid
 
 
 def draw_download_previews(layout: UILayout, reload: bool = False):
@@ -84,6 +100,10 @@ class AB_PT_main_panel(Panel):
     def draw(self, context: Context):
         layout: UILayout = self.layout
         ab: AssetBridgeSettings = context.scene.asset_bridge
+
+        if not DIRS.is_valid:
+            draw_downloads_path(layout, context)
+            return
 
         asset_found = ab.asset_name != "NONE"
         if asset_found and (not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS"):

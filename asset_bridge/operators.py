@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import subprocess
 from threading import Thread
 
 import bpy
@@ -7,8 +8,8 @@ from bpy.types import Operator
 from bpy.props import BoolProperty, StringProperty
 
 from .vendor import requests
-from .constants import DIRS
-from .helpers import Op
+from .constants import DIRS, FILES
+from .helpers import Op, ensure_asset_library
 from .assets import Asset, asset_list
 
 
@@ -182,14 +183,16 @@ class AB_OT_download_asset_previews(Operator):
         thread = Thread(target=asset_list.download_all_previews, args=[False])
         thread.start()
         # asset_list.download_all_previews(reload=False)
-        # subprocess.run([
-        #     bpy.app.binary_path,
-        #     # FILES["asset_lib_blend"],
-        #     "--factory-startup",
-        #     "-b",
-        #     "--python",
-        #     f'{FILES_RELATIVE["setup_asset_library"]}',
-        # ])
+        subprocess
+        subprocess.Popen([
+            bpy.app.binary_path,
+            # FILES.asset_lib_blend,
+            "--factory-startup",
+            "-b",
+            "--python",
+            FILES.setup_asset_library,
+        ])
+        ensure_asset_library()
 
         # ensure_asset_library()
 
@@ -203,6 +206,17 @@ class AB_OT_set_category(Operator):
 
     def execute(self, context):
 
+        return {'FINISHED'}
+
+
+@Op("asset_bridge")
+class AB_OT_get_mouse_pos(Operator):
+
+    category_name: StringProperty()
+
+    def invoke(self, context, event):
+        ab = context.scene.asset_bridge
+        ab.mouse_pos = event.mouse_region_x, event.mouse_region_y 
         return {'FINISHED'}
 
 

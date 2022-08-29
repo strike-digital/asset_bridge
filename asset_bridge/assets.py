@@ -407,7 +407,7 @@ class Asset:
             # Set the selection and remove imported objects that arent meshes
             final_obj = None
             for obj in collection.objects:
-                obj.location = obj.location + V(location)
+                obj.location += V(location)
                 obj.select_set(True)
                 obj.name = f"{self.name}_{quality}"
                 final_obj = obj
@@ -418,14 +418,13 @@ class Asset:
         bpy.ops.ed.undo_push()
         return final_obj
 
-    def import_asset(
-            self,
-            context: Context,
-            link: bool = False,
-            quality: str = "1k",
-            reload: bool = False,
-            location=(0, 0, 0),
-    ):
+    def import_asset(self,
+                     context: Context,
+                     link: bool = False,
+                     quality: str = "1k",
+                     reload: bool = False,
+                     location=(0, 0, 0),
+                     on_completion=None):
         """Import the asset in another thread.
         Args:
             link (bool): Whether to link or append the asset (Only for  models)
@@ -433,6 +432,7 @@ class Asset:
             reload (bool): Whether to redownload an asset if it has already been downloaded. Defaults to False
             location (tuple): The location to place the imported asset (models only). Defaults to (0, 0, 0).
         """
+
         update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING_ASSET")
         run_in_main_thread(force_ui_update, ())
 
@@ -444,7 +444,11 @@ class Asset:
             run_in_main_thread(self.import_texture, (context, asset_file, link, quality))
         elif self.category == "model":
             run_in_main_thread(self.import_model, (context, asset_file, link, quality, location.copy()))
+        if on_completion:
+            run_in_main_thread(on_completion, ())
         update_prop(context.scene.asset_bridge, "download_status", "NONE")
 
 
+start = perf_counter()
 asset_list = AssetList(FILES.asset_list)
+print(f"Got asset list in: {perf_counter() - start:.3f}s")

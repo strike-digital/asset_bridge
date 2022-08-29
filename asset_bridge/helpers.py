@@ -3,7 +3,6 @@ import shutil
 from queue import Queue
 from pathlib import Path
 from threading import Thread
-from time import perf_counter
 from functools import partial
 from dataclasses import dataclass
 
@@ -51,10 +50,15 @@ def force_ui_update(all=False):
 def ensure_asset_library():
     """Check that asset bridge blend is loaded as an asset library in blender, and if not, add it as one."""
     asset_libs = bpy.context.preferences.filepaths.asset_libraries
-    if BL_ASSET_LIB_NAME not in asset_libs:
+    for asset_lib in asset_libs:
+        if asset_lib.path == str(FILES.asset_lib_blend):
+            break
+    else:
+        # if BL_ASSET_LIB_NAME not in asset_libs:
         bpy.ops.preferences.asset_library_add()
         asset_libs[-1].name = BL_ASSET_LIB_NAME
         asset_libs[-1].path = str(FILES.asset_lib_blend)
+        bpy.ops.wm.save_userpref()
 
 
 def asset_preview_exists(name):
@@ -178,10 +182,6 @@ def update_prop(data, name, value):
     """Update a single blender property in the main thread"""
     run_in_main_thread(setattr, (data, name, value))
 
-
-start = perf_counter()
-
-print(f"Got asset list in: {perf_counter() - start:.3f}s")
 
 pcoll = previews.new()
 pcolls = {"assets": pcoll}

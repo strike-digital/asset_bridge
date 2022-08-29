@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 __IS_DEV__ = True
@@ -20,16 +21,35 @@ class Dirs():
         # We can't access the addon preferences at init, so save the lib path in a file.
         with open(self.addon / "prefs.json", "r") as f:
             prefs = json.load(f)
+        print("init", prefs["lib_path"])
         self.update(Path(prefs["lib_path"]) / "downloads")
 
     @property
     def all_dirs(self):
         return [v for v in (self.__dict__).values() if isinstance(v, Path)]
 
+    def check_lib_path_invalid(self, lib_path: Path):
+        if str(lib_path) == ".":
+            return "Please select a downloads path"
+        elif not lib_path.exists():
+            return "Selected downloads path does not exist"
+        elif not os.access(lib_path, os.W_OK):
+            return "Insufficient permissions to use this directory"
+        return ""
+
     def update(self, lib_path):
         """Update the directories to be relative to the given library path"""
         lib_path = Path(lib_path)
-        if str(lib_path) == "." or not lib_path.exists():
+        self.is_valid = True
+        if message := self.check_lib_path_invalid(lib_path):
+            self.is_valid = False
+            self.invalid_message = message
+            if hasattr(self, "files"):
+                self.files.update(lib_path)
+            else:
+                self.files = Files(self)
+            return
+            print(lib_path.exists())
             lib_path = self.addon / "downloads"
         self.library = lib_path
         self.hdris = lib_path / "hdris"
@@ -37,6 +57,7 @@ class Dirs():
         self.texture_textures = self.textures / "textures"
         self.models = lib_path / "models"
         self.model_textures = self.models / "textures"
+        print("lib path", lib_path)
         if hasattr(self, "files"):
             self.files.update(lib_path)
         else:
@@ -58,15 +79,18 @@ class Files():
         self.setup_model_blend = dirs.scripts / "setup_model_blend.py"
         self.asset_lib_blend = dirs.addon / "asset_lib.blend"
         self.prefs_file = dirs.addon / "prefs.json"
-        self.update(dirs.library)
+        if dirs.is_valid:
+            self.update(dirs.library)
 
     @property
     def all_files(self):
         return [v for v in (self.__dict__).values() if isinstance(v, Path)]
 
     def update(self, lib_path):
+        print("update", lib_path)
         lib_path = Path(lib_path)
         self.lib_info = lib_path / "lib_info.json"
+        self.asset_lib_blend = lib_path / "asset_lib.blend"
 
 
 DIRS = Dirs()

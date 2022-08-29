@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 from bpy.types import AddonPreferences, UILayout
 from .operators import AB_OT_clear_asset_folder, AB_OT_set_prop
-from .ui import draw_download_previews
+from .ui import draw_download_previews, draw_downloads_path
 from .helpers import asset_preview_exists, update_prefs_file
 from .constants import ASSET_LIB_VERSION, DIRS, FILES
 from bpy.props import StringProperty
@@ -46,10 +46,9 @@ class AddonPreferences(AddonPreferences):
 
     lib_path: StringProperty(
         name="External Downloads path",
-        description="\n".join((
-            "The path in which to save the downloaded assets. If left blank, the addon directory is used.",
-            "However, this is not ideal, as you will lose all downloaded assets if you upgrade or remove the addon.",
-            "As such, it's reccommended that you select a directory that won't be moved in the future",
+        description=" ".join((
+            "The path in which to save the downloaded assets.",
+            "It's reccommended that you select a directory that won't be moved in the future",
         )),
         default="",
         subtype="DIR_PATH",
@@ -63,18 +62,22 @@ class AddonPreferences(AddonPreferences):
             draw_download_previews(layout)
             return
 
-        col = layout.box().column(align=True)
-        col.label(text="External Downloads Path:")
-        # col.scale_y = .5
-        row = col.row(align=True)
-        row.scale_y = row.scale_x = 1.5
-        path = Path(self.lib_path)
-        if not path.exists():
-            row.alert = True
-            row2 = col.row(align=True)
-            row2.alert = True
-            row2.label(text="The given path does not exist")
-        row.prop(self, "lib_path", text="")
+        if not draw_downloads_path(layout, context):
+            return
+        # col = layout.box().column(align=True)
+        # col.label(text="External Downloads Path:")
+        # # col.scale_y = .5
+        # row = col.row(align=True)
+        # row.scale_y = row.scale_x = 1.5
+        # path = Path(self.lib_path)
+        # if not DIRS.is_valid:
+        #     row.alert = True
+        #     row.prop(self, "lib_path", text="")
+        #     row2 = col.row(align=True)
+        #     row2.alert = True
+        #     row2.label(text="The given path is not valid")
+        #     return
+        # row.prop(self, "lib_path", text="")
 
         row = layout.box().row(align=True)
         row.scale_y = 1.5
