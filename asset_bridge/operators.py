@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import subprocess
 from threading import Thread
 
 import bpy
@@ -8,7 +7,7 @@ from bpy.types import Operator
 from bpy.props import BoolProperty, StringProperty
 
 from .vendor import requests
-from .constants import DIRS, FILES
+from .constants import DIRS
 from .helpers import Op, ensure_asset_library
 from .assets import Asset, asset_list
 
@@ -208,7 +207,7 @@ class AB_OT_get_mouse_pos(Operator):
 
     def invoke(self, context, event):
         ab = context.scene.asset_bridge
-        ab.mouse_pos = event.mouse_region_x, event.mouse_region_y 
+        ab.mouse_pos = event.mouse_region_x, event.mouse_region_y
         return {'FINISHED'}
 
 

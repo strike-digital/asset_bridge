@@ -51,13 +51,13 @@ def ensure_asset_library():
     """Check that asset bridge blend is loaded as an asset library in blender, and if not, add it as one."""
     asset_libs = bpy.context.preferences.filepaths.asset_libraries
     for asset_lib in asset_libs:
-        if asset_lib.path == str(FILES.asset_lib_blend):
+        if asset_lib.path == str(DIRS.asset_browser):
             break
     else:
         # if BL_ASSET_LIB_NAME not in asset_libs:
         bpy.ops.preferences.asset_library_add()
         asset_libs[-1].name = BL_ASSET_LIB_NAME
-        asset_libs[-1].path = str(FILES.asset_lib_blend)
+        asset_libs[-1].path = str(DIRS.asset_browser)
         bpy.ops.wm.save_userpref()
 
 

@@ -1,7 +1,7 @@
 from threading import Thread
 
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty,
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty,
                        FloatVectorProperty)
 from bpy.types import PropertyGroup, Scene
 from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d

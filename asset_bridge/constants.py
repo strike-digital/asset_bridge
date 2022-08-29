@@ -47,6 +47,7 @@ class Dirs():
         self.texture_textures = self.textures / "textures"
         self.models = lib_path / "models"
         self.model_textures = self.models / "textures"
+        self.asset_browser = lib_path / "asset_browser"
         if hasattr(self, "files"):
             self.files.update(lib_path)
         else:
@@ -72,7 +73,6 @@ class Files():
         self.setup_asset_library = dirs.scripts / "setup_asset_library.py"
         self.setup_model_blend = dirs.scripts / "setup_model_blend.py"
         self.script_progress = dirs.scripts / "progress.txt"
-        self.asset_lib_blend = dirs.addon / "asset_lib.blend"
         self.prefs_file = dirs.addon / "prefs.json"
         if dirs.is_valid:
             self.update(dirs.library)
@@ -84,7 +84,7 @@ class Files():
     def update(self, lib_path):
         lib_path = Path(lib_path)
         self.lib_info = lib_path / "lib_info.json"
-        self.asset_lib_blend = lib_path / "asset_lib.blend"
+        self.asset_lib_blend = self.dirs.asset_browser / "asset_lib.blend"
 
 
 DIRS = Dirs()
