@@ -22,7 +22,7 @@ class Dirs():
         with open(self.addon / "prefs.json", "r") as f:
             prefs = json.load(f)
         print("init", prefs["lib_path"])
-        self.update(Path(prefs["lib_path"]) / "downloads")
+        self.update(Path(prefs["lib_path"]))
 
     @property
     def all_dirs(self):
@@ -41,16 +41,7 @@ class Dirs():
         """Update the directories to be relative to the given library path"""
         lib_path = Path(lib_path)
         self.is_valid = True
-        if message := self.check_lib_path_invalid(lib_path):
-            self.is_valid = False
-            self.invalid_message = message
-            if hasattr(self, "files"):
-                self.files.update(lib_path)
-            else:
-                self.files = Files(self)
-            return
-            print(lib_path.exists())
-            lib_path = self.addon / "downloads"
+        self.invalid_message = ""
         self.library = lib_path
         self.hdris = lib_path / "hdris"
         self.textures = lib_path / "textures"
@@ -62,6 +53,11 @@ class Dirs():
             self.files.update(lib_path)
         else:
             self.files = Files(self)
+
+        if message := self.check_lib_path_invalid(lib_path):
+            self.is_valid = False
+            self.invalid_message = message
+            return
 
         for dir in self.all_dirs:
             try:

@@ -11,6 +11,6 @@
 *.pyc
 *.zip
 *.idea
+*.json
 asset_list.json
-build.py
 __pycache__/
