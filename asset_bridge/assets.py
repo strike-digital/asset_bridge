@@ -9,11 +9,10 @@ from bpy.types import Context
 from mathutils import Vector as V
 from collections import OrderedDict as ODict
 from time import perf_counter
-
-from .constants import DIRS, FILES
-from .helpers import Progress, download_preview, main_thread_timer, update_prop,\
+from asset_bridge.constants import DIRS, FILES
+from asset_bridge.helpers import Progress, download_preview, update_prop,\
     force_ui_update, run_in_main_thread, download_file, file_name_from_url
-from .vendor import requests
+from asset_bridge.vendor import requests
 
 singular = {
     "all": "all",
@@ -31,7 +30,6 @@ class AssetList:
         self.sorted = False
         if update_list:
             self.update()
-
             return
 
         # load from file if no list provided
@@ -41,10 +39,10 @@ class AssetList:
 
         # if no file found and no list provided, download from interntet
         if asset_list:
-            self.hdris = asset_list["hdris"]
-            self.textures = asset_list["textures"]
-            self.models = asset_list["models"]
-            self.all = self.hdris | self.textures | self.models
+            self.hdris: dict = asset_list["hdris"]
+            self.textures: dict = asset_list["textures"]
+            self.models: dict = asset_list["models"]
+            self.all: dict = self.hdris | self.textures | self.models
 
             self.update_categories()
         else:
@@ -160,10 +158,17 @@ class AssetList:
 
         files = {f.name.split(".")[0] for f in DIRS.previews.iterdir()}
         names = {n for n in self.all if n not in files}
-        # names = set(list(names)[:10])
+        if not names:
+            run_in_main_thread(
+                bpy.ops.asset_bridge.report_message,
+                ["INVOKE_DEFAULT"],
+                {"message": "No new assets to download."},
+            )
+            return
+
         ab = bpy.context.scene.asset_bridge
-        self.progress = Progress(len(names), ab, "preview_download_progress")
-        main_thread_timer.interval = .1
+        self.progress = Progress(len(names) + len(self.all), ab, "preview_download_progress")
+        self.progress.message = "Downloading previews..."
         update_prop(ab, "download_status", "DOWNLOADING_PREVIEWS")
         force_ui_update()
 
@@ -185,17 +190,45 @@ class AssetList:
         for thread in threads:
             thread.join()
 
-        # report the time in the footer bar
-        end = perf_counter()
-        run_in_main_thread(
-            bpy.ops.asset_bridge.report_message,
-            ["INVOKE_DEFAULT"],
-            {"message": f"Downloaded {len(names)} assets in {end-start:.2f} seconds"},
-        )
+        # Set up the asset blend file.
+        self.progress.message = "Setting up assets..."
 
-        update_prop(ab, "download_status", "NONE")
-        force_ui_update()
-        main_thread_timer.interval = 1
+        asset_process = subprocess.Popen([
+            bpy.app.binary_path,
+            "--factory-startup",
+            "-b",
+            "--python",
+            FILES.setup_asset_library,
+        ],)
+
+        with open(FILES.script_progress, "w") as f:
+            f.write("0")
+
+        def check_asset_process():
+            if asset_process.poll() is not None:
+                update_prop(bpy.context.scene.asset_bridge, "download_status", "NONE")
+                force_ui_update()
+
+                # report the time in the footer bar
+                end = perf_counter()
+                run_in_main_thread(
+                    bpy.ops.asset_bridge.report_message,
+                    ["INVOKE_DEFAULT"],
+                    {"message": f"Downloaded {len(names)} assets in {end-start:.2f} seconds"},
+                )
+                return
+
+            with open(FILES.script_progress, "r") as f:
+                if val := f.read():
+                    progress = int(val)
+                else:
+                    return .01
+
+            if self.progress.progress != len(names) + progress:
+                self.progress.progress = len(names) + progress
+            return .01
+
+        bpy.app.timers.register(check_asset_process, first_interval=.1)
 
 
 class Asset:
@@ -238,8 +271,11 @@ class Asset:
         if self.category == "texture":
             self.dimensions: V = V(list_data["dimensions"])
 
-    def get_file_path(self, quality):
+    def get_file_path(self, quality) -> Path:
         return self.file_paths[quality]
+
+    def is_downloaded(self, quality: str) -> bool:
+        return self.get_file_path(quality).exists()
 
     def get_quality_dict(self) -> dict:
         return self.data["hdri"] if "hdri" in self.data else self.data["blend"]
@@ -418,13 +454,15 @@ class Asset:
         bpy.ops.ed.undo_push()
         return final_obj
 
-    def import_asset(self,
-                     context: Context,
-                     link: bool = False,
-                     quality: str = "1k",
-                     reload: bool = False,
-                     location=(0, 0, 0),
-                     on_completion=None):
+    def import_asset(
+            self,
+            context: Context,
+            link: bool = False,
+            quality: str = "1k",
+            reload: bool = False,
+            location=(0, 0, 0),
+            on_completion=None,
+    ):
         """Import the asset in another thread.
         Args:
             link (bool): Whether to link or append the asset (Only for  models)
@@ -433,11 +471,16 @@ class Asset:
             location (tuple): The location to place the imported asset (models only). Defaults to (0, 0, 0).
         """
 
-        update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING_ASSET")
-        run_in_main_thread(force_ui_update, ())
+        import_only = self.is_downloaded(quality) and not reload
+
+        if not import_only:
+            update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING_ASSET")
+            run_in_main_thread(force_ui_update, ())
 
         asset_file = self.download_asset(context, quality, reload)
-        run_in_main_thread(force_ui_update, ())
+        if not import_only:
+            run_in_main_thread(force_ui_update, ())
+
         if self.category == "hdri":
             run_in_main_thread(self.import_hdri, (context, asset_file, quality))
         elif self.category == "texture":
@@ -446,9 +489,8 @@ class Asset:
             run_in_main_thread(self.import_model, (context, asset_file, link, quality, location.copy()))
         if on_completion:
             run_in_main_thread(on_completion, ())
-        update_prop(context.scene.asset_bridge, "download_status", "NONE")
+        if not import_only:
+            update_prop(context.scene.asset_bridge, "download_status", "NONE")
 
 
-start = perf_counter()
 asset_list = AssetList(FILES.asset_list)
-print(f"Got asset list in: {perf_counter() - start:.3f}s")

@@ -8,6 +8,7 @@ import re
 
 
 def update_init_file(init_file: Path, version: tuple):
+    """Update the addon version in the init file"""
     with open(init_file, "r") as file:
         text = file.read()
 
@@ -62,15 +63,15 @@ def main():
 
         file_version = "_".join(latest_version.split(".")[:-1] + [str(int(subversion) + 1)])
 
-    print(file_version)
+    print(f"Zipping version '{file_version}'")
     update_init_file(path / "asset_bridge" / "__init__.py", tuple(int(f) for f in file_version.split("_")))
     constants_file = path / "asset_bridge" / "constants.py"
     update_constants_file(constants_file, False)
 
-    out_path = path / f"asset_bridge_{file_version}.zip"
+    out_path = path / "builds" / f"asset_bridge_{file_version}.zip"
+    out_path.mkdir(exist_ok=True)
 
     with ZipFile(out_path, 'w') as z:
-        # writing each file one by one
         for file in files:
             z.write(file, arcname=str(file).replace("asset_bridge", f"asset_bridge_{file_version}"))
     update_constants_file(constants_file, True)

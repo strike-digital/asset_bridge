@@ -1,35 +1,64 @@
+from time import time
 import bpy
-# from ..constants import BASE_ASSET_NAME
 from pathlib import Path
-import json
 import sys
 
 addon_path = Path(__file__).parents[1]
 sys.path.append(str(addon_path))
 from constants import FILES, DIRS
+from assets import AssetList
 
-list_file = FILES.asset_list
-with open(list_file, "r") as f:
-    asset_list = json.load(f)
+asset_list = AssetList(FILES.asset_list)
+
+progress = 0
+start = time()
+
+
+def update_progress():
+    with open(FILES.script_progress, "w") as f:
+        f.write(str(progress))
+
+
+def add_asset_attrs(asset, name, info):
+    global progress
+    global start
+    asset.is_asset_bridge = True
+    asset.asset_bridge_name = name
+    asset.asset_mark()
+    asset.asset_data.author = ", ".join(info["authors"])
+    for tag in info["tags"]:
+        asset.asset_data.tags.new(tag)
+    with bpy.context.temp_override(id=asset):
+        bpy.ops.ed.lib_id_load_custom_preview(filepath=str(DIRS.previews / f"{name}.png"))
+
+    # Update progress file
+    progress += 1
+    if time() - start > .02:
+        update_progress()
+        start = time()
+
 
 bpy.types.Object.is_asset_bridge = bpy.props.BoolProperty()
 bpy.types.Object.asset_bridge_name = bpy.props.StringProperty()
 
 # setup assets
-for name, asset in asset_list["models"].items():
-    obj = bpy.data.objects.new(name.replace("_", " ").title(), None)
-    obj.is_asset_bridge = True
-    obj.asset_bridge_name = name
-    obj.asset_mark()
-    obj.asset_data.author = list(asset["authors"])[0]
-    for tag in asset["tags"]:
-        obj.asset_data.tags.new(tag)
-    with bpy.context.temp_override(id=obj):
-        bpy.ops.ed.lib_id_load_custom_preview(filepath=str(DIRS.previews / f"{name}.png"))
+for name, asset in asset_list.models.items():
+    obj = bpy.data.objects.new(asset["name"], None)
+    add_asset_attrs(obj, name, asset)
 
-print(FILES.asset_lib_blend)
-print(bpy.data.filepath)
+bpy.types.Material.is_asset_bridge = bpy.props.BoolProperty()
+bpy.types.Material.asset_bridge_name = bpy.props.StringProperty()
+
+for name, asset in asset_list.textures.items():
+    mat = bpy.data.materials.new(asset["name"])
+    add_asset_attrs(mat, name, asset)
+
+bpy.types.World.is_asset_bridge = bpy.props.BoolProperty()
+bpy.types.World.asset_bridge_name = bpy.props.StringProperty()
+
+for name, asset in asset_list.hdris.items():
+    world = bpy.data.worlds.new(asset["name"])
+    add_asset_attrs(world, name, asset)
+
 bpy.ops.wm.save_mainfile(filepath=str(FILES.asset_lib_blend))
-print(bpy.data.filepath)
-print(DIRS.invalid_message)
 bpy.ops.wm.quit_blender()

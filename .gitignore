@@ -12,5 +12,6 @@
 *.zip
 *.idea
 *.json
+/builds
 asset_list.json
 __pycache__/

@@ -1,9 +1,9 @@
 from threading import Thread
 
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, IntProperty, PointerProperty, StringProperty, FloatVectorProperty)
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty,
+                       FloatVectorProperty)
 from bpy.types import PropertyGroup, Scene
-from mathutils import Vector as V
 from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
 from .constants import __IS_DEV__, DIRS
 from .helpers import get_icon, get_prefs, pcolls
@@ -30,7 +30,7 @@ class AssetBridgeSettings(PropertyGroup):
         default=False,
     )
 
-    ui_import_progress: IntProperty(
+    ui_import_progress: FloatProperty(
         name="Downloading:",
         subtype="PERCENTAGE",
         min=0,
@@ -39,11 +39,11 @@ class AssetBridgeSettings(PropertyGroup):
         set=lambda self, value: None,
     )
 
-    progress = IntProperty(name="Downloading:", subtype="PERCENTAGE", min=0, max=100)
+    progress = FloatProperty(name="Downloading:", subtype="PERCENTAGE", min=0, max=100, precision=0)
 
     import_progress: progress
 
-    ui_preview_download_progress: IntProperty(
+    ui_preview_download_progress: FloatProperty(
         name="Downloading:",
         subtype="PERCENTAGE",
         min=0,

@@ -107,8 +107,6 @@ def download_preview(asset_name, reload=False, size=128, load=True):
     except KeyError as e:
         pcolls["assets"][asset_name].reload()
 
-    # We need to update the UI once the preview has been loaded
-    force_ui_update()
     downloading_previews[asset_name] = False
 
 
@@ -130,23 +128,29 @@ def get_asset_preview(asset_name: str, reload: bool = False, size: int = 128):
 class Progress:
 
     def __init__(self, max, data, propname):
-        self.total = 0
         self.max = max
         self.data = data
         self.propname = propname
-        # setattr(self.data, self.propname, 0)
-        update_prop(self.data, self.propname, 0)
+        self.message = ""
+        self.progress = 0
+
+    @property
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, value):
+        self._progress = value
+        update_prop(self.data, self.propname, self.read())
         force_ui_update()
 
     def increment(self, value=1):
-        force_ui_update()
-        self.total += value
-        update_prop(self.data, self.propname, int(self.read()))
+        self.progress += value
         # setattr(self.data, self.propname, int(self.read()))
         # self.ab.import_progress = int(self.read())
 
     def read(self):
-        return self.total / self.max * 100
+        return self.progress / self.max * 100
 
 
 # It's a bad idea to modify blend data in arbitrary threads,

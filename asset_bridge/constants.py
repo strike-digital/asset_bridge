@@ -21,7 +21,6 @@ class Dirs():
         # We can't access the addon preferences at init, so save the lib path in a file.
         with open(self.addon / "prefs.json", "r") as f:
             prefs = json.load(f)
-        print("init", prefs["lib_path"])
         self.update(Path(prefs["lib_path"]))
 
     @property
@@ -48,7 +47,6 @@ class Dirs():
         self.texture_textures = self.textures / "textures"
         self.models = lib_path / "models"
         self.model_textures = self.models / "textures"
-        print("lib path", lib_path)
         if hasattr(self, "files"):
             self.files.update(lib_path)
         else:
@@ -73,6 +71,7 @@ class Files():
         self.asset_list = dirs.addon / "asset_list.json"
         self.setup_asset_library = dirs.scripts / "setup_asset_library.py"
         self.setup_model_blend = dirs.scripts / "setup_model_blend.py"
+        self.script_progress = dirs.scripts / "progress.txt"
         self.asset_lib_blend = dirs.addon / "asset_lib.blend"
         self.prefs_file = dirs.addon / "prefs.json"
         if dirs.is_valid:
@@ -83,7 +82,6 @@ class Files():
         return [v for v in (self.__dict__).values() if isinstance(v, Path)]
 
     def update(self, lib_path):
-        print("update", lib_path)
         lib_path = Path(lib_path)
         self.lib_info = lib_path / "lib_info.json"
         self.asset_lib_blend = lib_path / "asset_lib.blend"

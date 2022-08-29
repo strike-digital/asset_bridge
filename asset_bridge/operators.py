@@ -180,19 +180,11 @@ class AB_OT_download_asset_previews(Operator):
 
     def execute(self, context):
         asset_list.update()
+        ensure_asset_library()
         thread = Thread(target=asset_list.download_all_previews, args=[False])
         thread.start()
+        
         # asset_list.download_all_previews(reload=False)
-        subprocess
-        subprocess.Popen([
-            bpy.app.binary_path,
-            # FILES.asset_lib_blend,
-            "--factory-startup",
-            "-b",
-            "--python",
-            FILES.setup_asset_library,
-        ])
-        ensure_asset_library()
 
         # ensure_asset_library()
 
