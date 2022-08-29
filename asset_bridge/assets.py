@@ -398,7 +398,7 @@ class Asset:
         world.name = f"{self.name}_{quality}"
         return world
 
-    def import_texture(self, context: Context, asset_file: Path, link: bool, quality: str):
+    def import_texture(self, context: Context, asset_file: Path, link: bool, quality: str, material_slot=""):
         with bpy.data.libraries.load(str(asset_file), link=link) as (data_from, data_to):
             for mat in data_from.materials:
                 if mat == self.name:
@@ -406,10 +406,14 @@ class Asset:
                     break
             else:
                 data_to.materials.append(data_from.materials[0])
+
         if obj := context.object:
-            if not obj.material_slots:
-                obj.data.materials.append(None)
-            obj.material_slots[0].material = data_to.materials[0]
+            obj: bpy.types.Object
+            if not material_slot:
+                if not obj.material_slots:
+                    obj.data.materials.append(None)
+                material_slot = obj.material_slots[obj.active_material_index]
+            material_slot.material = data_to.materials[0]
 
         data_to.materials[0].name = f"{self.name}_{quality}"
         return data_to.materials[0]
@@ -460,7 +464,8 @@ class Asset:
             link: bool = False,
             quality: str = "1k",
             reload: bool = False,
-            location=(0, 0, 0),
+            material_slot: bpy.types.MaterialSlot = None,
+            location: tuple[int] = (0, 0, 0),
             on_completion=None,
     ):
         """Import the asset in another thread.
@@ -484,7 +489,7 @@ class Asset:
         if self.category == "hdri":
             run_in_main_thread(self.import_hdri, (context, asset_file, quality))
         elif self.category == "texture":
-            run_in_main_thread(self.import_texture, (context, asset_file, link, quality))
+            run_in_main_thread(self.import_texture, (context, asset_file, link, quality, material_slot))
         elif self.category == "model":
             run_in_main_thread(self.import_model, (context, asset_file, link, quality, location.copy()))
         if on_completion:

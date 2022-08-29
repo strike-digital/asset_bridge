@@ -1,8 +1,7 @@
 from threading import Thread
 
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty,
-                       FloatVectorProperty)
+from bpy.props import (BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty, FloatVectorProperty)
 from bpy.types import PropertyGroup, Scene
 from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
 from .constants import __IS_DEV__, DIRS
@@ -263,24 +262,35 @@ class AssetBridgeSettings(PropertyGroup):
     )
 
 
+@bpy.app.handlers.persistent
 def depsgraph_update_pre_handler(scene: Scene, _):
-    remove = []
-    assets: list[Asset] = []
+
+    # Hdris
+    if (world := scene.world) and world.is_asset_bridge:
+        asset = Asset(world.asset_bridge_name)
+        asset.import_asset(bpy.context, link=False)
+        bpy.data.worlds.remove(world)
+
+    # Materials
+    for obj in scene.objects:
+        for slot in obj.material_slots:
+            if (mat := slot.material) and mat.is_asset_bridge:
+                asset = Asset(mat.asset_bridge_name)
+                asset.import_asset(bpy.context, material_slot=slot)
+                bpy.data.materials.remove(mat)
+
+    # Models
+    obj_remove = []
+    obj_assets: list[Asset] = []
     for obj in scene.objects:
         if obj.is_asset_bridge:
-            remove.append(obj)
-            assets.append(Asset(obj.asset_bridge_name))
-            # if tuple(obj.location) == (0., 0., 0.):
-            #     continue
-            # asset = Asset(obj.asset_bridge_name)
+            obj_remove.append(obj)
+            obj_assets.append(Asset(obj.asset_bridge_name))
 
-            # scene.cursor.location = loc
-
-            # asset_objs = [obj for obj in scene.objects if obj.select_get()]
-    for obj in remove:
+    for obj in obj_remove:
         bpy.data.objects.remove(obj)
 
-    for asset in assets:
+    for asset in obj_assets:
         # asset.download_asset(bpy.context)
         depsgraph = bpy.context.evaluated_depsgraph_get()
         region = bpy.context.region
@@ -294,36 +304,16 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         ray_origin = region_2d_to_origin_3d(region, r3d, coord)
 
         result = scene.ray_cast(depsgraph, ray_origin, view_vector)
-        normal = result[2]
-        object = result[4]
-
-        # scene.cursor.location = result[1]
-
-        # from mathutils import Quaternion
-
-        # def on_completion():
-        #     objs = [o for o in scene.objects if o.select_get()]
-        #     # rotation = V((0, 0, 1)).rotation_difference(normal)
-        #     for obj in objs:
-        #         print(obj.location)
-        #         # bpy.ops.object.transform_apply(rotation=True)
-        #         obj.rotation_mode = "QUATERNION"
-        #         print(rotation)
-        #         # obj.rotation_quaternion = rotation
-        #         obj.rotation_quaternion = object.matrix_world.to_quaternion() @ rotation
-        #         # obj.location = object.matrix_world @ result[1]
 
         asset.import_asset(bpy.context, link=False, location=result[1])
-        # objs = [o for o in scene.objects if o.select_get()]
-        # for obj in objs:
-        #     print(obj.location)
-        # obj.rotation_mode = "QUATERNION"
-        # obj.rotation_quaternion = Quaternion() @ rotation
-        # print(obj.rotation_quaternion)
 
 
 def register():
     bpy.types.Scene.asset_bridge = PointerProperty(type=AssetBridgeSettings)
+    bpy.types.World.is_asset_bridge = BoolProperty()
+    bpy.types.World.asset_bridge_name = bpy.props.StringProperty()
+    bpy.types.Material.is_asset_bridge = BoolProperty()
+    bpy.types.Material.asset_bridge_name = bpy.props.StringProperty()
     bpy.types.Object.is_asset_bridge = BoolProperty()
     bpy.types.Object.asset_bridge_name = bpy.props.StringProperty()
     bpy.app.handlers.depsgraph_update_pre.append(depsgraph_update_pre_handler)

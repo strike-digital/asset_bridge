@@ -52,16 +52,6 @@ class AB_OT_import_asset(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge", undo=True)
-class AB_OT_import_model(Operator):
-    """Import the given model into the current scene"""
-
-    name: StringProperty()
-
-    def execute(self, context):
-        return {"FINISHED"}
-
-
 @Op("asset_bridge")
 class AB_OT_set_prop(Operator):
     """Set a blender property with a specific value"""
