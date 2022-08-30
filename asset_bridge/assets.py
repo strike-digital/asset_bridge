@@ -14,13 +14,17 @@ from asset_bridge.helpers import Progress, download_preview, update_prop,\
     force_ui_update, run_in_main_thread, download_file, file_name_from_url
 from asset_bridge.vendor import requests
 
-singular = {
+SINGULAR = {
     "all": "all",
     "hdris": "hdri",
     "textures": "texture",
     "models": "model",
 }
-plural = {y: x for x, y in singular.items()}
+PLURAL = {y: x for x, y in SINGULAR.items()}
+ASSET_TYPES = {0: "hdri", 1: "texture", 2: "model"}
+
+with open(FILES.asset_list, "r") as f:
+    asset_list_raw = json.load(f)
 
 
 class AssetList:
@@ -67,8 +71,6 @@ class AssetList:
         self.all_tags = self.hdri_tags | self.texture_tags | self.model_tags
 
     def update(self):
-        # using threading here is more complicated, but about 2x as fast,
-        # which is important if it is executed at startup
         threads = [
             Thread(target=self.update_category, args=["hdris"]),
             Thread(target=self.update_category, args=["textures"]),
@@ -81,6 +83,30 @@ class AssetList:
 
         self.all: ODict = self.hdris | self.textures | self.models
 
+        start = perf_counter()
+        chunk_size = 5
+
+        def get_asset(names):
+            for name in names:
+                self.ahdris[name] = Asset(name, self)
+            self.progress.progress += chunk_size
+
+        self.ahdris = {}
+        threads = []
+        models = list(self.all)
+        self.progress = Progress(len(models), bpy.context.scene.asset_bridge.panel, "preview_download_progress")
+        lst = [models[i:i + chunk_size] for i in range(0, len(self.models), chunk_size)]
+        for names in lst:
+            thread = Thread(target=get_asset, args=[names])
+            thread.start()
+            threads.append(thread)
+
+        for i, thread in enumerate(threads):
+            thread.join()
+            # print(i)
+            # self.ahdris[name] = Asset(name)
+
+        print(f"Done in {perf_counter() - start:.4f}")
         self.update_categories()
 
         data = {"hdris": self.hdris, "textures": self.textures, "models": self.models}
@@ -142,7 +168,7 @@ class AssetList:
     def get_asset_category(self, asset_name):
         data = self.all[asset_name]
         types = {0: "hdris", 1: "textures", 2: "models"}
-        return singular[types[data["type"]]]
+        return SINGULAR[types[data["type"]]]
 
     def download_n_previews(self, names, reload, load, size=128):
         for name in names:
@@ -236,21 +262,23 @@ class Asset:
     def __init__(self, asset_name: str, asset_data: dict = None):
         if asset_data is None:
             asset_data = {}
-        start = perf_counter()
         self.asset_webpage_url = f"https://polyhaven.com/a/{asset_name}"
         self.download_progress = None
         self.download_max = 0
         self.name = asset_name
+        self.label = asset_list_raw[self.name]["name"]
+        self.asset_list_data = asset_list_raw
+        # self.label = asset_list.all[self.name]["name"]
         self.update(asset_data)
-        # print(f"Asset info '{asset_name}' downloaded in {perf_counter() - start:.3f}")
 
     def update(self, asset_data=None):
         if asset_data is None:
             asset_data = {}
         asset_name = self.name
         self.category = asset_list.get_asset_category(asset_name)
+        self.category = asset_list_raw[self.name]["type"]
         self.data = asset_data or requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
-        self.download_dir = download = getattr(DIRS, plural[self.category])
+        self.download_dir = download = getattr(DIRS, PLURAL[self.category])
         self.file_paths = {
             q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}"
             for q in self.get_quality_dict()

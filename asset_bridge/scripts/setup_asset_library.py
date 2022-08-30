@@ -34,13 +34,14 @@ def update_progress():
         f.write(str(progress))
 
 
-def add_asset_attrs(asset, name, info, path):
+def add_asset_attrs(asset: bpy.types.ID, name, info, path):
     global progress
     global start
     asset.is_asset_bridge = True
     asset.asset_bridge_name = name
     asset.asset_mark()
     asset.asset_data.author = ", ".join(info["authors"])
+    asset.asset_data.description = name
     for tag in info["tags"]:
         asset.asset_data.tags.new(tag)
     with bpy.context.temp_override(id=asset):

@@ -2,10 +2,11 @@ from datetime import datetime
 from .constants import DIRS
 import bpy
 from bpy.types import Panel, UILayout, Context
+from bpy_extras.asset_utils import AssetBrowserPanel
 from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website
 from .helpers import asset_preview_exists, get_prefs
 from .assets import Asset, asset_list
-from .settings import AssetBridgeSettings
+from .settings import AssetBridgeSettings, BrowserSettings
 
 
 def dpifac() -> float:
@@ -90,6 +91,76 @@ def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "",
     return ops
 
 
+def draw_asset_info(layout: UILayout, context: Context, asset: Asset):
+    col = layout.column(align=True)
+    op = draw_info_row(col, "Link:", ["Polyhaven.com"], operator="wm.url_open")[0]
+    op.url = asset.asset_webpage_url
+    # Authors
+    suffix = "s" if len(asset.authors) > 1 else ""
+    ops = draw_info_row(
+        col,
+        f"Author{suffix}:",
+        asset.authors.keys(),
+        operator=AB_OT_open_author_website.bl_idname,
+    )
+    for author, op in zip(asset.authors, ops):
+        op.author_name = author
+        op.bl_description = f"Open {author}'s website"
+
+    op = draw_info_row(
+        col,
+        "Downloads:",
+        [f"{asset.download_count:,}"],
+        # operator=AB_OT_set_ab_prop.bl_idname,
+    )
+    # op.prop_name = "sort_method"
+    # op.value = "DOWNLOADS"
+    # op.bl_description = "Sort assets by number of downloads"
+    # op.message = "Sorting assets by number of downloads"
+    # row = col.row(align=True)
+    # row.alignment = "RIGHT"
+    # op: AB_OT_set_ab_prop = row.operator(
+    #     AB_OT_set_ab_prop.bl_idname,
+    #     text="",
+    #     icon="SORTSIZE",
+    #     emboss=emboss,
+    # )
+    # op.prop_name = "sort_method"
+    # op.value = "DOWNLOADS"
+    # op.bl_description = "Sort assets by downloads"
+
+    if hasattr(asset, "dimensions"):
+        # Show dimensions in metric or imperial units depending on scene settings.
+        # This is my gift to the americans, burmese and the liberians of the world.
+        unit_system = context.scene.unit_settings.system
+        if unit_system in ["METRIC", "NONE"]:
+            coefficient = 1
+            suffix = "m"
+        else:
+            coefficient = 3.2808399
+            suffix = "ft"
+        size_x = int((asset.dimensions.x // 1000) * coefficient)
+        size_y = int((asset.dimensions.y // 1000) * coefficient)
+        draw_info_row(col, "Dimensions:", f"{size_x}{suffix} x {size_y}{suffix}")
+
+    if hasattr(asset, "evs"):
+        draw_info_row(col, "EVs:", str(asset.evs))
+    if hasattr(asset, "whitebalance"):
+        draw_info_row(col, "Whitebalance:", f"{str(asset.whitebalance)}K")
+
+    date_text = datetime.fromtimestamp(asset.date_published).strftime(format="%d/%m/%Y")
+    draw_info_row(col, "Date published:", date_text)
+    if hasattr(asset, "date_taken"):
+        date_text = datetime.fromtimestamp(asset.date_taken).strftime(format="%d/%m/%Y")
+        draw_info_row(col, "Date taken:", date_text)
+
+    suffix = "ies" if len(asset.categories) > 1 else "y"
+    draw_info_row(col, f"Categor{suffix}:", asset.categories)
+
+    suffix = "s" if len(asset.tags) > 1 else ""
+    draw_info_row(col, f"Tag{suffix}:", asset.tags)
+
+
 class AB_PT_main_panel(Panel):
     """The main Asset Bridge panel"""
     bl_space_type = "VIEW_3D"
@@ -161,74 +232,8 @@ class AB_PT_main_panel(Panel):
         # Asset info
         asset: Asset = ab.selected_asset
         if ab.show_asset_info and asset:
-            box = col.box().column(align=True)
-
-            op = draw_info_row(box, "Link:", ["Polyhaven.com"], operator="wm.url_open")[0]
-            op.url = asset.asset_webpage_url
-            # Authors
-            suffix = "s" if len(asset.authors) > 1 else ""
-            ops = draw_info_row(
-                box,
-                f"Author{suffix}:",
-                asset.authors.keys(),
-                operator=AB_OT_open_author_website.bl_idname,
-            )
-            for author, op in zip(asset.authors, ops):
-                op.author_name = author
-                op.bl_description = f"Open {author}'s website"
-
-            op = draw_info_row(
-                box,
-                "Downloads:",
-                [f"{asset.download_count:,}"],
-                # operator=AB_OT_set_ab_prop.bl_idname,
-            )
-            # op.prop_name = "sort_method"
-            # op.value = "DOWNLOADS"
-            # op.bl_description = "Sort assets by number of downloads"
-            # op.message = "Sorting assets by number of downloads"
-            # row = col.row(align=True)
-            # row.alignment = "RIGHT"
-            # op: AB_OT_set_ab_prop = row.operator(
-            #     AB_OT_set_ab_prop.bl_idname,
-            #     text="",
-            #     icon="SORTSIZE",
-            #     emboss=emboss,
-            # )
-            # op.prop_name = "sort_method"
-            # op.value = "DOWNLOADS"
-            # op.bl_description = "Sort assets by downloads"
-
-            if hasattr(asset, "dimensions"):
-                # Show dimensions in metric or imperial units depending on scene settings.
-                # This is my gift to the americans, burmese and the liberians of the world.
-                unit_system = context.scene.unit_settings.system
-                if unit_system in ["METRIC", "NONE"]:
-                    coefficient = 1
-                    suffix = "m"
-                else:
-                    coefficient = 3.2808399
-                    suffix = "ft"
-                size_x = int((asset.dimensions.x // 1000) * coefficient)
-                size_y = int((asset.dimensions.y // 1000) * coefficient)
-                draw_info_row(box, "Dimensions:", f"{size_x}{suffix} x {size_y}{suffix}")
-
-            if hasattr(asset, "evs"):
-                draw_info_row(box, "EVs:", str(asset.evs))
-            if hasattr(asset, "whitebalance"):
-                draw_info_row(box, "Whitebalance:", f"{str(asset.whitebalance)}K")
-
-            date_text = datetime.fromtimestamp(asset.date_published).strftime(format="%d/%m/%Y")
-            draw_info_row(box, "Date published:", date_text)
-            if hasattr(asset, "date_taken"):
-                date_text = datetime.fromtimestamp(asset.date_taken).strftime(format="%d/%m/%Y")
-                draw_info_row(box, "Date taken:", date_text)
-
-            suffix = "ies" if len(asset.categories) > 1 else "y"
-            draw_info_row(box, f"Categor{suffix}:", asset.categories)
-
-            suffix = "s" if len(asset.tags) > 1 else ""
-            draw_info_row(box, f"Tag{suffix}:", asset.tags)
+            box = col.box()
+            draw_asset_info(box, context, asset)
 
         col = layout.column(align=True)
         row = col.row(align=True)
@@ -282,17 +287,6 @@ class AB_PT_main_panel(Panel):
                 layout.prop(displace_node, "mute", text="Use displacement", invert_checkbox=True)
 
 
-# class AB_MT_import_settings_menu(bpy.types.Menu):
-#     bl_label = "Import asset settings"
-#     bl_idname = "AB_MT_import_menu"
-
-#     def draw(self, context):
-#         layout: UILayout = self.layout
-#         layout.scale_y = 1.2
-#         op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
-#         op.reload = True
-
-
 class AB_PT_sort_panel(Panel):
     """Change the sorting options of the asset list"""
     bl_space_type = "VIEW_3D"
@@ -325,3 +319,22 @@ class AB_MT_import_menu(bpy.types.Menu):
         layout.scale_y = 1.2
         op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
         op.reload = True
+
+
+class AB_PT_browser_settings_panel(Panel, AssetBrowserPanel):
+    bl_region_type = "TOOLS"
+    bl_label = "Asset Bridge"
+    bl_options = {"HIDE_HEADER"}
+
+    @classmethod
+    def poll(cls, context):
+        return cls.asset_browser_panel_poll(context)
+
+    def draw(self, context):
+        layout: UILayout = self.layout
+        ab: BrowserSettings = context.scene.asset_bridge.browser
+        if asset := ab.selected_asset:
+            box = layout.box()
+            box.label(text=asset.label)
+            box.prop(ab, "asset_quality", text="Quality")
+            draw_asset_info(box, context, asset)

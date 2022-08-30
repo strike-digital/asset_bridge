@@ -5,10 +5,9 @@ from bpy.props import (BoolProperty, EnumProperty, FloatProperty, PointerPropert
 from bpy.types import PropertyGroup
 from .constants import __IS_DEV__, DIRS
 from .helpers import get_icon, get_prefs, pcolls
-from .assets import singular
+from .assets import SINGULAR
 from .assets import Asset, asset_list
 
-_selected_asset = None
 loading_asset = False
 
 
@@ -24,7 +23,69 @@ def add_progress(cls, name):
 
 
 class SharedSettings():
-    pass
+
+    def download_status_update(self, context):
+        return
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+
+    download_status: EnumProperty(
+        items=[
+            ("NONE", "None", "Not downloading currently"),
+            ("DOWNLOADING_ASSET", "Downloading", "Downloading the asset from the internet"),
+            ("DOWNLOADING_PREVIEWS", "Downloading previews", "Downloading all previews"),
+        ],
+        update=download_status_update,
+        options={"HIDDEN", "SKIP_SAVE"},
+    )
+
+    _selected_asset = None
+
+    loading_asset = False
+
+    def get_selected_asset(self):
+        _selected_asset = self._selected_asset
+        # global _selected_asset
+        asset_name = self.asset_name
+        if asset_name == "NONE":
+            return None
+        if _selected_asset and self.asset_name == _selected_asset.name or self.loading_asset:
+            return self._selected_asset
+
+        if self.asset_name:
+            self.__class__.loading_asset = True
+
+            def get_asset_info(self):
+                """Load the asset info from the internet in another thread"""
+                self.__class__._selected_asset = Asset(asset_name)
+                self.__class__.loading_asset = False
+
+            thread = Thread(target=get_asset_info, args=[self])
+            thread.start()
+        else:
+            return None
+
+    selected_asset: Asset = property(get_selected_asset)
+
+    def get_asset_quality_items(self, context):
+        items = []
+        if self.asset_name == "NONE":
+            return [("1k", "1k", "1k")]
+        if self.selected_asset:
+            quality_levels = self.selected_asset.get_quality_dict()
+            levels = sorted(quality_levels.keys(), key=lambda q: int(q[:-1]))
+            items.extend((q, q, f"Load this asset at {q} resolution.") for q in levels)
+
+        return items
+
+    def get_asset_quality(self):
+        maximum = len(self.get_asset_quality_items(bpy.context))
+        quality = self.get("_asset_quality", 0)
+        return min(quality, maximum - 1)
+
+    def set_asset_quality(self, value):
+        self["_asset_quality"] = value
+
+    asset_quality: EnumProperty(items=get_asset_quality_items, get=get_asset_quality, set=set_asset_quality)
 
 
 add_progress(SharedSettings, "import_progress")
@@ -43,20 +104,6 @@ class PanelSettings(PropertyGroup, SharedSettings):
         name="Show import settings",
         description="Show extra settings for importing",
         default=False,
-    )
-
-    def download_status_update(self, context):
-        return
-        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
-
-    download_status: EnumProperty(
-        items=[
-            ("NONE", "None", "Not downloading currently"),
-            ("DOWNLOADING_ASSET", "Downloading", "Downloading the asset from the internet"),
-            ("DOWNLOADING_PREVIEWS", "Downloading previews", "Downloading all previews"),
-        ],
-        update=download_status_update,
-        options={"HIDDEN", "SKIP_SAVE"},
     )
 
     def sort_method_items(self, context):
@@ -103,6 +150,7 @@ class PanelSettings(PropertyGroup, SharedSettings):
         default="DESC",
         update=sort_method_update,
     )
+
     sort_ascending: BoolProperty(get=lambda self: self.sort_order == "ASC")
 
     filter_type: EnumProperty(
@@ -120,7 +168,7 @@ class PanelSettings(PropertyGroup, SharedSettings):
 
     def filter_category_items(self, context):
         items = [("ALL", "All", "All")]
-        categories = sorted(getattr(asset_list, f"{singular[self.filter_type]}_categories"))
+        categories = sorted(getattr(asset_list, f"{SINGULAR[self.filter_type]}_categories"))
         items.extend((cat, cat.title(), f"Only show assets in the category '{cat}'") for cat in categories)
         return items
 
@@ -177,52 +225,6 @@ class PanelSettings(PropertyGroup, SharedSettings):
 
     asset_name: EnumProperty(items=get_asset_name_items, get=get_asset_name, set=set_asset_name)
 
-    def get_selected_asset(self):
-        global _selected_asset
-        global loading_asset
-        if self.asset_name == "NONE":
-            return None
-        if _selected_asset and self.asset_name == _selected_asset.name or loading_asset:
-            return _selected_asset
-
-        if self.asset_name:
-            loading_asset = True
-
-            def get_asset_info():
-                """Load the asset info from the internet in another thread"""
-                global loading_asset
-                global _selected_asset
-                _selected_asset = Asset(self.asset_name)
-                loading_asset = False
-
-            thread = Thread(target=get_asset_info)
-            thread.start()
-        else:
-            return None
-
-    selected_asset: Asset = property(get_selected_asset)
-
-    def get_asset_quality_items(self, context):
-        items = []
-        if self.asset_name == "NONE":
-            return [("1k", "1k", "1k")]
-        if self.selected_asset:
-            quality_levels = self.selected_asset.get_quality_dict()
-            levels = sorted(quality_levels.keys(), key=lambda q: int(q[:-1]))
-            items.extend((q, q, f"Load this asset at {q} resolution.") for q in levels)
-
-        return items
-
-    def get_asset_quality(self):
-        maximum = len(self.get_asset_quality_items(bpy.context))
-        quality = self.get("_asset_quality", 0)
-        return min(quality, maximum - 1)
-
-    def set_asset_quality(self, value):
-        self["_asset_quality"] = value
-
-    asset_quality: EnumProperty(items=get_asset_quality_items, get=get_asset_quality, set=set_asset_quality)
-
     # Import settings
 
     import_method: EnumProperty(
@@ -254,6 +256,15 @@ add_progress(PanelSettings, "preview_download_progress")
 
 class BrowserSettings(PropertyGroup, SharedSettings):
     __reg_order__ = 0
+
+    @property
+    def asset_name(self):
+        context = bpy.context
+        handle = context.asset_file_handle
+        if handle:
+            asset = handle.asset_data
+            return asset.description
+        return "NONE"
 
 
 class AssetBridgeSettings(PropertyGroup, SharedSettings):
