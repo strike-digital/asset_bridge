@@ -2,8 +2,7 @@ from threading import Thread
 
 import bpy
 from bpy.props import (BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty, FloatVectorProperty)
-from bpy.types import PropertyGroup, Scene
-from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
+from bpy.types import PropertyGroup
 from .constants import __IS_DEV__, DIRS
 from .helpers import get_icon, get_prefs, pcolls
 from .assets import singular
@@ -262,61 +261,14 @@ class AssetBridgeSettings(PropertyGroup):
     )
 
 
-@bpy.app.handlers.persistent
-def depsgraph_update_pre_handler(scene: Scene, _):
-
-    # Hdris
-    if (world := scene.world) and world.is_asset_bridge:
-        asset = Asset(world.asset_bridge_name)
-        asset.import_asset(bpy.context, link=False)
-        bpy.data.worlds.remove(world)
-
-    # Materials
-    for obj in scene.objects:
-        for slot in obj.material_slots:
-            if (mat := slot.material) and mat.is_asset_bridge:
-                asset = Asset(mat.asset_bridge_name)
-                asset.import_asset(bpy.context, material_slot=slot)
-                bpy.data.materials.remove(mat)
-
-    # Models
-    obj_remove = []
-    obj_assets: list[Asset] = []
-    for obj in scene.objects:
-        if obj.is_asset_bridge:
-            obj_remove.append(obj)
-            obj_assets.append(Asset(obj.asset_bridge_name))
-
-    for obj in obj_remove:
-        bpy.data.objects.remove(obj)
-
-    for asset in obj_assets:
-        # asset.download_asset(bpy.context)
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        region = bpy.context.region
-        r3d = region.data
-        coord = (region.width / 2, region.height / 2)
-
-        ab = scene.asset_bridge
-        bpy.ops.asset_bridge.get_mouse_pos("INVOKE_DEFAULT")
-        coord = ab.mouse_pos
-        view_vector = region_2d_to_vector_3d(region, r3d, coord)
-        ray_origin = region_2d_to_origin_3d(region, r3d, coord)
-
-        result = scene.ray_cast(depsgraph, ray_origin, view_vector)
-
-        asset.import_asset(bpy.context, link=False, location=result[1])
-
-
 def register():
     bpy.types.Scene.asset_bridge = PointerProperty(type=AssetBridgeSettings)
     bpy.types.World.is_asset_bridge = BoolProperty()
-    bpy.types.World.asset_bridge_name = bpy.props.StringProperty()
+    bpy.types.World.asset_bridge_name = StringProperty()
     bpy.types.Material.is_asset_bridge = BoolProperty()
-    bpy.types.Material.asset_bridge_name = bpy.props.StringProperty()
+    bpy.types.Material.asset_bridge_name = StringProperty()
     bpy.types.Object.is_asset_bridge = BoolProperty()
-    bpy.types.Object.asset_bridge_name = bpy.props.StringProperty()
-    bpy.app.handlers.depsgraph_update_pre.append(depsgraph_update_pre_handler)
+    bpy.types.Object.asset_bridge_name = StringProperty()
 
     prefs = get_prefs(bpy.context)
     if __IS_DEV__:
@@ -329,6 +281,3 @@ def unregister():
     del bpy.types.Scene.asset_bridge
     del bpy.types.Object.is_asset_bridge
     del bpy.types.Object.asset_bridge_name
-    for handler in bpy.app.handlers.depsgraph_update_pre:
-        if handler.__name__ == depsgraph_update_pre_handler.__name__:
-            bpy.app.handlers.depsgraph_update_pre.remove(handler)

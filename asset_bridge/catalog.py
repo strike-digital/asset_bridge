@@ -14,6 +14,7 @@ VERSION 1
 
 
 class AssetCatalogFile():
+    """Represents a file containing the catalog info for a blender asset library."""
 
     def __init__(self, catalog_dir):
         self.catalog_file = Path(catalog_dir) / "blender_assets.cats.txt"
