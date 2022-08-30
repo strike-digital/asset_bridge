@@ -71,8 +71,8 @@ class SharedSettings():
         if self.asset_name == "NONE":
             return [("1k", "1k", "1k")]
         if self.selected_asset:
-            quality_levels = self.selected_asset.get_quality_dict()
-            levels = sorted(quality_levels.keys(), key=lambda q: int(q[:-1]))
+            quality_levels = self.selected_asset.quality_levels
+            levels = sorted(quality_levels, key=lambda q: int(q[:-1]))
             items.extend((q, q, f"Load this asset at {q} resolution.") for q in levels)
 
         return items

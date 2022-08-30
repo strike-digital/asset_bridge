@@ -1,5 +1,7 @@
 import json
 import math
+from multiprocessing import Process
+from pprint import pprint
 import bpy
 import os
 import subprocess
@@ -24,7 +26,21 @@ PLURAL = {y: x for x, y in SINGULAR.items()}
 ASSET_TYPES = {0: "hdri", 1: "texture", 2: "model"}
 
 with open(FILES.asset_list, "r") as f:
-    asset_list_raw = json.load(f)
+    try:
+        asset_list_raw = json.load(f)
+    except Exception:
+        asset_list_raw = {}
+        pass
+try:
+    all_assets_raw = asset_list_raw["hdris"] | asset_list_raw["textures"] | asset_list_raw["models"]
+except KeyError:
+    all_assets_raw = None
+    pass
+
+
+def create_assets(list, names):
+    for name in names:
+        list.all[name] = Asset(name)
 
 
 class AssetList:
@@ -43,9 +59,10 @@ class AssetList:
 
         # if no file found and no list provided, download from interntet
         if asset_list:
-            self.hdris: dict = asset_list["hdris"]
-            self.textures: dict = asset_list["textures"]
-            self.models: dict = asset_list["models"]
+            # return
+            self.hdris: dict = asset_list_raw["hdris"]
+            self.textures: dict = asset_list_raw["textures"]
+            self.models: dict = asset_list_raw["models"]
             self.all: dict = self.hdris | self.textures | self.models
 
             self.update_categories()
@@ -53,67 +70,122 @@ class AssetList:
             # Download from the internet
             self.update()
 
-    def update_category(self, url_type: str):
-        result = requests.get(f"https://api.polyhaven.com/assets?t={url_type}").json()
-        setattr(self, url_type, ODict(result))
-
     def update_categories(self):
-        self.hdri_categories = {c for a in self.hdris.values() for c in a["categories"]}
-        self.hdri_tags = {t for a in self.hdris.values() for t in a["tags"]}
+        self.hdri_categories = {c for a in self.hdris.values() for c in a.categories}
+        self.hdri_tags = {t for a in self.hdris.values() for t in a.tags}
 
-        self.texture_categories = {c for a in self.textures.values() for c in a["categories"]}
-        self.texture_tags = {t for a in self.textures.values() for t in a["tags"]}
+        self.texture_categories = {c for a in self.textures.values() for c in a.categories}
+        self.texture_tags = {t for a in self.textures.values() for t in a.tags}
 
-        self.model_categories = {c for a in self.models.values() for c in a["categories"]}
-        self.model_tags = {t for a in self.models.values() for t in a["tags"]}
+        self.model_categories = {c for a in self.models.values() for c in a.categories}
+        self.model_tags = {t for a in self.models.values() for t in a.tags}
 
         self.all_categories = self.hdri_categories | self.texture_categories | self.model_categories
         self.all_tags = self.hdri_tags | self.texture_tags | self.model_tags
 
-    def update(self):
-        threads = [
-            Thread(target=self.update_category, args=["hdris"]),
-            Thread(target=self.update_category, args=["textures"]),
-            Thread(target=self.update_category, args=["models"]),
-        ]
-        for thread in threads:
+    def update_category(self, url_type: str):
+        result = requests.get(f"https://api.polyhaven.com/assets?t={url_type}").json()
+        setattr(self, url_type, result)
+        return
+        assets = ODict()
+
+        def create_assets(names):
+            for name in names:
+                assets[name] = Asset(name)
+
+        threads = []
+        chunk_size = 5
+        chunks = [list(result)[i:i + chunk_size] for i in range(0, len(result), chunk_size)]
+        for names in chunks:
+            thread = Thread(target=create_assets, args=[names])
+            threads.append(thread)
             thread.start()
+
         for thread in threads:
             thread.join()
+        setattr(self, url_type, assets)
 
-        self.all: ODict = self.hdris | self.textures | self.models
+    def update(self):
+        asset_list = requests.get("https://api.polyhaven.com/assets").json()
+        # for i in ["hdris", "textures", "models"]:
+        #     self.update_category(i)
+        # self.all = self.hdris | self.textures | self.models
+        # diction = {"hdris": self.hdris, "textures": self.textures, "models": self.models}
+        # with open(FILES.asset_list, "w") as f:
+        #     json.dump(diction, f, indent=4)
+        # return
+        self.all = ODict()
 
         start = perf_counter()
-        chunk_size = 5
 
-        def get_asset(names):
-            for name in names:
-                self.ahdris[name] = Asset(name, self)
-            self.progress.progress += chunk_size
+        # def create_assets(names):
+        #     for name in names:
+        #         self.all[name] = Asset(name)
 
-        self.ahdris = {}
         threads = []
-        models = list(self.all)
-        self.progress = Progress(len(models), bpy.context.scene.asset_bridge.panel, "preview_download_progress")
-        lst = [models[i:i + chunk_size] for i in range(0, len(self.models), chunk_size)]
-        for names in lst:
-            thread = Thread(target=get_asset, args=[names])
-            thread.start()
+        chunk_size = 20
+        chunks = [list(asset_list)[i:i + chunk_size] for i in range(0, len(asset_list), chunk_size)]
+        for names in chunks:
+            thread = Thread(target=create_assets, args=[self, names])
             threads.append(thread)
+            thread.start()
 
-        for i, thread in enumerate(threads):
+        for thread in threads:
             thread.join()
-            # print(i)
-            # self.ahdris[name] = Asset(name)
+
+        self.hdris: dict[str: Asset] = ODict({k: v for k, v in self.all.items() if v.category == "hdri"})
+        self.textures = ODict({k: v for k, v in self.all.items() if v.category == "texture"})
+        self.models = ODict({k: v for k, v in self.all.items() if v.category == "model"})
+        # threads = [
+        #     Thread(target=self.update_category, args=["hdris"]),
+        #     Thread(target=self.update_category, args=["textures"]),
+        #     Thread(target=self.update_category, args=["models"]),
+        # ]
+        # for thread in threads:
+        #     thread.start()
+        # for thread in threads:
+        #     thread.join()
+
+        # self.all: ODict = self.hdris | self.textures | self.models
+        # chunk_size = 5
+
+        # def get_asset(names):
+        #     for name in names:
+        #         self.ahdris[name] = Asset(name, self)
+        #     self.progress.progress += chunk_size
+
+        # self.ahdris = {}
+        # threads = []
+        # models = list(self.all)
+        # self.progress = Progress(len(models), bpy.context.scene.asset_bridge.panel, "preview_download_progress")
+        # lst = [models[i:i + chunk_size] for i in range(0, len(self.models), chunk_size)]
+        # for names in lst:
+        #     thread = Thread(target=get_asset, args=[names])
+        #     thread.start()
+        #     threads.append(thread)
+
+        # for i, thread in enumerate(threads):
+        #     thread.join()
+        # print(i)
+        # self.ahdris[name] = Asset(name)
 
         print(f"Done in {perf_counter() - start:.4f}")
         self.update_categories()
 
-        data = {"hdris": self.hdris, "textures": self.textures, "models": self.models}
+        # data = {"hdris": self.hdris, "textures": self.textures, "models": self.models}
+        data = self.as_json()
         with open(self.list_file, "w") as f:
             json.dump(data, f, indent=2)
 
         self.sorted = False
+        
+    def as_json(self):
+        data = {
+            "hdris": {k: v.as_json() for k, v in self.hdris.items()},
+            "textures": {k: v.as_json() for k, v in self.textures.items()},
+            "models": {k: v.as_json() for k, v in self.models.items()},
+        }
+        return data
 
     def sort(self, method: str = "NAME", ascending=False):
 
@@ -266,26 +338,26 @@ class Asset:
         self.download_progress = None
         self.download_max = 0
         self.name = asset_name
-        self.label = asset_list_raw[self.name]["name"]
-        self.asset_list_data = asset_list_raw
-        # self.label = asset_list.all[self.name]["name"]
+        self.label = all_assets_raw[self.name]["name"]
         self.update(asset_data)
 
     def update(self, asset_data=None):
         if asset_data is None:
             asset_data = {}
         asset_name = self.name
-        self.category = asset_list.get_asset_category(asset_name)
-        self.category = asset_list_raw[self.name]["type"]
-        self.data = asset_data or requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
+        # self.category = asset_list.get_asset_category(asset_name)
+        self.category = ASSET_TYPES[all_assets_raw[self.name]["type"]]
+        self.data = asset_data or self._process_data(requests.get(f"https://api.polyhaven.com/files/{asset_name}").json())
         self.download_dir = download = getattr(DIRS, PLURAL[self.category])
+        self.quality_levels = self.data.keys()
         self.file_paths = {
             q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}"
-            for q in self.get_quality_dict()
+            for q in self.quality_levels
         }
 
-        force_ui_update()
-        list_data = asset_list.all[asset_name]
+        # force_ui_update()
+        # list_data = asset_list.all[asset_name]
+        list_data = all_assets_raw[self.name]
         self.date_published: int = list_data["date_published"]
         self.categories: list = list_data["categories"]
         self.tags: list = list_data["tags"]
@@ -293,11 +365,35 @@ class Asset:
         self.download_count: int = list_data["download_count"]
         if self.category == "hdri":
             self.whitebalance: int = list_data["whitebalance"] if "whitebalance" in list_data else -1
-
             self.evs: int = list_data["evs_cap"]
             self.date_taken: int = list_data["date_taken"]
         if self.category == "texture":
             self.dimensions: V = V(list_data["dimensions"])
+
+    def _process_data(self, data):
+        new_data = {}
+        # blend = data["blend"]["blend"]
+        try:
+            quality_levels = list(data["blend"])
+        except KeyError:
+            return data
+        for q in quality_levels:
+            new_data[q] = {}
+            if self.category == "hdri":
+                hdri = data["hdri"][q]["exr"]
+                new_data[q]["url": hdri["url"], "size": hdri["size"]]
+            else:
+                blend = data["blend"][q]["blend"]
+                # new_data[q]["blend"] = {"url": blend["url"], "size": blend["size"]}
+                new_data[q]["url"] = blend["url"]
+                new_data[q]["size"] = blend["size"]
+                new_data[q]["textures"] = {}
+                for name, tex in blend["include"].items():
+                    new_data[q]["textures"][name] = {"url": tex["url"], "size": tex["size"]}
+        return new_data
+
+    def as_json(self):
+        return self.data | all_assets_raw[self.name]
 
     def get_file_path(self, quality) -> Path:
         return self.file_paths[quality]
@@ -305,16 +401,11 @@ class Asset:
     def is_downloaded(self, quality: str) -> bool:
         return self.get_file_path(quality).exists()
 
-    def get_quality_dict(self) -> dict:
-        return self.data["hdri"] if "hdri" in self.data else self.data["blend"]
-
     def get_texture_urls(self, quality: str) -> list[str]:
-        quality_dict = self.get_quality_dict()[quality]
-        return [t["url"] for t in quality_dict["blend"]["include"].values()]
+        return [t["url"] for t in self.data["textures"].values()]
 
     def get_asset_url(self, quality, file_format):
-        quality_dict = self.get_quality_dict()[quality]
-        return quality_dict[file_format]["url"]
+        return self.data["url"]
 
     def get_blend_url(self, quality: str) -> str:
         return self.get_asset_url(quality, "blend")
@@ -344,7 +435,8 @@ class Asset:
 
     def download_asset_with_blend_file(self, context: Context, quality: str, reload: bool, script_path: Path = ""):
         """Download an asset that has a blend file and textures (aka texture and model assets)"""
-        download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
+        texture_urls = self.get_texture_urls(quality)
+        download_max = len(texture_urls) + 1
 
         self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
 
@@ -361,7 +453,6 @@ class Asset:
             threads.append(thread)
             thread.start()
 
-        texture_urls = self.get_texture_urls(quality)
         texture_dir = getattr(DIRS, f"{self.category}_textures")
         for texture_url in texture_urls:
             if not (texture_dir / file_name_from_url(texture_url)).exists() or reload:
@@ -527,3 +618,4 @@ class Asset:
 
 
 asset_list = AssetList(FILES.asset_list)
+# asset_list.update()
