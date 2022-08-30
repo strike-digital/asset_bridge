@@ -12,16 +12,25 @@ _selected_asset = None
 loading_asset = False
 
 
+def add_progress(cls, name):
+    """Add a two properties to the given class; one that can be set by the addon, and one that can be shown in the UI
+    This allows for a standard progress look across the addon."""
+    kwargs = {"name": "Downloading:", "subtype": "PERCENTAGE", "min": 0, "max": 100, "precision": 0}
+    cls.__annotations__[name] = FloatProperty(**kwargs)
+    ui_kwargs = kwargs.copy()
+    ui_kwargs["set"] = lambda self, value: None
+    ui_kwargs["get"] = lambda self: getattr(self, name)
+    cls.__annotations__[f"ui_{name}"] = FloatProperty(**ui_kwargs)
+
+
 class SharedSettings():
-    hoho: StringProperty()
-
-
-class PanelSettings(PropertyGroup, SharedSettings):
-    __reg_order__ = 0
     pass
 
 
-class BrowserSettings(PropertyGroup, SharedSettings):
+add_progress(SharedSettings, "import_progress")
+
+
+class PanelSettings(PropertyGroup, SharedSettings):
     __reg_order__ = 0
 
     show_asset_info: BoolProperty(
@@ -36,31 +45,8 @@ class BrowserSettings(PropertyGroup, SharedSettings):
         default=False,
     )
 
-    ui_import_progress: FloatProperty(
-        name="Downloading:",
-        subtype="PERCENTAGE",
-        min=0,
-        max=100,
-        get=lambda self: self.import_progress,
-        set=lambda self, value: None,
-    )
-
-    progress = FloatProperty(name="Downloading:", subtype="PERCENTAGE", min=0, max=100, precision=0)
-
-    import_progress: progress
-
-    ui_preview_download_progress: FloatProperty(
-        name="Downloading:",
-        subtype="PERCENTAGE",
-        min=0,
-        max=100,
-        get=lambda self: self.preview_download_progress,
-        set=lambda self, value: None,
-    )
-
-    preview_download_progress: progress
-
     def download_status_update(self, context):
+        return
         bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
     download_status: EnumProperty(
@@ -261,6 +247,13 @@ class BrowserSettings(PropertyGroup, SharedSettings):
         name="Import method",
         description="How to import the downloaded assets into the current file.",
     )
+
+
+add_progress(PanelSettings, "preview_download_progress")
+
+
+class BrowserSettings(PropertyGroup, SharedSettings):
+    __reg_order__ = 0
 
 
 class AssetBridgeSettings(PropertyGroup, SharedSettings):

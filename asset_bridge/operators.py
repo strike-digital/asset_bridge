@@ -35,7 +35,7 @@ class AB_OT_import_asset(Operator):
         description="Whether to link the asset from the downloaded file, or to append it fully into the scene")
 
     def execute(self, context):
-        ab = context.scene.asset_bridge
+        ab = context.scene.asset_bridge.panel
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
         thread = Thread(
@@ -88,7 +88,7 @@ class AB_OT_set_ab_prop(Operator):
         # I know people hate eval(), but is it really dangerous here?
         # if you downloaded this addon then it's already executing arbitrary code.
         value = eval(self.value) if self.eval_value else self.value
-        setattr(context.scene.asset_bridge, self.prop_name, value)
+        setattr(context.scene.asset_bridge.panel, self.prop_name, value)
         if self.message:
             self.report({"INFO"}, self.message)
         return {'FINISHED'}
@@ -172,7 +172,7 @@ class AB_OT_download_asset_previews(Operator):
         ensure_asset_library()
         thread = Thread(target=asset_list.download_all_previews, args=[False])
         thread.start()
-        
+
         # asset_list.download_all_previews(reload=False)
 
         # ensure_asset_library()
@@ -196,7 +196,7 @@ class AB_OT_get_mouse_pos(Operator):
     category_name: StringProperty()
 
     def invoke(self, context, event):
-        ab = context.scene.asset_bridge
+        ab = context.scene.asset_bridge.panel
         ab.mouse_pos = event.mouse_region_x, event.mouse_region_y
         return {'FINISHED'}
 

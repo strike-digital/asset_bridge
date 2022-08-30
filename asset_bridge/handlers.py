@@ -40,7 +40,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         r3d = region.data
         coord = (region.width / 2, region.height / 2)
 
-        ab = scene.asset_bridge
+        ab = scene.asset_bridge.panel
         bpy.ops.asset_bridge.get_mouse_pos("INVOKE_DEFAULT")
         coord = ab.mouse_pos
         view_vector = region_2d_to_vector_3d(region, r3d, coord)

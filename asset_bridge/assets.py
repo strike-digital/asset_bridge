@@ -166,7 +166,7 @@ class AssetList:
             )
             return
 
-        ab = bpy.context.scene.asset_bridge
+        ab = bpy.context.scene.asset_bridge.panel
         self.progress = Progress(len(names) + len(self.all), ab, "preview_download_progress")
         self.progress.message = "Downloading previews..."
         update_prop(ab, "download_status", "DOWNLOADING_PREVIEWS")
@@ -206,7 +206,7 @@ class AssetList:
 
         def check_asset_process():
             if asset_process.poll() is not None:
-                update_prop(bpy.context.scene.asset_bridge, "download_status", "NONE")
+                update_prop(bpy.context.scene.asset_bridge.panel, "download_status", "NONE")
                 force_ui_update()
 
                 # report the time in the footer bar
@@ -214,7 +214,7 @@ class AssetList:
                 run_in_main_thread(
                     bpy.ops.asset_bridge.report_message,
                     ["INVOKE_DEFAULT"],
-                    {"message": f"Downloaded {len(names)} assets in {end-start:.2f} seconds"},
+                    {"message": f"Downloaded {len(names)} asset previews in {end-start:.2f} seconds"},
                 )
                 return
 
@@ -318,7 +318,7 @@ class Asset:
         """Download an asset that has a blend file and textures (aka texture and model assets)"""
         download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
 
-        self.download_progress = Progress(download_max, context.scene.asset_bridge, "import_progress")
+        self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
 
         # Download the blend file
         # Using threading here makes this soooo much faster
@@ -347,7 +347,7 @@ class Asset:
 
     def download_hdri(self, context: Context, quality: str, reload: bool):
         download_max = 1
-        self.download_progress = Progress(download_max, context.scene.asset_bridge, "import_progress")
+        self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
 
         # Using threading here makes this soooo much faster
         asset_path = self.get_file_path(quality)
@@ -479,7 +479,7 @@ class Asset:
         import_only = self.is_downloaded(quality) and not reload
 
         if not import_only:
-            update_prop(context.scene.asset_bridge, "download_status", "DOWNLOADING_ASSET")
+            update_prop(context.scene.asset_bridge.panel, "download_status", "DOWNLOADING_ASSET")
             run_in_main_thread(force_ui_update, ())
 
         asset_file = self.download_asset(context, quality, reload)
@@ -495,7 +495,7 @@ class Asset:
         if on_completion:
             run_in_main_thread(on_completion, ())
         if not import_only:
-            update_prop(context.scene.asset_bridge, "download_status", "NONE")
+            update_prop(context.scene.asset_bridge.panel, "download_status", "NONE")
 
 
 asset_list = AssetList(FILES.asset_list)

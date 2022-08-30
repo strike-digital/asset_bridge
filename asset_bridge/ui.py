@@ -34,7 +34,7 @@ def draw_download_previews(layout: UILayout, reload: bool = False):
         layout = layout.box().column()
         layout.scale_y = 1.5
 
-    ab = bpy.context.scene.asset_bridge
+    ab = bpy.context.scene.asset_bridge.panel
     if ab.download_status == "DOWNLOADING_PREVIEWS":
         layout.prop(ab, "preview_download_progress", text=asset_list.progress.message)
     else:
@@ -77,7 +77,7 @@ def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "",
             subcol = right.column(align=True)
             sub = subcol.column(align=True)
             sub.scale_y = -1
-            sub.prop(bpy.context.scene.asset_bridge, "sort_ascending")
+            sub.prop(bpy.context.scene.asset_bridge.panel, "sort_ascending")
             subrow = subcol.row(align=True)
             op = subrow.operator(operator, text="", emboss=True)
             ops.append(op)
@@ -99,7 +99,7 @@ class AB_PT_main_panel(Panel):
 
     def draw(self, context: Context):
         layout: UILayout = self.layout
-        ab: AssetBridgeSettings = context.scene.asset_bridge
+        ab: AssetBridgeSettings = context.scene.asset_bridge.panel
 
         if not DIRS.is_valid:
             draw_downloads_path(layout, context)
@@ -301,7 +301,7 @@ class AB_PT_sort_panel(Panel):
 
     def draw(self, context: Context):
         layout: UILayout = self.layout
-        ab: AssetBridgeSettings = context.scene.asset_bridge
+        ab: AssetBridgeSettings = context.scene.asset_bridge.panel
 
         row = layout.row(align=True)
         split = row.split(align=True, factor=.3)

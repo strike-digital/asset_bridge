@@ -24,7 +24,7 @@ class AddonPreferences(AddonPreferences):
         if not path.exists():
             return
         DIRS.update(self.lib_path)
-        ab = context.scene.asset_bridge
+        ab = context.scene.asset_bridge.panel
         if ab.selected_asset:
             ab.selected_asset.update()
 
@@ -57,7 +57,7 @@ class AddonPreferences(AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        ab = context.scene.asset_bridge
+        ab = context.scene.asset_bridge.panel
         if not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS":
             draw_download_previews(layout)
             return
@@ -88,9 +88,9 @@ class AddonPreferences(AddonPreferences):
             icon="FUND",
             text="Support Polyhaven",
         ).url = "https://www.patreon.com/polyhaven/overview"
-        if context.scene.asset_bridge.download_status != "NONE":
+        if context.scene.asset_bridge.panel.download_status != "NONE":
             op: AB_OT_set_prop = row.operator(AB_OT_set_prop.bl_idname, text="Reset download progress")
-            op.data_path = "context.scene.asset_bridge"
+            op.data_path = "context.scene.asset_bridge.panel"
             op.prop_name = "download_status"
             op.value = "NONE"
             op.eval_value = False
