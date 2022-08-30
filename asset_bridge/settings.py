@@ -12,9 +12,17 @@ _selected_asset = None
 loading_asset = False
 
 
-class AssetBridgeSettings(PropertyGroup):
+class SharedSettings():
+    hoho: StringProperty()
 
-    mouse_pos: FloatVectorProperty(size=2)
+
+class PanelSettings(PropertyGroup, SharedSettings):
+    __reg_order__ = 0
+    pass
+
+
+class BrowserSettings(PropertyGroup, SharedSettings):
+    __reg_order__ = 0
 
     show_asset_info: BoolProperty(
         name="Show asset info",
@@ -229,14 +237,8 @@ class AssetBridgeSettings(PropertyGroup):
 
     asset_quality: EnumProperty(items=get_asset_quality_items, get=get_asset_quality, set=set_asset_quality)
 
-    reload_asset: BoolProperty(
-        name="Redownload asset files",
-        description="Whether to redownload the assets files from the internet when it is imported",
-    )
-
     # Import settings
 
-    # import_link: BoolProperty(name="Link")
     import_method: EnumProperty(
         items=[
             (
@@ -261,8 +263,19 @@ class AssetBridgeSettings(PropertyGroup):
     )
 
 
+class AssetBridgeSettings(PropertyGroup, SharedSettings):
+    __reg_order__ = 1
+
+    panel: PointerProperty(type=PanelSettings)
+
+    browser: PointerProperty(type=BrowserSettings)
+
+    mouse_pos: FloatVectorProperty(size=2)
+
+
 def register():
     bpy.types.Scene.asset_bridge = PointerProperty(type=AssetBridgeSettings)
+    # bpy.types.Scene.asset_bridge.panel = PointerProperty(type=PanelSettings)
     bpy.types.World.is_asset_bridge = BoolProperty()
     bpy.types.World.asset_bridge_name = StringProperty()
     bpy.types.Material.is_asset_bridge = BoolProperty()

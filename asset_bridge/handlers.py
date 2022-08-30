@@ -35,7 +35,6 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         bpy.data.objects.remove(obj)
 
     for asset in obj_assets:
-        # asset.download_asset(bpy.context)
         depsgraph = bpy.context.evaluated_depsgraph_get()
         region = bpy.context.region
         r3d = region.data

@@ -22,6 +22,7 @@ def init():
 
     modules = get_all_submodules(Path(__file__).parent)
     ordered_classes = get_ordered_classes_to_register(modules)
+    ordered_classes.sort(key=lambda cls: cls.__reg_order__ if hasattr(cls, "__reg_order__") else 10000)
 
 
 def register():

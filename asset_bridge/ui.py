@@ -240,7 +240,6 @@ class AB_PT_main_panel(Panel):
         if ab.download_status == "DOWNLOADING_ASSET":
             row.prop(ab, "ui_import_progress", text="Downloading:")
         else:
-            # hello there my name is you mum hoho
             if downloaded:
                 op = row.operator_menu_hold(
                     AB_OT_import_asset.bl_idname,
@@ -255,7 +254,7 @@ class AB_PT_main_panel(Panel):
                     icon="IMPORT",
                     text="Download Asset",
                 )
-                op.reload = ab.reload_asset
+                op.reload = False
             # op.link = True
             op.link = ab.import_method == "LINK"
 
