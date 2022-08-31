@@ -59,10 +59,9 @@ class AssetList:
 
         # if no file found and no list provided, download from interntet
         if asset_list:
-            # return
-            self.hdris: dict = asset_list_raw["hdris"]
-            self.textures: dict = asset_list_raw["textures"]
-            self.models: dict = asset_list_raw["models"]
+            self.hdris: dict = {k: Asset(k, v) for k, v in asset_list_raw["hdris"].items()}
+            self.textures: dict = {k: Asset(k, v) for k, v in asset_list_raw["textures"].items()}
+            self.models: dict = {k: Asset(k, v) for k, v in asset_list_raw["models"].items()}
             self.all: dict = self.hdris | self.textures | self.models
 
             self.update_categories()
@@ -133,7 +132,7 @@ class AssetList:
         for thread in threads:
             thread.join()
 
-        self.hdris: dict[str: Asset] = ODict({k: v for k, v in self.all.items() if v.category == "hdri"})
+        self.hdris: dict[str:Asset] = ODict({k: v for k, v in self.all.items() if v.category == "hdri"})
         self.textures = ODict({k: v for k, v in self.all.items() if v.category == "texture"})
         self.models = ODict({k: v for k, v in self.all.items() if v.category == "model"})
         # threads = [
@@ -176,9 +175,17 @@ class AssetList:
         data = self.as_json()
         with open(self.list_file, "w") as f:
             json.dump(data, f, indent=2)
+        print("b")
+        print("b")
+        print("b")
+        print("b")
+        print("b")
+        print("b")
+        print("b")
+        print("base_url" in str(data))
 
         self.sorted = False
-        
+
     def as_json(self):
         data = {
             "hdris": {k: v.as_json() for k, v in self.hdris.items()},
@@ -347,12 +354,13 @@ class Asset:
         asset_name = self.name
         # self.category = asset_list.get_asset_category(asset_name)
         self.category = ASSET_TYPES[all_assets_raw[self.name]["type"]]
-        self.data = asset_data or self._process_data(requests.get(f"https://api.polyhaven.com/files/{asset_name}").json())
+        self.data = asset_data or self._process_data(
+            requests.get(f"https://api.polyhaven.com/files/{asset_name}").json())
+        # print("base_url" in self.data["1k"].keys())
         self.download_dir = download = getattr(DIRS, PLURAL[self.category])
         self.quality_levels = self.data.keys()
         self.file_paths = {
-            q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}"
-            for q in self.quality_levels
+            q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}" for q in self.quality_levels
         }
 
         # force_ui_update()
@@ -373,23 +381,26 @@ class Asset:
     def _process_data(self, data):
         new_data = {}
         # blend = data["blend"]["blend"]
-        try:
-            quality_levels = list(data["blend"])
-        except KeyError:
-            return data
+        quality_levels = list(data["hdri" if self.category == "hdri" else "blend"])
         for q in quality_levels:
             new_data[q] = {}
             if self.category == "hdri":
                 hdri = data["hdri"][q]["exr"]
-                new_data[q]["url": hdri["url"], "size": hdri["size"]]
+                new_data[q]["url"] = hdri["url"]
+                new_data[q]["size"] = hdri["size"]
             else:
                 blend = data["blend"][q]["blend"]
+                split = blend["url"].split("/")
+                new_data[q]["fname"] = split[-1]
+                new_data[q]["base_url"] = "/".join(split[:-1])
                 # new_data[q]["blend"] = {"url": blend["url"], "size": blend["size"]}
-                new_data[q]["url"] = blend["url"]
+                # new_data[q]["url"] = blend["url"]
                 new_data[q]["size"] = blend["size"]
                 new_data[q]["textures"] = {}
                 for name, tex in blend["include"].items():
-                    new_data[q]["textures"][name] = {"url": tex["url"], "size": tex["size"]}
+                    split = tex["url"].split("/")
+                    new_data[q]["textures"][split[-1]] = {"size": tex["size"]}
+                    # new_data[q]["textures"][split[-1]] = {"url": tex["url"], "size": tex["size"]}
         return new_data
 
     def as_json(self):
@@ -617,5 +628,15 @@ class Asset:
             update_prop(context.scene.asset_bridge.panel, "download_status", "NONE")
 
 
+start = perf_counter()
 asset_list = AssetList(FILES.asset_list)
-# asset_list.update()
+end = perf_counter()
+print(end - start)
+print(end - start)
+print(end - start)
+print(end - start)
+print(end - start)
+print(end - start)
+print(end - start)
+print(end - start)
+print(end - start)
