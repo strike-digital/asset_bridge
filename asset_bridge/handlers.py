@@ -58,6 +58,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             asset_name=name,
             asset_quality=quality,
             link=is_link(get_browser_area(name)),
+            from_asset_browser=True,
         )
 
     # Materials
@@ -75,6 +76,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                     asset_name=name,
                     asset_quality=quality,
                     link=is_link(get_browser_area(name)),
+                    from_asset_browser=True,
                 )
 
     # Models
@@ -88,6 +90,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             at_mouse=True,
             link=is_link(get_browser_area(name)),
             asset_quality=quality,
+            from_asset_browser=True,
         )
 
         continue

@@ -340,15 +340,14 @@ class Asset:
         quality: str,
         reload: bool,
         script_path: Path = "",
-        progress_data=None,
     ):
         """Download an asset that has a blend file and textures (aka texture and model assets)"""
 
         self.finished = False
-        # download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
         download_max = self.get_total_file_size(quality)
 
-        self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
+        # self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
+        self.download_progress = Progress(download_max)
         bpy.app.timers.register(partial(self.check_progress, (self.get_texture_file_paths(quality))))
 
         # Download the blend file
@@ -391,7 +390,8 @@ class Asset:
 
     def download_hdri(self, context: Context, quality: str, reload: bool):
         download_max = self.get_total_file_size(quality)
-        self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
+        # self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
+        self.download_progress = Progress(download_max)
         asset_path = self.get_file_path(quality)
         self.finished = False
 
@@ -538,9 +538,9 @@ class Asset:
 
         import_only = self.is_downloaded(quality) and not reload
 
-        if not import_only:
-            update_prop(context.scene.asset_bridge.panel, "download_status", "DOWNLOADING_ASSET")
-            run_in_main_thread(force_ui_update, ())
+        # if not import_only:
+        #     update_prop(context.scene.asset_bridge.panel, "download_status", "DOWNLOADING_ASSET")
+        #     run_in_main_thread(force_ui_update, ())
 
         asset_file = self.download_asset(context, quality, reload)
         if not import_only:
@@ -554,8 +554,9 @@ class Asset:
             run_in_main_thread(self.import_model, (context, asset_file, link, quality, location.copy()))
         if on_completion:
             run_in_main_thread(on_completion, ())
-        if not import_only:
-            update_prop(context.scene.asset_bridge.panel, "download_status", "NONE")
+        self.download_progress.end()
+        # if not import_only:
+        #     update_prop(context.scene.asset_bridge.panel, "download_status", "NONE")
 
 
 asset_list = AssetList(FILES.asset_list)

@@ -5,10 +5,10 @@ from pathlib import Path
 import subprocess
 from bpy.types import AddonPreferences, UILayout
 from .operators import AB_OT_clear_asset_folder, AB_OT_set_prop
-from .ui import draw_download_previews, draw_downloads_path
+from .ui import AB_PT_browser_settings_panel, AB_PT_main_panel, draw_download_previews, draw_downloads_path
 from .helpers import asset_preview_exists, update_prefs_file
 from .constants import ASSET_LIB_VERSION, DIRS, FILES
-from bpy.props import StringProperty
+from bpy.props import StringProperty, EnumProperty
 
 
 class AddonPreferences(AddonPreferences):
@@ -55,29 +55,41 @@ class AddonPreferences(AddonPreferences):
         update=lib_path_update,
     )
 
+    def browser_panel_location_update(self, context):
+        bpy.utils.unregister_class(AB_PT_browser_settings_panel)
+        AB_PT_browser_settings_panel.bl_region_type = self.browser_panel_location
+        bpy.utils.register_class(AB_PT_browser_settings_panel)
+
+    browser_panel_location: EnumProperty(
+        items=(
+            ("TOOLS", "Left hand side", "Place the asset bridge panel on the left hand side of the asset browser"),
+            ("TOOL_PROPS", "Right hand side",
+             "Place the asset bridge panel on the right hand side of the asset browser"),
+        ),
+        name="Asset browser panel location:",
+        update=browser_panel_location_update,
+    )
+
+    def viewport_panel_category_update(self, context):
+        bpy.utils.unregister_class(AB_PT_main_panel)
+        AB_PT_main_panel.bl_category = self.viewport_panel_category
+        bpy.utils.register_class(AB_PT_main_panel)
+
+    viewport_panel_category: StringProperty(
+        name="Viewport panel category",
+        description="The category in the N-panel of the 3D view in which to put the asset browser panel",
+        update=viewport_panel_category_update,
+        default="Asset Bridge")
+
     def draw(self, context):
         layout = self.layout
         ab = context.scene.asset_bridge.panel
-        if not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS":
+        if not asset_preview_exists(ab.asset_name) or ab.preview_download_progress_active:
             draw_download_previews(layout)
             return
 
         if not draw_downloads_path(layout, context):
             return
-        # col = layout.box().column(align=True)
-        # col.label(text="External Downloads Path:")
-        # # col.scale_y = .5
-        # row = col.row(align=True)
-        # row.scale_y = row.scale_x = 1.5
-        # path = Path(self.lib_path)
-        # if not DIRS.is_valid:
-        #     row.alert = True
-        #     row.prop(self, "lib_path", text="")
-        #     row2 = col.row(align=True)
-        #     row2.alert = True
-        #     row2.label(text="The given path is not valid")
-        #     return
-        # row.prop(self, "lib_path", text="")
 
         row = layout.box().row(align=True)
         row.scale_y = 1.5
@@ -88,10 +100,23 @@ class AddonPreferences(AddonPreferences):
             icon="FUND",
             text="Support Polyhaven",
         ).url = "https://www.patreon.com/polyhaven/overview"
-        if context.scene.asset_bridge.panel.download_status != "NONE":
+        if context.scene.asset_bridge.panel.import_progress_active:
             op: AB_OT_set_prop = row.operator(AB_OT_set_prop.bl_idname, text="Reset download progress")
             op.data_path = "context.scene.asset_bridge.panel"
-            op.prop_name = "download_status"
-            op.value = "NONE"
-            op.eval_value = False
+            op.prop_name = "import_progress_active"
+            op.value = "False"
+            op.eval_value = True
             op.bl_description = "Reset the download progress bar in case of an error causing it to get stuck"
+
+        box = layout.column(align=True)
+        box1 = box.box()
+        split = box1.split(align=True)
+        split.label(text="Viewport panel category:")
+        split.prop(self, "viewport_panel_category", text="")
+        box1 = box.box()
+        split = box1.split(align=True)
+        split.label(text="Asset browser panel location:")
+        split.prop(self, "browser_panel_location", text="")
+        # box.use_property_split = True
+        box.scale_y = 1.2
+        # box.prop(self, "browser_panel_location")

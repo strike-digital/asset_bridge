@@ -36,7 +36,7 @@ def draw_download_previews(layout: UILayout, reload: bool = False):
         layout.scale_y = 1.5
 
     ab = bpy.context.scene.asset_bridge.panel
-    if ab.download_status == "DOWNLOADING_PREVIEWS":
+    if ab.preview_download_progress_active:
         layout.prop(ab, "preview_download_progress", text=asset_list.progress.message)
     else:
         if reload:
@@ -177,7 +177,8 @@ class AB_PT_main_panel(Panel):
             return
 
         asset_found = ab.asset_name != "NONE"
-        if asset_found and (not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS"):
+        # if asset_found and (not asset_preview_exists(ab.asset_name) or ab.download_status == "DOWNLOADING_PREVIEWS"):
+        if asset_found and (not asset_preview_exists(ab.asset_name) or ab.preview_download_progress_active):
             draw_download_previews(layout)
             return
 
@@ -241,7 +242,7 @@ class AB_PT_main_panel(Panel):
         row.scale_x = 1.25
 
         downloaded = asset.get_file_path(ab.asset_quality).exists() if asset else False
-        if ab.download_status == "DOWNLOADING_ASSET":
+        if ab.import_progress_active:
             row.prop(ab, "ui_import_progress", text="Downloading:")
         else:
             if downloaded:
@@ -260,6 +261,7 @@ class AB_PT_main_panel(Panel):
                 )
                 op.reload = False
             # op.link = True
+            op.from_asset_browser = False
             op.link = ab.import_method == "LINK"
 
         row.prop(ab, "show_import_settings", text="", icon="PREFERENCES")
@@ -317,6 +319,7 @@ class AB_MT_import_menu(bpy.types.Menu):
         layout: UILayout = self.layout
         layout.scale_y = 1.2
         op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
+        op.from_asset_browser = False
         op.reload = True
 
 
@@ -337,11 +340,31 @@ class AB_PT_browser_settings_panel(Panel, AssetBrowserPanel):
         layout: UILayout = self.layout
         ab: BrowserSettings = context.scene.asset_bridge.browser
         if (asset := ab.selected_asset) or (asset := ab.previous_asset):
+            downloaded = asset.get_file_path(ab.asset_quality).exists() and not ab.import_progress_active
             col = layout.column(align=True)
             box = col.box()
-            row = box.row(align=True)
+            bigrow = box.row(align=True)
+            row = bigrow.row(align=True)
+            row.label(text="", icon="CHECKMARK" if downloaded else "IMPORT")
+            row = bigrow.row(align=True)
             row.alignment = "CENTER"
-            row.label(text=asset.label)
+            # row.template_icon()
+            row.label(text=asset.label + "     ")
             box = col.box()
             box.prop(ab, "asset_quality", text="Quality")
             draw_asset_info(col, context, asset)
+
+
+def status_bar_draw(self, context):
+    layout: UILayout = self.layout
+    ab: BrowserSettings = context.scene.asset_bridge.browser
+    if ab.import_progress_active:
+        layout.prop(ab, "ui_import_progress", text="Downloading asset:")
+
+
+def register():
+    bpy.types.STATUSBAR_HT_header.prepend(status_bar_draw)
+
+
+def unregister():
+    bpy.types.STATUSBAR_HT_header.remove(status_bar_draw)

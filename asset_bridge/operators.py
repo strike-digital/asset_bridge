@@ -10,7 +10,7 @@ from mathutils import Vector as V
 
 from .vendor import requests
 from .constants import DIRS
-from .helpers import Op, ensure_asset_library
+from .helpers import Op, Progress, ensure_asset_library
 from .assets import Asset, asset_list
 
 
@@ -38,6 +38,8 @@ class AB_OT_import_asset(Operator):
 
     link: BoolProperty(
         description="Whether to link the asset from the downloaded file, or to append it fully into the scene")
+
+    from_asset_browser: BoolProperty(description="Whether the asset is being imported from the asset browser or not")
 
     # Operators can't have material slots as properties, so this needs to be set at a class level
     # when the operator is called
@@ -94,14 +96,20 @@ class AB_OT_import_asset(Operator):
         else:
             location = context.scene.cursor.location
 
-        ab = context.scene.asset_bridge.panel
+        ab = context.scene.asset_bridge
+        ab = ab.browser if self.from_asset_browser else ab.panel
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
         material_slot = self.material_slot
+        Progress.data = ab
+        Progress.propname = "import_progress"
         thread = Thread(
             target=asset.import_asset,
             args=(context, self.link, quality, self.reload),
-            kwargs={"location": location, "material_slot": material_slot},
+            kwargs={
+                "location": location,
+                "material_slot": material_slot
+            },
         )
 
         thread.start()
@@ -232,6 +240,8 @@ class AB_OT_download_asset_previews(Operator):
     def execute(self, context):
         asset_list.update()
         ensure_asset_library()
+        Progress.data = context.scene.asset_bridge.panel
+        Progress.propname = "preview_download_progress"
         thread = Thread(target=asset_list.download_all_previews, args=[False])
         thread.start()
 

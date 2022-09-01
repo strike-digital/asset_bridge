@@ -20,6 +20,7 @@ def add_progress(cls, name):
     ui_kwargs["set"] = lambda self, value: None
     ui_kwargs["get"] = lambda self: getattr(self, name)
     cls.__annotations__[f"ui_{name}"] = FloatProperty(**ui_kwargs)
+    cls.__annotations__[f"{name}_active"] = BoolProperty()
 
 
 # This is needed to prevent the dynamic enum bug that causes the label of the enum items to go weird:
@@ -40,15 +41,15 @@ class SharedSettings():
         return
         bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
-    download_status: EnumProperty(
-        items=[
-            ("NONE", "None", "Not downloading currently"),
-            ("DOWNLOADING_ASSET", "Downloading", "Downloading the asset from the internet"),
-            ("DOWNLOADING_PREVIEWS", "Downloading previews", "Downloading all previews"),
-        ],
-        update=download_status_update,
-        options={"HIDDEN", "SKIP_SAVE"},
-    )
+    # download_status: EnumProperty(
+    #     items=[
+    #         ("NONE", "None", "Not downloading currently"),
+    #         ("DOWNLOADING_ASSET", "Downloading", "Downloading the asset from the internet"),
+    #         ("DOWNLOADING_PREVIEWS", "Downloading previews", "Downloading all previews"),
+    #     ],
+    #     update=download_status_update,
+    #     options={"HIDDEN", "SKIP_SAVE"},
+    # )
 
     previous_asset = None
 

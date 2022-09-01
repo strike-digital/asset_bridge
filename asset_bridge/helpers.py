@@ -52,6 +52,7 @@ def ui_update_timer(area=None, area_types={"VIEW_3D"}, region_types={"WINDOW", "
             if region.type not in region_types:
                 continue
             region.tag_redraw()
+    bpy.context.workspace.status_text_set_internal(None)
 
 
 def force_ui_update(area=None, area_types={"VIEW_3D", "PREFERENCES"}, region_types={"WINDOW", "UI"}):
@@ -148,6 +149,7 @@ class Progress:
         self.propname = propname or self.propname
         self.message = ""
         self.progress = 0
+        setattr(self.data, f"{self.propname}_active", True)
 
     @property
     def progress(self):
@@ -168,6 +170,12 @@ class Progress:
 
     def read(self):
         return self.progress / self.max * 100
+
+    def end(self):
+        setattr(self.data, f"{self.propname}_active", False)
+        print(self.data, self.propname)
+        self.__class__.data = None
+        self.__class__.propname = ""
 
 
 # It's a bad idea to modify blend data in arbitrary threads,
