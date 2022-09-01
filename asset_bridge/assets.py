@@ -1,3 +1,4 @@
+from functools import partial
 import json
 import math
 import bpy
@@ -252,6 +253,10 @@ class Asset:
             q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}"
             for q in self.get_quality_dict()
         }
+        self.texture_file_paths = {
+            q: download / f"{self.name}_{q}{'.exr' if self.category=='hdri' else '.blend'}"
+            for q in self.get_quality_dict()
+        }
 
         # force_ui_update()
         list_data = asset_list.all[asset_name]
@@ -271,11 +276,29 @@ class Asset:
     def get_file_path(self, quality) -> Path:
         return self.file_paths[quality]
 
+    def get_texture_file_paths(self, quality):
+        paths = []
+        for val in self.get_quality_dict()[quality]["blend"]["include"].values():
+            url = val["url"]
+            paths.append(self.download_dir / "textures" / file_name_from_url(url))
+        return paths
+
     def is_downloaded(self, quality: str) -> bool:
         return self.get_file_path(quality).exists()
 
     def get_quality_dict(self) -> dict:
         return self.data["hdri"] if "hdri" in self.data else self.data["blend"]
+
+    def get_total_file_size(self, quality: str) -> int:
+        quality_levels = self.get_quality_dict()
+        if self.category == "hdri":
+            return quality_levels[quality]["exr"]["size"]
+        total = 0
+        blend = quality_levels[quality]["blend"]
+        total += blend["size"]
+        for file in blend["include"].values():
+            total += file["size"]
+        return total
 
     def get_texture_urls(self, quality: str) -> list[str]:
         quality_dict = self.get_quality_dict()[quality]
@@ -311,11 +334,22 @@ class Asset:
                 script_path,
             ])
 
-    def download_asset_with_blend_file(self, context: Context, quality: str, reload: bool, script_path: Path = ""):
+    def download_asset_with_blend_file(
+        self,
+        context: Context,
+        quality: str,
+        reload: bool,
+        script_path: Path = "",
+        progress_data=None,
+    ):
         """Download an asset that has a blend file and textures (aka texture and model assets)"""
-        download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
+
+        self.finished = False
+        # download_max = len(list(self.get_quality_dict().values())[0]["blend"]["include"].values()) + 1
+        download_max = self.get_total_file_size(quality)
 
         self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
+        bpy.app.timers.register(partial(self.check_progress, (self.get_texture_file_paths(quality))))
 
         # Download the blend file
         # Using threading here makes this soooo much faster
@@ -340,17 +374,34 @@ class Asset:
                 thread.start()
         for thread in threads:
             thread.join()
+        self.finished = True
         return asset_path
 
+    def check_progress(self, asset_paths: list[Path]):
+        if self.finished:
+            return
+        total_size = 0
+        for path in asset_paths:
+            if path.exists():
+                total_size += os.path.getsize(path)
+
+        if total_size:
+            self.download_progress.progress = total_size
+        return .03
+
     def download_hdri(self, context: Context, quality: str, reload: bool):
-        download_max = 1
+        download_max = self.get_total_file_size(quality)
         self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
+        asset_path = self.get_file_path(quality)
+        self.finished = False
+
+        bpy.app.timers.register(partial(self.check_progress, ([asset_path])))
 
         # Using threading here makes this soooo much faster
-        asset_path = self.get_file_path(quality)
         if not asset_path.exists() or reload:
             asset_url = self.get_hdri_url(quality)
             self.download_asset_file(asset_url, dir=asset_path.parent, file_name=asset_path.name)
+        self.finished = True
         return asset_path
 
     def download_texture(self, context: Context, quality: str, reload: bool):

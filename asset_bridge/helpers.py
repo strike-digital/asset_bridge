@@ -139,10 +139,13 @@ def get_asset_preview(asset_name: str, reload: bool = False, size: int = 128):
 
 class Progress:
 
-    def __init__(self, max, data, propname):
+    data = None
+    propname = ""
+
+    def __init__(self, max, data=None, propname=""):
         self.max = max
-        self.data = data
-        self.propname = propname
+        self.data = data or self.data
+        self.propname = propname or self.propname
         self.message = ""
         self.progress = 0
 
@@ -153,8 +156,10 @@ class Progress:
     @progress.setter
     def progress(self, value):
         self._progress = value
-        update_prop(self.data, self.propname, self.read())
-        force_ui_update()
+        prop_val = self.read()
+        if getattr(self.data, self.propname) != prop_val:
+            update_prop(self.data, self.propname, prop_val)
+            force_ui_update()
 
     def increment(self, value=1):
         self.progress += value

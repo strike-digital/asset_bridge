@@ -2,9 +2,7 @@ from asset_bridge.operators import AB_OT_import_asset
 import bpy
 from bpy.app import handlers
 from bpy.types import Scene
-from .assets import Asset
 from mathutils import Vector as V
-from bpy_extras.view3d_utils import region_2d_to_vector_3d, region_2d_to_origin_3d
 
 
 def get_asset_quality(scene):
@@ -41,9 +39,6 @@ def get_active_region(mouse_pos):
                     return region
     else:
         return None
-    print(list(t.type for t in bpy.context.screen.areas))
-    print(bpy.context.window.screen.areas[0].type)
-    # for window in bpy.context.
 
 
 def is_link(area):
@@ -56,26 +51,31 @@ def depsgraph_update_pre_handler(scene: Scene, _):
     quality = get_asset_quality(scene)
     # Hdris
     if (world := scene.world) and world.is_asset_bridge:
-        area = get_browser_area(name=world.asset_bridge_name)
-        asset = Asset(world.asset_bridge_name)
-        asset.import_asset(bpy.context, link=is_link(area), quality=quality)
+        name = world.asset_bridge_name
         bpy.data.worlds.remove(world)
+        bpy.ops.asset_bridge.import_asset(
+            "INVOKE_DEFAULT",
+            asset_name=name,
+            asset_quality=quality,
+            link=is_link(get_browser_area(name)),
+        )
 
     # Materials
     for obj in scene.objects:
         for slot in obj.material_slots:
             if (mat := slot.material) and mat.is_asset_bridge:
                 name = mat.asset_bridge_name
+                bpy.data.materials.remove(mat)
+                # We can't pass a material slot directly, so set it as a class attribute.
+                # This is very hacky, and there's almost certainly a good reason not to do it,
+                # But I haven't found it yet ¯\_(ツ)_/¯
+                AB_OT_import_asset.material_slot = slot
                 bpy.ops.asset_bridge.import_asset(
                     "INVOKE_DEFAULT",
                     asset_name=name,
                     asset_quality=quality,
                     link=is_link(get_browser_area(name)),
                 )
-                # asset = Asset(mat.asset_bridge_name)
-                # area = get_browser_area(name=mat.asset_bridge_name)
-                # asset.import_asset(bpy.context, link=is_link(area), material_slot=slot, quality=quality)
-                bpy.data.materials.remove(mat)
 
     # Models
     objs = [o for o in scene.objects if o.is_asset_bridge]
@@ -91,24 +91,6 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         )
 
         continue
-        # ("INVOKE_DEFAULT", )
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        bpy.ops.asset_bridge.get_mouse_pos("INVOKE_DEFAULT")
-        ab = scene.asset_bridge
-        coord = ab.mouse_pos
-        region = get_active_region(ab.mouse_pos)
-        r3d = region.data
-        bpy.ops.asset_bridge.get_mouse_pos("INVOKE_DEFAULT", region=True)
-        # coord = (region.width / 2, region.height / 2)
-        coord = ab.mouse_pos
-
-        view_vector = region_2d_to_vector_3d(region, r3d, coord)
-        ray_origin = region_2d_to_origin_3d(region, r3d, coord)
-
-        result = scene.ray_cast(depsgraph, ray_origin, view_vector)
-
-        area = get_browser_area(name=asset.name)
-        asset.import_asset(bpy.context, link=is_link(area), location=result[1], quality=quality)
 
 
 @handlers.persistent

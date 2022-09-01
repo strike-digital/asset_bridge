@@ -22,6 +22,18 @@ def add_progress(cls, name):
     cls.__annotations__[f"ui_{name}"] = FloatProperty(**ui_kwargs)
 
 
+# This is needed to prevent the dynamic enum bug that causes the label of the enum items to go weird:
+# https://github.com/3dninjas/3dn-bip/issues/51
+_item_map = dict()
+
+
+def _make_item(id, name, descr):
+    lookup = f"{str(id)}\0{str(name)}\0{str(descr)}"
+    if lookup not in _item_map:
+        _item_map[lookup] = (id, name, descr)
+    return _item_map[lookup]
+
+
 class SharedSettings():
 
     def download_status_update(self, context):
@@ -85,7 +97,18 @@ class SharedSettings():
         if asset:
             quality_levels = asset.get_quality_dict()
             levels = sorted(quality_levels.keys(), key=lambda q: int(q[:-1]))
-            items.extend((q, q, f"Load this asset at {q} resolution.") for q in levels)
+
+            for q in levels:
+                size = asset.get_total_file_size(q) / 1_048_576
+                suffix = "MB"
+                if size > 1_024:
+                    size /= 1_024
+                    suffix = "GB"
+                    size = f"{size:.1f}"
+                else:
+                    size = f"{size:.0f}"
+                name = f"{q} ({size}{suffix})"
+                items.append((_make_item(q, name, f"Load this asset at {q} resolution.")))
 
         return items
 
@@ -97,7 +120,13 @@ class SharedSettings():
     def set_asset_quality(self, value):
         self["_asset_quality"] = value
 
-    asset_quality: EnumProperty(items=get_asset_quality_items, get=get_asset_quality, set=set_asset_quality)
+    asset_quality: EnumProperty(
+        items=get_asset_quality_items,
+        get=get_asset_quality,
+        set=set_asset_quality,
+        name="Asset Quality",
+        description="The quality of the asset to download and import"
+    )
 
 
 add_progress(SharedSettings, "import_progress")

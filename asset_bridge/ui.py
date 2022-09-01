@@ -199,7 +199,6 @@ class AB_PT_main_panel(Panel):
         width = context.region.width
         button_size_px = 28
         split = row.split(factor=(button_size_px * dpifac()) / width, align=True)
-        # if ab.sort_method:
         icon = {i[0]: i[3] for i in ab.sort_method_items(context)}[ab.sort_method]
         split.popover(AB_PT_sort_panel.__name__, text="", icon=icon)
 
@@ -338,7 +337,11 @@ class AB_PT_browser_settings_panel(Panel, AssetBrowserPanel):
         layout: UILayout = self.layout
         ab: BrowserSettings = context.scene.asset_bridge.browser
         if (asset := ab.selected_asset) or (asset := ab.previous_asset):
-            box = layout.box()
-            box.label(text=asset.label)
+            col = layout.column(align=True)
+            box = col.box()
+            row = box.row(align=True)
+            row.alignment = "CENTER"
+            row.label(text=asset.label)
+            box = col.box()
             box.prop(ab, "asset_quality", text="Quality")
-            draw_asset_info(box, context, asset)
+            draw_asset_info(col, context, asset)

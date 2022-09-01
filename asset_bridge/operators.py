@@ -39,13 +39,9 @@ class AB_OT_import_asset(Operator):
     link: BoolProperty(
         description="Whether to link the asset from the downloaded file, or to append it fully into the scene")
 
-    use_material_slot: BoolProperty()
-
+    # Operators can't have material slots as properties, so this needs to be set at a class level
+    # when the operator is called
     material_slot = None
-    # material_slot_index: BoolProperty(
-    #     description="The index of the material slot to apply the imported asset to",
-    #     default=-1,
-    # )
 
     def get_active_region(self, mouse_pos):
         """Get the window region of the area the under the mouse position"""
@@ -57,28 +53,6 @@ class AB_OT_import_asset(Operator):
                         return region
         else:
             return None
-
-    def get_browser_area(name) -> bpy.types.Area:
-        """Find the area that has the correct asset selected in the asset browser.
-        If not found returns None. This isn't perfect as if you have to asset browsers selecting the same asset,
-        it will just select the first one"""
-        overrides = []
-        for window in bpy.context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type == "FILE_BROWSER" and area.ui_type == "ASSETS":
-                    overrides.append({"window": window, "area": area})
-        for override in overrides:
-            with bpy.context.temp_override(**override):
-                handle = bpy.context.asset_file_handle
-                if handle and handle.asset_data.description == name:
-                    return override["area"]
-        else:
-            if overrides:
-                return overrides[0]["area"]
-        return None
-
-    def is_link(area):
-        return "LINK" in area.spaces.active.params.import_type
 
     def invoke(self, context, event):
         self.mouse_pos_region = V((event.mouse_region_x, event.mouse_region_y))
@@ -123,7 +97,7 @@ class AB_OT_import_asset(Operator):
         ab = context.scene.asset_bridge.panel
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
-        material_slot = self.material_slot if self.use_material_slot else None
+        material_slot = self.material_slot
         thread = Thread(
             target=asset.import_asset,
             args=(context, self.link, quality, self.reload),
@@ -134,6 +108,8 @@ class AB_OT_import_asset(Operator):
         for area in context.screen.areas:
             for region in area.regions:
                 region.tag_redraw()
+
+        self.__class__.material_slot = None
         print("Importing:", asset.label)
         return {'FINISHED'}
 
