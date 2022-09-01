@@ -1,5 +1,5 @@
 from datetime import datetime
-from .constants import DIRS
+from .constants import BL_ASSET_LIB_NAME, DIRS
 import bpy
 from bpy.types import Panel, UILayout, Context
 from bpy_extras.asset_utils import AssetBrowserPanel
@@ -324,16 +324,20 @@ class AB_MT_import_menu(bpy.types.Menu):
 class AB_PT_browser_settings_panel(Panel, AssetBrowserPanel):
     bl_region_type = "TOOLS"
     bl_label = "Asset Bridge"
-    bl_options = {"HIDE_HEADER"}
+    # bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
-        return cls.asset_browser_panel_poll(context)
+        return all((
+            context.asset_file_handle,
+            BL_ASSET_LIB_NAME in context.area.spaces.active.params.asset_library_ref,
+            cls.asset_browser_panel_poll(context),
+        ))
 
     def draw(self, context):
         layout: UILayout = self.layout
         ab: BrowserSettings = context.scene.asset_bridge.browser
-        if asset := ab.selected_asset:
+        if (asset := ab.selected_asset) or (asset := ab.previous_asset):
             box = layout.box()
             box.label(text=asset.label)
             box.prop(ab, "asset_quality", text="Quality")

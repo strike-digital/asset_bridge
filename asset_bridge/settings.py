@@ -4,7 +4,7 @@ import bpy
 from bpy.props import (BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty, FloatVectorProperty)
 from bpy.types import PropertyGroup
 from .constants import __IS_DEV__, DIRS
-from .helpers import get_icon, get_prefs, pcolls
+from .helpers import force_ui_update, get_icon, get_prefs, pcolls
 from .assets import SINGULAR
 from .assets import Asset, asset_list
 
@@ -38,6 +38,8 @@ class SharedSettings():
         options={"HIDDEN", "SKIP_SAVE"},
     )
 
+    previous_asset = None
+
     _selected_asset = None
 
     loading_asset = False
@@ -52,12 +54,21 @@ class SharedSettings():
             return self._selected_asset
 
         if self.asset_name:
+            self.__class__.previous_asset = _selected_asset
             self.__class__.loading_asset = True
+            try:
+                area = bpy.context.area
+            except AttributeError:
+                area = None
 
             def get_asset_info(self):
                 """Load the asset info from the internet in another thread"""
                 self.__class__._selected_asset = Asset(asset_name)
                 self.__class__.loading_asset = False
+                if self.is_panel:
+                    force_ui_update()
+                else:
+                    force_ui_update(area, {"FILE_BROWSER"}, {"TOOLS"})
 
             thread = Thread(target=get_asset_info, args=[self])
             thread.start()
@@ -70,8 +81,9 @@ class SharedSettings():
         items = []
         if self.asset_name == "NONE":
             return [("1k", "1k", "1k")]
-        if self.selected_asset:
-            quality_levels = self.selected_asset.get_quality_dict()
+        asset = self.selected_asset
+        if asset:
+            quality_levels = asset.get_quality_dict()
             levels = sorted(quality_levels.keys(), key=lambda q: int(q[:-1]))
             items.extend((q, q, f"Load this asset at {q} resolution.") for q in levels)
 
@@ -93,6 +105,8 @@ add_progress(SharedSettings, "import_progress")
 
 class PanelSettings(PropertyGroup, SharedSettings):
     __reg_order__ = 0
+
+    is_panel = True
 
     show_asset_info: BoolProperty(
         name="Show asset info",
@@ -257,13 +271,20 @@ add_progress(PanelSettings, "preview_download_progress")
 class BrowserSettings(PropertyGroup, SharedSettings):
     __reg_order__ = 0
 
+    is_panel = False
+
+    prev_asset_name = "NONE"
+
     @property
     def asset_name(self):
         context = bpy.context
         handle = context.asset_file_handle
         if handle:
             asset = handle.asset_data
+            self.__class__.prev_asset_name = asset.description
             return asset.description
+        elif self.prev_asset_name != "NONE":
+            return self.prev_asset_name
         return "NONE"
 
 

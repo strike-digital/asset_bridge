@@ -23,9 +23,6 @@ SINGULAR = {
 PLURAL = {y: x for x, y in SINGULAR.items()}
 ASSET_TYPES = {0: "hdri", 1: "texture", 2: "model"}
 
-with open(FILES.asset_list, "r") as f:
-    asset_list_raw = json.load(f)
-
 
 class AssetList:
 
@@ -83,30 +80,6 @@ class AssetList:
 
         self.all: ODict = self.hdris | self.textures | self.models
 
-        start = perf_counter()
-        chunk_size = 5
-
-        def get_asset(names):
-            for name in names:
-                self.ahdris[name] = Asset(name, self)
-            self.progress.progress += chunk_size
-
-        self.ahdris = {}
-        threads = []
-        models = list(self.all)
-        self.progress = Progress(len(models), bpy.context.scene.asset_bridge.panel, "preview_download_progress")
-        lst = [models[i:i + chunk_size] for i in range(0, len(self.models), chunk_size)]
-        for names in lst:
-            thread = Thread(target=get_asset, args=[names])
-            thread.start()
-            threads.append(thread)
-
-        for i, thread in enumerate(threads):
-            thread.join()
-            # print(i)
-            # self.ahdris[name] = Asset(name)
-
-        print(f"Done in {perf_counter() - start:.4f}")
         self.update_categories()
 
         data = {"hdris": self.hdris, "textures": self.textures, "models": self.models}
@@ -167,8 +140,7 @@ class AssetList:
 
     def get_asset_category(self, asset_name):
         data = self.all[asset_name]
-        types = {0: "hdris", 1: "textures", 2: "models"}
-        return SINGULAR[types[data["type"]]]
+        return ASSET_TYPES[data["type"]]
 
     def download_n_previews(self, names, reload, load, size=128):
         for name in names:
@@ -266,9 +238,7 @@ class Asset:
         self.download_progress = None
         self.download_max = 0
         self.name = asset_name
-        self.label = asset_list_raw[self.name]["name"]
-        self.asset_list_data = asset_list_raw
-        # self.label = asset_list.all[self.name]["name"]
+        self.label = asset_list.all[self.name]["name"]
         self.update(asset_data)
 
     def update(self, asset_data=None):
@@ -276,7 +246,6 @@ class Asset:
             asset_data = {}
         asset_name = self.name
         self.category = asset_list.get_asset_category(asset_name)
-        self.category = asset_list_raw[self.name]["type"]
         self.data = asset_data or requests.get(f"https://api.polyhaven.com/files/{asset_name}").json()
         self.download_dir = download = getattr(DIRS, PLURAL[self.category])
         self.file_paths = {
@@ -284,7 +253,7 @@ class Asset:
             for q in self.get_quality_dict()
         }
 
-        force_ui_update()
+        # force_ui_update()
         list_data = asset_list.all[asset_name]
         self.date_published: int = list_data["date_published"]
         self.categories: list = list_data["categories"]
@@ -447,12 +416,23 @@ class Asset:
         return data_to.materials[0]
 
     def import_model(self, context: Context, asset_file: Path, link: bool, quality: str, location=(0, 0, 0)):
-        with bpy.data.libraries.load(filepath=str(asset_file), link=link) as (data_from, data_to):
-            # import objects with the correct name, or if none are found, just import all objects
-            for coll in data_from.collections:
-                if coll == f"{self.name}_{quality}":
-                    data_to.collections.append(coll)
-                    break
+        collection = None
+        if link:
+            # Don't reimport assets that are already linked
+            for lib in bpy.data.libraries:
+                if Path(lib.filepath) == asset_file:
+                    try:
+                        collection = [coll for coll in lib.users_id if isinstance(coll, bpy.types.Collection)][0]
+                    except IndexError:
+                        pass
+
+        if not collection:
+            with bpy.data.libraries.load(filepath=str(asset_file), link=link) as (data_from, data_to):
+                # import objects with the correct name, or if none are found, just import all objects
+                for coll in data_from.collections:
+                    if coll == f"{self.name}_{quality}":
+                        data_to.collections.append(coll)
+                        break
             # found = [obj for obj in data_from.objects if self.name in obj]
             # if not found:
             #     found = data_from.objects
@@ -460,11 +440,12 @@ class Asset:
         for obj in bpy.data.objects:
             obj.select_set(False)
 
-        collection: bpy.types.Collection = data_to.collections[0]
+        collection: bpy.types.Collection = collection or data_to.collections[0]
         if link:
             empty = bpy.data.objects.new(collection.name, None)
             empty.instance_type = "COLLECTION"
             empty.instance_collection = collection
+            empty.location += V(location)
             context.collection.objects.link(empty)
             empty.empty_display_size = math.hypot(*list(collection.objects[0].dimensions))
             empty.select_set(True)

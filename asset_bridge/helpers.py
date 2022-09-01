@@ -33,18 +33,30 @@ def file_name_from_url(url: str) -> str:
     return url.split('/')[-1].split("?")[0]
 
 
-def ui_update_timer(all):
-    for window in bpy.context.window_manager.windows:
-        for area in window.screen.areas:
-            region_type = "WINDOW" if area.type == "PREFERENCES" else "UI"
-            for region in area.regions:
-                if region.type == region_type or all:
-                    region.tag_redraw()
+def ui_update_timer(area=None, area_types={"VIEW_3D"}, region_types={"WINDOW", "UI"}):
+    if not isinstance(area_types, set):
+        area_types = {area_types}
+    if not isinstance(region_types, set):
+        area_types = {region_types}
+    areas = []
+    if area:
+        areas = [area]
+    else:
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type not in area_types:
+                    continue
+                areas.append(area)
+    for area in areas:
+        for region in area.regions:
+            if region.type not in region_types:
+                continue
+            region.tag_redraw()
 
 
-def force_ui_update(all=False):
+def force_ui_update(area=None, area_types={"VIEW_3D", "PREFERENCES"}, region_types={"WINDOW", "UI"}):
     """Sometimes calling tag_redraw doesn't work, but doing it in a timer does"""
-    bpy.app.timers.register(partial(ui_update_timer, all), first_interval=.00001)
+    bpy.app.timers.register(partial(ui_update_timer, area, area_types, region_types), first_interval=.00001)
 
 
 def ensure_asset_library():

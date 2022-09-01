@@ -5,6 +5,8 @@ from threading import Thread
 import bpy
 from bpy.types import Operator
 from bpy.props import BoolProperty, StringProperty
+from bpy_extras.view3d_utils import region_2d_to_vector_3d, region_2d_to_origin_3d
+from mathutils import Vector as V
 
 from .vendor import requests
 from .constants import DIRS
@@ -12,7 +14,7 @@ from .helpers import Op, ensure_asset_library
 from .assets import Asset, asset_list
 
 
-@Op("asset_bridge", undo=True)
+@Op("asset_bridge", undo=False)
 class AB_OT_import_asset(Operator):
     """Import the given asset into the current scene"""
 
@@ -31,24 +33,108 @@ class AB_OT_import_asset(Operator):
         default=False,
     )
 
+    at_mouse: BoolProperty(
+        description="Whether to import the asset at the point underneath the mouse cursor, or instead at the 3d cursor")
+
     link: BoolProperty(
         description="Whether to link the asset from the downloaded file, or to append it fully into the scene")
 
+    use_material_slot: BoolProperty()
+
+    material_slot = None
+    # material_slot_index: BoolProperty(
+    #     description="The index of the material slot to apply the imported asset to",
+    #     default=-1,
+    # )
+
+    def get_active_region(self, mouse_pos):
+        """Get the window region of the area the under the mouse position"""
+        mouse_pos = V(mouse_pos)
+        for area in bpy.context.screen.areas:
+            if (area.x < mouse_pos.x < area.x + area.width) and (area.y < mouse_pos.y < area.y + area.height):
+                for region in area.regions:
+                    if region.type == "WINDOW":
+                        return region
+        else:
+            return None
+
+    def get_browser_area(name) -> bpy.types.Area:
+        """Find the area that has the correct asset selected in the asset browser.
+        If not found returns None. This isn't perfect as if you have to asset browsers selecting the same asset,
+        it will just select the first one"""
+        overrides = []
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == "FILE_BROWSER" and area.ui_type == "ASSETS":
+                    overrides.append({"window": window, "area": area})
+        for override in overrides:
+            with bpy.context.temp_override(**override):
+                handle = bpy.context.asset_file_handle
+                if handle and handle.asset_data.description == name:
+                    return override["area"]
+        else:
+            if overrides:
+                return overrides[0]["area"]
+        return None
+
+    def is_link(area):
+        return "LINK" in area.spaces.active.params.import_type
+
+    def invoke(self, context, event):
+        self.mouse_pos_region = V((event.mouse_region_x, event.mouse_region_y))
+        self.mouse_pos_window = V((event.mouse_x, event.mouse_y))
+        return self.execute(context)
+
     def execute(self, context):
+
+        if self.at_mouse:
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            if context.region:
+                region = context.region
+                coord = self.mouse_pos_region
+            else:
+                region = self.get_active_region(self.mouse_pos_window)
+                coord = self.mouse_pos_window - V((region.x, region.y))
+            r3d = region.data
+
+            view_vector = V(region_2d_to_vector_3d(region, r3d, coord))
+            ray_origin = V(region_2d_to_origin_3d(region, r3d, coord))
+
+            location = context.scene.ray_cast(depsgraph, ray_origin, view_vector)[1]
+
+            if location == V((0., 0., 0.)):
+                # If the ray doesn't intersect with any mesh, place it on the xy plane
+                # If view vector intersects with ground behind the camera, just place it in front of the camera
+                if (view_vector.z > 0 and ray_origin.z > 0) or (view_vector.z < 0 and ray_origin.z < 0):
+                    location = ray_origin + view_vector * (ray_origin.length / 2)
+                else:
+                    p1 = ray_origin
+                    p2 = p1 + view_vector
+
+                    x_slope = (p2.x - p1.x) / (p2.z - p1.z)
+                    y_slope = (p2.y - p1.y) / (p2.z - p1.z)
+                    xco = p1.x - (x_slope * p1.z)
+                    yco = p1.y - (y_slope * p1.z)
+
+                    location = V((xco, yco, 0.))
+        else:
+            location = context.scene.cursor.location
+
         ab = context.scene.asset_bridge.panel
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
+        material_slot = self.material_slot if self.use_material_slot else None
         thread = Thread(
             target=asset.import_asset,
             args=(context, self.link, quality, self.reload),
-            kwargs={"location": context.scene.cursor.location},
+            kwargs={"location": location, "material_slot": material_slot},
         )
 
         thread.start()
         for area in context.screen.areas:
             for region in area.regions:
                 region.tag_redraw()
-        print("Importing:", ab.asset_name)
+        print("Importing:", asset.label)
         return {'FINISHED'}
 
 
@@ -195,9 +281,15 @@ class AB_OT_get_mouse_pos(Operator):
 
     category_name: StringProperty()
 
+    region: BoolProperty()
+
     def invoke(self, context, event):
-        ab = context.scene.asset_bridge.panel
-        ab.mouse_pos = event.mouse_region_x, event.mouse_region_y
+        ab = context.scene.asset_bridge
+        if self.region:
+            ab.mouse_pos = event.mouse_region_x, event.mouse_region_y
+        else:
+            ab.mouse_pos = event.mouse_x, event.mouse_y
+        print(list(ab.mouse_pos))
         return {'FINISHED'}
 
 
