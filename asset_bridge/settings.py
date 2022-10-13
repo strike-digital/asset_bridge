@@ -36,6 +36,7 @@ def _make_item(id, name, descr):
 
 
 class SharedSettings():
+    """Settings for both the N-panel and the Asset Browser"""
 
     def download_status_update(self, context):
         return
@@ -126,7 +127,7 @@ class SharedSettings():
         get=get_asset_quality,
         set=set_asset_quality,
         name="Asset Quality",
-        description="The quality of the asset to download and import"
+        description="The quality of the asset to download and import",
     )
 
 
@@ -134,6 +135,7 @@ add_progress(SharedSettings, "import_progress")
 
 
 class PanelSettings(PropertyGroup, SharedSettings):
+    """Settings for the N-Panel"""
     __reg_order__ = 0
 
     is_panel = True
@@ -299,6 +301,7 @@ add_progress(PanelSettings, "preview_download_progress")
 
 
 class BrowserSettings(PropertyGroup, SharedSettings):
+    """Settings for the asset browser"""
     __reg_order__ = 0
 
     is_panel = False
@@ -317,6 +320,11 @@ class BrowserSettings(PropertyGroup, SharedSettings):
             return self.prev_asset_name
         return "NONE"
 
+    reload_asset: BoolProperty(
+        name="Re-download asset",
+        description="Redownload the files for this asset when it is next added to the scene.",
+    )
+
 
 class AssetBridgeSettings(PropertyGroup, SharedSettings):
     __reg_order__ = 1
@@ -330,7 +338,9 @@ class AssetBridgeSettings(PropertyGroup, SharedSettings):
 
 def register():
     bpy.types.Scene.asset_bridge = PointerProperty(type=AssetBridgeSettings)
-    # bpy.types.Scene.asset_bridge.panel = PointerProperty(type=PanelSettings)
+
+    # Used to determine whether an empty datablock, was imported from the Asset Browser by Asset Bridge,
+    # so that it can be replaced by the real asset.
     bpy.types.World.is_asset_bridge = BoolProperty()
     bpy.types.World.asset_bridge_name = StringProperty()
     bpy.types.Material.is_asset_bridge = BoolProperty()

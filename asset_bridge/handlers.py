@@ -4,6 +4,8 @@ from bpy.app import handlers
 from bpy.types import Scene
 from mathutils import Vector as V
 
+# depsgraph asset browser handler
+
 
 def get_asset_quality(scene):
     return scene.asset_bridge.browser.asset_quality
@@ -49,6 +51,7 @@ def is_link(area):
 def depsgraph_update_pre_handler(scene: Scene, _):
     """Check if an asset has been dragged from the asset browser"""
     quality = get_asset_quality(scene)
+    reload = scene.asset_bridge.browser.reload_asset
     # Hdris
     if (world := scene.world) and world.is_asset_bridge:
         name = world.asset_bridge_name
@@ -58,6 +61,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             asset_name=name,
             asset_quality=quality,
             link=is_link(get_browser_area(name)),
+            reload=reload,
             from_asset_browser=True,
         )
 
@@ -74,8 +78,10 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 bpy.ops.asset_bridge.import_asset(
                     "INVOKE_DEFAULT",
                     asset_name=name,
+                    location=bpy.context.object.location,
                     asset_quality=quality,
                     link=is_link(get_browser_area(name)),
+                    reload=reload,
                     from_asset_browser=True,
                 )
 
@@ -90,6 +96,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             at_mouse=True,
             link=is_link(get_browser_area(name)),
             asset_quality=quality,
+            reload=reload,
             from_asset_browser=True,
         )
 

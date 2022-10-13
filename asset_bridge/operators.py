@@ -3,14 +3,16 @@ from pathlib import Path
 from threading import Thread
 
 import bpy
+import gpu
 from bpy.types import Operator
-from bpy.props import BoolProperty, StringProperty
-from bpy_extras.view3d_utils import region_2d_to_vector_3d, region_2d_to_origin_3d
+from gpu_extras.batch import batch_for_shader
+from bpy.props import BoolProperty, StringProperty, FloatVectorProperty
+from bpy_extras.view3d_utils import region_2d_to_vector_3d, region_2d_to_origin_3d, location_3d_to_region_2d
 from mathutils import Vector as V
 
 from .vendor import requests
 from .constants import DIRS
-from .helpers import Op, Progress, ensure_asset_library
+from .helpers import Op, Progress, ensure_asset_library, vec_lerp
 from .assets import Asset, asset_list
 
 
@@ -33,6 +35,8 @@ class AB_OT_import_asset(Operator):
         default=False,
     )
 
+    location: FloatVectorProperty(description="The location to put the imported asset/where to draw the progress")
+
     at_mouse: BoolProperty(
         description="Whether to import the asset at the point underneath the mouse cursor, or instead at the 3d cursor")
 
@@ -45,10 +49,10 @@ class AB_OT_import_asset(Operator):
     # when the operator is called
     material_slot = None
 
-    def get_active_region(self, mouse_pos):
+    def get_active_region(self, mouse_pos, context):
         """Get the window region of the area the under the mouse position"""
         mouse_pos = V(mouse_pos)
-        for area in bpy.context.screen.areas:
+        for area in context.screen.areas:
             if (area.x < mouse_pos.x < area.x + area.width) and (area.y < mouse_pos.y < area.y + area.height):
                 for region in area.regions:
                     if region.type == "WINDOW":
@@ -69,7 +73,7 @@ class AB_OT_import_asset(Operator):
                 region = context.region
                 coord = self.mouse_pos_region
             else:
-                region = self.get_active_region(self.mouse_pos_window)
+                region = self.get_active_region(self.mouse_pos_window, context)
                 coord = self.mouse_pos_window - V((region.x, region.y))
             r3d = region.data
 
@@ -84,6 +88,7 @@ class AB_OT_import_asset(Operator):
                 if (view_vector.z > 0 and ray_origin.z > 0) or (view_vector.z < 0 and ray_origin.z < 0):
                     location = ray_origin + view_vector * (ray_origin.length / 2)
                 else:
+                    # find the intersection with the ground plane
                     p1 = ray_origin
                     p2 = p1 + view_vector
 
@@ -94,10 +99,11 @@ class AB_OT_import_asset(Operator):
 
                     location = V((xco, yco, 0.))
         else:
-            location = context.scene.cursor.location
+            location = self.location or context.scene.cursor.location
 
         ab = context.scene.asset_bridge
         ab = ab.browser if self.from_asset_browser else ab.panel
+        ab.import_progress = 0
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
         material_slot = self.material_slot
@@ -113,6 +119,14 @@ class AB_OT_import_asset(Operator):
         )
 
         thread.start()
+
+        if not asset.get_file_path(quality).exists() or self.reload:
+            bpy.ops.asset_bridge.draw_progress(
+                "INVOKE_DEFAULT",
+                location=location,
+                from_asset_browser=self.from_asset_browser,
+            )
+
         for area in context.screen.areas:
             for region in area.regions:
                 region.tag_redraw()
@@ -120,6 +134,153 @@ class AB_OT_import_asset(Operator):
         self.__class__.material_slot = None
         print("Importing:", asset.label)
         return {'FINISHED'}
+
+
+_handler = None
+
+
+@Op("asset_bridge")
+class AB_OT_draw_progress(bpy.types.Operator):
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    from_asset_browser: BoolProperty()
+
+    location: FloatVectorProperty()
+
+    def invoke(self, context, event):
+        global _handler
+        print(event.mouse_x)
+
+        # self.shader = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
+        self.done = False
+        self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+        self.image_shader = gpu.shader.from_builtin('2D_IMAGE')
+        ab = context.scene.asset_bridge
+        ab = ab.browser if self.from_asset_browser else ab.panel
+        _handler = bpy.types.SpaceView3D.draw_handler_add(
+            self.draw_callback_px,
+            (context, ab, V(self.location)),
+            "WINDOW",
+            # "POST_VIEW",
+            "POST_PIXEL",
+        )
+        self._handler = _handler
+        self.image = bpy.data.images.load(str(ab.selected_asset.preview_file))
+        self.image.name = "hoho"
+        self.aspect = self.image.size[0] / self.image.size[1]
+        self.texture = gpu.texture.from_image(self.image)
+        # context.area.tag_redraw()
+        context.window_manager.modal_handler_add(self)
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+        if self.done:
+            return {"FINISHED"}
+
+        # if event.type in {"RIGHTMOUSE", "ESC"} and not event.shift:
+        #     return self.cancelled()
+
+        return {"PASS_THROUGH"}
+
+    def finish(self):
+        print("Done")
+        self.done = True
+        global _handler
+        _handler = None
+        # bpy.data.images.remove(self.image)
+        bpy.types.SpaceView3D.draw_handler_remove(self._handler, "WINDOW")
+        return {"FINISHED"}
+
+    def cancelled(self):
+        self.finish()
+        return {"CANCELLED"}
+
+    def draw_callback_px(self, context, ab, location):
+        if not ab.import_progress_active:
+            self.finish()
+
+        coords = (
+            (0, 0),
+            (0, 1),
+            (1, 1),
+            (1, 0),
+        )
+
+        indices = (
+            (0, 1, 2),
+            (2, 3, 0),
+        )
+
+        line_indeces = [
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 0),
+        ]
+
+        fac = ab.import_progress / 100
+        offset = location_3d_to_region_2d(context.region, context.region.data, location)
+        size = V([100] * 2)
+        size.x *= self.aspect
+        line_width = 2
+
+        # Arrow
+        height = .16
+        arrow_coords = [V(c) * size + offset - V((line_width / 2, 0)) for c in [(0, 0), (0, height), (height, height)]]
+        # arrow_coords = [c - V((0, height * size.y)) for c in arrow_coords]
+        offset.y += height * size.y
+        # height *= size.y
+
+        # Lines
+        bar_height = 20
+        line_coords = [V(c) * size + V((0, bar_height if c[1] else 0)) for c in coords]
+        line_coords = [c + offset for c in line_coords]
+        line_coords += [line_coords[0] + V((0, bar_height)), line_coords[3] + V((0, bar_height))]
+        line_indeces += [[4, 5]]
+
+        # Image
+        image_offset = offset.copy()
+        image_offset.y += bar_height
+        image_coords = tuple(V(c) * size + image_offset for c in coords)
+
+        # Loading bar
+        size.y = bar_height
+        size.x *= fac
+        bar_coords = tuple(V(c) * size + offset for c in coords)
+
+        gpu.state.blend_set("ALPHA")
+        sh = self.shader
+        # Image
+        batch = batch_for_shader(self.image_shader, 'TRIS', {"pos": image_coords, "texCoord": coords}, indices=indices)
+        self.image_shader.uniform_sampler("image", self.texture)
+        self.image_shader.bind()
+        batch.draw(self.image_shader)
+
+        # Colour
+        batch = batch_for_shader(sh, 'TRIS', {"pos": bar_coords}, indices=indices)
+        sh.bind()
+        alpha = 1
+        color = vec_lerp(fac, (1, 0, 0, alpha), (0, .8, 0, alpha))
+        sh.uniform_float("color", color)
+        batch.draw(sh)
+
+        # Lines
+        gpu.state.line_width_set(2)
+        batch = batch_for_shader(sh, 'LINES', {"pos": line_coords}, indices=line_indeces)
+        sh.bind()
+        line_colour = (1, 1, 1, .9)
+        sh.uniform_float("color", line_colour)
+        batch.draw(sh)
+
+        # Arrow
+        batch = batch_for_shader(sh, 'TRIS', {"pos": arrow_coords})
+        sh.bind()
+        alpha = 1
+        sh.uniform_float("color", line_colour)
+        batch.draw(sh)
 
 
 @Op("asset_bridge")
@@ -296,3 +457,8 @@ class AB_OT_open_author_website(Operator):
             return {'FINISHED'}
         bpy.ops.wm.url_open(url=link)
         return {'FINISHED'}
+
+
+def unregister():
+    if _handler:
+        bpy.types.SpaceView3D.draw_handler_remove(_handler, "WINDOW")

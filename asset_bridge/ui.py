@@ -37,7 +37,7 @@ def draw_download_previews(layout: UILayout, reload: bool = False):
 
     ab = bpy.context.scene.asset_bridge.panel
     if ab.preview_download_progress_active:
-        layout.prop(ab, "preview_download_progress", text=asset_list.progress.message)
+        layout.prop(ab, "ui_preview_download_progress", text=asset_list.progress.message)
     else:
         if reload:
             op = layout.operator(AB_OT_download_asset_previews.bl_idname, icon="IMPORT", text="Check for new assets")
@@ -64,16 +64,13 @@ def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "",
     for val in values:
         right.alignment = "LEFT"
         right.label(text=f" {val}", icon=icon)
-        # if operator:
-        #     subrow = row.row(align=True)
-        #     subrow.alignment = "RIGHT"
-        #     subrow.active = False
-        #     op = subrow.operator(operator, text="", emboss=False, icon=icon)
+     
         """This is some magic that places the operator button on top of the label,
         which allows the text to be left aligned rather than in the center.
         It works by creating a dummy row above the operator, and then giving it a negative scale,
         which pushes the operator up to be directly over the text.
-        If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter."""
+        If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter.
+        It is also entirely overkill"""
         if operator:
             subcol = right.column(align=True)
             sub = subcol.column(align=True)
@@ -349,7 +346,12 @@ class AB_PT_browser_settings_panel(Panel, AssetBrowserPanel):
             row = bigrow.row(align=True)
             row.alignment = "CENTER"
             # row.template_icon()
-            row.label(text=asset.label + "     ")
+            text = "   " + asset.label if downloaded else asset.label + "    "
+            row.label(text=text)
+            if downloaded:
+                row = bigrow.row(align=True)
+                row.alignment = "RIGHT"
+                row.prop(ab, "reload_asset", text="", icon="FILE_REFRESH", emboss=ab.reload_asset)
             box = col.box()
             box.prop(ab, "asset_quality", text="Quality")
             draw_asset_info(col, context, asset)

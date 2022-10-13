@@ -10,10 +10,19 @@ import bpy
 from bpy.utils import previews
 from bpy.props import StringProperty
 from bpy.types import AddonPreferences, Context, Operator
+from mathutils import Vector as V
 
 from .vendor import requests
 from .constants import DIRS, BL_ASSET_LIB_NAME, FILES
 """I apologise if you have to try and understand this mess."""
+
+
+def lerp(fac, a, b):
+    return a + (b - a) * fac
+
+
+def vec_lerp(fac, a, b):
+    return V(lerp(fac, i, j) for i, j in zip(a, b))
 
 
 def update_prefs_file():
@@ -172,8 +181,9 @@ class Progress:
         return self.progress / self.max * 100
 
     def end(self):
-        setattr(self.data, f"{self.propname}_active", False)
-        print(self.data, self.propname)
+        update_prop(self.data, f"{self.propname}_active", False)
+        # setattr(self.data, f"{self.propname}_active", False)
+        self._progress = 0
         self.__class__.data = None
         self.__class__.propname = ""
 

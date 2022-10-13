@@ -9,7 +9,7 @@ from threading import Thread
 from bpy.types import Context
 from mathutils import Vector as V
 from collections import OrderedDict as ODict
-from time import perf_counter
+from time import perf_counter, sleep
 from asset_bridge.constants import DIRS, FILES
 from asset_bridge.helpers import Progress, download_preview, update_prop,\
     force_ui_update, run_in_main_thread, download_file, file_name_from_url
@@ -205,7 +205,7 @@ class AssetList:
 
         def check_asset_process():
             if asset_process.poll() is not None:
-                update_prop(bpy.context.scene.asset_bridge.panel, "download_status", "NONE")
+                update_prop(bpy.context.scene.asset_bridge.panel, "preview_download_progress_active", False)
                 force_ui_update()
 
                 # report the time in the footer bar
@@ -240,6 +240,7 @@ class Asset:
         self.download_max = 0
         self.name = asset_name
         self.label = asset_list.all[self.name]["name"]
+        self.preview_file = DIRS.previews / (asset_name + ".png")
         self.update(asset_data)
 
     def update(self, asset_data=None):
@@ -355,6 +356,8 @@ class Asset:
         threads = []
         asset_path = self.get_file_path(quality)
         if not asset_path.exists() or reload:
+            if asset_path.exists():
+                os.remove(asset_path)
             asset_url = self.get_blend_url(quality)
             thread = Thread(
                 target=self.download_blend_file,
@@ -366,7 +369,9 @@ class Asset:
         texture_urls = self.get_texture_urls(quality)
         texture_dir = getattr(DIRS, f"{self.category}_textures")
         for texture_url in texture_urls:
-            if not (texture_dir / file_name_from_url(texture_url)).exists() or reload:
+            if not (file := texture_dir / file_name_from_url(texture_url)).exists() or reload:
+                if file.exists():
+                    os.remove(file)
                 thread = Thread(target=self.download_asset_file, args=(texture_url, texture_dir))
 
                 threads.append(thread)
@@ -381,8 +386,10 @@ class Asset:
             return
         total_size = 0
         for path in asset_paths:
-            if path.exists():
+            try:
                 total_size += os.path.getsize(path)
+            except FileNotFoundError:
+                pass
 
         if total_size:
             self.download_progress.progress = total_size
@@ -397,8 +404,15 @@ class Asset:
 
         bpy.app.timers.register(partial(self.check_progress, ([asset_path])))
 
-        # Using threading here makes this soooo much faster
         if not asset_path.exists() or reload:
+            if asset_path.exists():
+                while True:
+                    try:
+                        os.remove(asset_path)
+                        break
+                    except PermissionError as e:
+                        print(e)
+                        sleep(.01)
             asset_url = self.get_hdri_url(quality)
             self.download_asset_file(asset_url, dir=asset_path.parent, file_name=asset_path.name)
         self.finished = True
