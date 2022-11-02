@@ -1,10 +1,19 @@
 from threading import Thread
+from time import time, time_ns
 
 import bpy
-from bpy.props import (BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty, FloatVectorProperty)
+from bpy.props import (
+    BoolProperty,
+    EnumProperty,
+    FloatProperty,
+    PointerProperty,
+    StringProperty,
+    FloatVectorProperty,
+    CollectionProperty,
+)
 from bpy.types import PropertyGroup
 from .constants import __IS_DEV__, DIRS
-from .helpers import force_ui_update, get_icon, get_prefs, pcolls
+from .helpers import Progress, force_ui_update, get_icon, get_prefs, pcolls
 from .assets import SINGULAR
 from .assets import Asset, asset_list
 
@@ -326,12 +335,49 @@ class BrowserSettings(PropertyGroup, SharedSettings):
     )
 
 
+class AssetTask(PropertyGroup):
+    """Keeps track of some progress needed for asset bridge"""
+    __reg_order__ = 0
+
+    name: StringProperty()
+
+    progress: Progress = property(
+        lambda self: bpy.context.scene.asset_bridge.tasks_progress[self.name],
+        lambda self, value: bpy.context.scene.asset_bridge.tasks_progress.update({self.name: value}),
+    )
+
+    def new_progress(self, max_steps):
+        self.progress = Progress(max_steps, self, "progress_prop")
+        return self.progress
+
+    def finish(self):
+        if self.progress:
+            self.progress.end()
+        tasks = bpy.context.scene.asset_bridge.tasks
+        idx = list(tasks.values()).index(tasks[self.name])
+        tasks.remove(idx)
+
+
+add_progress(AssetTask, "progress_prop")
+
+
 class AssetBridgeSettings(PropertyGroup, SharedSettings):
     __reg_order__ = 1
 
     panel: PointerProperty(type=PanelSettings)
 
     browser: PointerProperty(type=BrowserSettings)
+
+    tasks: CollectionProperty(type=AssetTask)
+
+    tasks_progress = {}
+
+    def new_task(self):
+        task = self.tasks.add()
+        now = str(time_ns())
+        task.name = now
+        self.tasks_progress[now] = None
+        return task
 
     mouse_pos: FloatVectorProperty(size=2)
 

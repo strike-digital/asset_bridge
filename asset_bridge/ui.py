@@ -1,12 +1,14 @@
-from datetime import datetime
-from .constants import BL_ASSET_LIB_NAME, DIRS
 import bpy
+from datetime import datetime
 from bpy.types import Panel, UILayout, Context
 from bpy_extras.asset_utils import AssetBrowserPanel
-from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website
-from .helpers import asset_preview_exists, get_prefs
+
+from .btypes import BPanel, BMenu
 from .assets import Asset, asset_list
+from .constants import BL_ASSET_LIB_NAME, DIRS
+from .helpers import asset_preview_exists, get_prefs
 from .settings import AssetBridgeSettings, BrowserSettings
+from .operators import AB_OT_import_asset, AB_OT_download_asset_previews, AB_OT_open_author_website
 
 
 def dpifac() -> float:
@@ -64,7 +66,6 @@ def draw_info_row(layout: UILayout, label: str, values: str, operator: str = "",
     for val in values:
         right.alignment = "LEFT"
         right.label(text=f" {val}", icon=icon)
-     
         """This is some magic that places the operator button on top of the label,
         which allows the text to be left aligned rather than in the center.
         It works by creating a dummy row above the operator, and then giving it a negative scale,
@@ -158,15 +159,12 @@ def draw_asset_info(layout: UILayout, context: Context, asset: Asset):
     draw_info_row(col, f"Tag{suffix}:", asset.tags)
 
 
+@BPanel("VIEW_3D", "UI", category="Asset Bridge", label="Import")
 class AB_PT_main_panel(Panel):
     """The main Asset Bridge panel"""
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_label = "Import"
-    bl_category = "Asset Bridge"
 
     def draw(self, context: Context):
-        layout: UILayout = self.layout
+        layout = self.layout
         ab: AssetBridgeSettings = context.scene.asset_bridge.panel
 
         if not DIRS.is_valid:
@@ -285,14 +283,12 @@ class AB_PT_main_panel(Panel):
                 layout.prop(displace_node, "mute", text="Use displacement", invert_checkbox=True)
 
 
+@BPanel("VIEW_3D", "WINDOW", label="Sort")
 class AB_PT_sort_panel(Panel):
     """Change the sorting options of the asset list"""
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "WINDOW"
-    bl_label = "Sort"
 
     def draw(self, context: Context):
-        layout: UILayout = self.layout
+        layout = self.layout
         ab: AssetBridgeSettings = context.scene.asset_bridge.panel
 
         row = layout.row(align=True)
@@ -308,21 +304,20 @@ class AB_PT_sort_panel(Panel):
         col.prop(ab, "sort_order", expand=True)
 
 
+@BMenu(label="Import options")
 class AB_MT_import_menu(bpy.types.Menu):
-    bl_label = "Import options"
-    bl_idname = "AB_MT_import_menu"
+    """A menu showing extra options for importing an asset from the N-panel."""
 
     def draw(self, context):
-        layout: UILayout = self.layout
+        layout = self.layout
         layout.scale_y = 1.2
         op = layout.operator(AB_OT_import_asset.bl_idname, text="Redownload asset", icon="FILE_REFRESH")
         op.from_asset_browser = False
         op.reload = True
 
 
+@BPanel("FILE_BROWSER", "TOOLS", label="Asset Bridge")
 class AB_PT_browser_settings_panel(Panel, AssetBrowserPanel):
-    bl_region_type = "TOOLS"
-    bl_label = "Asset Bridge"
     # bl_options = {"HIDE_HEADER"}
 
     @classmethod

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from threading import Thread
+from asset_bridge.settings import AssetBridgeSettings
 
 import bpy
 import gpu
@@ -12,11 +13,12 @@ from mathutils import Vector as V
 
 from .vendor import requests
 from .constants import DIRS
-from .helpers import Op, Progress, ensure_asset_library, vec_lerp
+from .helpers import Progress, ensure_asset_library, vec_lerp
+from .btypes import BOperator
 from .assets import Asset, asset_list
 
 
-@Op("asset_bridge", undo=False)
+@BOperator("asset_bridge", undo=False)
 class AB_OT_import_asset(Operator):
     """Import the given asset into the current scene"""
 
@@ -99,22 +101,27 @@ class AB_OT_import_asset(Operator):
 
                     location = V((xco, yco, 0.))
         else:
-            location = self.location or context.scene.cursor.location
+            # print(V(location))
+            # location = self.location if tuple(self.location) != (0, 0, 0) else context.scene.cursor.location
+            location = V(self.location)
+            # print(V(location))
 
-        ab = context.scene.asset_bridge
+        ab: AssetBridgeSettings = context.scene.asset_bridge
+        task = ab.new_task()
         ab = ab.browser if self.from_asset_browser else ab.panel
         ab.import_progress = 0
         asset = Asset(self.asset_name or ab.asset_name)
         quality = self.asset_quality or ab.asset_quality
         material_slot = self.material_slot
-        Progress.data = ab
-        Progress.propname = "import_progress"
+        # Progress.data = ab
+        # Progress.propname = "import_progress"
         thread = Thread(
             target=asset.import_asset,
             args=(context, self.link, quality, self.reload),
             kwargs={
                 "location": location,
-                "material_slot": material_slot
+                "material_slot": material_slot,
+                "task": task,
             },
         )
 
@@ -125,6 +132,7 @@ class AB_OT_import_asset(Operator):
                 "INVOKE_DEFAULT",
                 location=location,
                 from_asset_browser=self.from_asset_browser,
+                task_name=task.name,
             )
 
         for area in context.screen.areas:
@@ -139,12 +147,14 @@ class AB_OT_import_asset(Operator):
 _handler = None
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_draw_progress(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
         return True
+
+    task_name: StringProperty()
 
     from_asset_browser: BoolProperty()
 
@@ -152,9 +162,7 @@ class AB_OT_draw_progress(bpy.types.Operator):
 
     def invoke(self, context, event):
         global _handler
-        print(event.mouse_x)
 
-        # self.shader = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
         self.done = False
         self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         self.image_shader = gpu.shader.from_builtin('2D_IMAGE')
@@ -162,14 +170,14 @@ class AB_OT_draw_progress(bpy.types.Operator):
         ab = ab.browser if self.from_asset_browser else ab.panel
         _handler = bpy.types.SpaceView3D.draw_handler_add(
             self.draw_callback_px,
-            (context, ab, V(self.location)),
+            (context, ab, V(self.location), context.scene.asset_bridge.tasks[self.task_name]),
             "WINDOW",
             # "POST_VIEW",
             "POST_PIXEL",
         )
         self._handler = _handler
         self.image = bpy.data.images.load(str(ab.selected_asset.preview_file))
-        self.image.name = "hoho"
+        self.image.name = self.task_name
         self.aspect = self.image.size[0] / self.image.size[1]
         self.texture = gpu.texture.from_image(self.image)
         # context.area.tag_redraw()
@@ -186,7 +194,6 @@ class AB_OT_draw_progress(bpy.types.Operator):
         return {"PASS_THROUGH"}
 
     def finish(self):
-        print("Done")
         self.done = True
         global _handler
         _handler = None
@@ -198,8 +205,8 @@ class AB_OT_draw_progress(bpy.types.Operator):
         self.finish()
         return {"CANCELLED"}
 
-    def draw_callback_px(self, context, ab, location):
-        if not ab.import_progress_active:
+    def draw_callback_px(self, context, ab, location, task):
+        if not task.progress_prop_active:
             self.finish()
 
         coords = (
@@ -221,7 +228,7 @@ class AB_OT_draw_progress(bpy.types.Operator):
             (3, 0),
         ]
 
-        fac = ab.import_progress / 100
+        fac = task.progress_prop / 100
         offset = location_3d_to_region_2d(context.region, context.region.data, location)
         size = V([100] * 2)
         size.x *= self.aspect
@@ -262,7 +269,7 @@ class AB_OT_draw_progress(bpy.types.Operator):
         # Colour
         batch = batch_for_shader(sh, 'TRIS', {"pos": bar_coords}, indices=indices)
         sh.bind()
-        alpha = 1
+        alpha = .8
         color = vec_lerp(fac, (1, 0, 0, alpha), (0, .8, 0, alpha))
         sh.uniform_float("color", color)
         batch.draw(sh)
@@ -278,12 +285,11 @@ class AB_OT_draw_progress(bpy.types.Operator):
         # Arrow
         batch = batch_for_shader(sh, 'TRIS', {"pos": arrow_coords})
         sh.bind()
-        alpha = 1
         sh.uniform_float("color", line_colour)
         batch.draw(sh)
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_set_prop(Operator):
     """Set a blender property with a specific value"""
 
@@ -303,7 +309,7 @@ class AB_OT_set_prop(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_set_ab_prop(Operator):
     """Set an asset bridge property with a specific value"""
 
@@ -325,7 +331,7 @@ class AB_OT_set_ab_prop(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_clear_asset_folder(Operator):
     """Remove all downloaded assets"""
 
@@ -369,7 +375,7 @@ class AB_OT_clear_asset_folder(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge", register=False)
+@BOperator("asset_bridge", register=False)
 class AB_OT_none(Operator):
     """Do nothing :). Useful for some UI stuff"""
 
@@ -377,7 +383,7 @@ class AB_OT_none(Operator):
         return {"FINISHED"}
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_report_message(Operator):
 
     severity: StringProperty(default="INFO")
@@ -395,7 +401,7 @@ class AB_OT_report_message(Operator):
         return {"FINISHED"}
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_download_asset_previews(Operator):
 
     def execute(self, context):
@@ -413,7 +419,7 @@ class AB_OT_download_asset_previews(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_set_category(Operator):
 
     category_name: StringProperty()
@@ -423,7 +429,7 @@ class AB_OT_set_category(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
 class AB_OT_get_mouse_pos(Operator):
 
     category_name: StringProperty()
@@ -440,7 +446,30 @@ class AB_OT_get_mouse_pos(Operator):
         return {'FINISHED'}
 
 
-@Op("asset_bridge")
+@BOperator("asset_bridge")
+class AB_OT_rename_world_without_crash(bpy.types.Operator):
+    """This is a workaround to allow a world to be renamed while an asset is being dragged in the asset browser, which
+    otherwise causes a crash: https://developer.blender.org/T102020"""
+
+    world_name: StringProperty()
+
+    new_world_name: StringProperty()
+
+    def invoke(self, context, event):
+        context.window_manager.modal_handler_add(self)
+        return {"RUNNING_MODAL"}
+
+    def modal(self, context, event):
+
+        if event.type in {"LEFTMOUSE", "ESC"} and event.value == "RELEASE":
+            world = bpy.data.worlds.get(self.world_name)
+            world.name = self.new_world_name
+            return {"FINISHED"}
+
+        return {"PASS_THROUGH"}
+
+
+@BOperator("asset_bridge")
 class AB_OT_open_author_website(Operator):
     """Open the website of the given author"""
 

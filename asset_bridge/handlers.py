@@ -63,6 +63,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             link=is_link(get_browser_area(name)),
             reload=reload,
             from_asset_browser=True,
+            at_mouse=True
         )
 
     # Materials
@@ -78,7 +79,8 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 bpy.ops.asset_bridge.import_asset(
                     "INVOKE_DEFAULT",
                     asset_name=name,
-                    location=bpy.context.object.location,
+                    at_mouse=True,
+                    # location=bpy.context.object.location,
                     asset_quality=quality,
                     link=is_link(get_browser_area(name)),
                     reload=reload,

@@ -28,7 +28,7 @@ from . import auto_load
 try:
     # Use rich for pretty errors. This has the side effect of making the blender GUI errors useless.
     from rich import traceback
-    traceback.install(,)
+    traceback.install()
 except ImportError:
     # rich is not installed.
     pass

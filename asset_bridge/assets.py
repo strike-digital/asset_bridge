@@ -1,3 +1,4 @@
+from __future__ import annotations
 from functools import partial
 import json
 import math
@@ -14,6 +15,10 @@ from asset_bridge.constants import DIRS, FILES
 from asset_bridge.helpers import Progress, download_preview, update_prop,\
     force_ui_update, run_in_main_thread, download_file, file_name_from_url
 from asset_bridge.vendor import requests
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from asset_bridge.settings import AssetTask
 
 SINGULAR = {
     "all": "all",
@@ -340,6 +345,7 @@ class Asset:
         context: Context,
         quality: str,
         reload: bool,
+        task: AssetTask,
         script_path: Path = "",
     ):
         """Download an asset that has a blend file and textures (aka texture and model assets)"""
@@ -348,7 +354,10 @@ class Asset:
         download_max = self.get_total_file_size(quality)
 
         # self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
-        self.download_progress = Progress(download_max)
+        if task:
+            self.download_progress = task.new_progress(download_max)
+        else:
+            self.download_progress = Progress(download_max)
         bpy.app.timers.register(partial(self.check_progress, (self.get_texture_file_paths(quality))))
 
         # Download the blend file
@@ -378,6 +387,8 @@ class Asset:
                 thread.start()
         for thread in threads:
             thread.join()
+        if task:
+            task.finish()
         self.finished = True
         return asset_path
 
@@ -395,10 +406,13 @@ class Asset:
             self.download_progress.progress = total_size
         return .03
 
-    def download_hdri(self, context: Context, quality: str, reload: bool):
+    def download_hdri(self, context: Context, quality: str, reload: bool, task: AssetTask):
         download_max = self.get_total_file_size(quality)
         # self.download_progress = Progress(download_max, context.scene.asset_bridge.panel, "import_progress")
-        self.download_progress = Progress(download_max)
+        if task:
+            self.download_progress = task.new_progress(download_max)
+        else:
+            self.download_progress = Progress(download_max)
         asset_path = self.get_file_path(quality)
         self.finished = False
 
@@ -415,27 +429,36 @@ class Asset:
                         sleep(.01)
             asset_url = self.get_hdri_url(quality)
             self.download_asset_file(asset_url, dir=asset_path.parent, file_name=asset_path.name)
+        if task:
+            task.finish()
         self.finished = True
         return asset_path
 
-    def download_texture(self, context: Context, quality: str, reload: bool):
-        return self.download_asset_with_blend_file(context, quality, reload)
+    def download_texture(self, context: Context, quality: str, reload: bool, task: AssetTask):
+        return self.download_asset_with_blend_file(context, quality, reload, task)
 
-    def download_model(self, context: Context, quality: str, reload: bool):
+    def download_model(self, context: Context, quality: str, reload: bool, task: AssetTask):
         return self.download_asset_with_blend_file(
             context,
             quality,
             reload,
+            task,
             script_path=FILES.setup_model_blend,
         )
 
-    def download_asset(self, context: Context, quality: str = "1k", reload: bool = False) -> str:
+    def download_asset(
+        self,
+        context: Context,
+        quality: str = "1k",
+        reload: bool = False,
+        task: AssetTask = None,
+    ) -> str:
         if self.category == "hdri":
-            return self.download_hdri(context, quality, reload)
+            return self.download_hdri(context, quality, reload, task)
         elif self.category == "texture":
-            return self.download_texture(context, quality, reload)
+            return self.download_texture(context, quality, reload, task)
         elif self.category == "model":
-            return self.download_model(context, quality, reload)
+            return self.download_model(context, quality, reload, task)
 
     def import_hdri(self, context: Context, asset_file: Path, quality: str):
         if (context.scene.world and context.scene.use_nodes) or not context.scene.world:
@@ -450,15 +473,20 @@ class Asset:
             out_node = nodes.new("ShaderNodeOutputWorld")
             background_node = nodes.new("ShaderNodeBackground")
             links.new(background_node.outputs[0], out_node.inputs[0])
-
         background_node = nodes.get("Background")
         hdri_node = nodes.new("ShaderNodeTexEnvironment")
         links.new(hdri_node.outputs[0], background_node.inputs[0])
         hdri_image = bpy.data.images.load(str(asset_file))
         hdri_node.image = hdri_image
         context.scene.world = world
-        world.name = f"{self.name}_{quality}"
-        return world
+        bpy.ops.asset_bridge.rename_world_without_crash(
+            "INVOKE_DEFAULT",
+            world_name=world.name,
+            new_world_name=f"{self.name}_{quality}",
+        )
+        # if False:
+
+        return context.scene.world
 
     def import_texture(self, context: Context, asset_file: Path, link: bool, quality: str, material_slot=""):
         with bpy.data.libraries.load(str(asset_file), link=link) as (data_from, data_to):
@@ -541,6 +569,7 @@ class Asset:
             material_slot: bpy.types.MaterialSlot = None,
             location: tuple[int] = (0, 0, 0),
             on_completion=None,
+            task=None,
     ):
         """Import the asset in another thread.
         Args:
@@ -556,7 +585,7 @@ class Asset:
         #     update_prop(context.scene.asset_bridge.panel, "download_status", "DOWNLOADING_ASSET")
         #     run_in_main_thread(force_ui_update, ())
 
-        asset_file = self.download_asset(context, quality, reload)
+        asset_file = self.download_asset(context, quality, reload, task)
         if not import_only:
             run_in_main_thread(force_ui_update, ())
 
