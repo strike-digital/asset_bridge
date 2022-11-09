@@ -603,3 +603,4 @@ class Asset:
 
 
 asset_list = AssetList(FILES.asset_list)
+print(list(asset_list.hdris.values())[0])

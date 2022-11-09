@@ -342,7 +342,7 @@ class AssetTask(PropertyGroup):
     name: StringProperty()
 
     progress: Progress = property(
-        lambda self: bpy.context.scene.asset_bridge.tasks_progress[self.name],
+        lambda self: bpy.context.scene.asset_bridge.tasks_progress.get(self.name),
         lambda self, value: bpy.context.scene.asset_bridge.tasks_progress.update({self.name: value}),
     )
 
