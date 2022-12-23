@@ -61,7 +61,7 @@ class AssetList:
         setattr(self, url_type, ODict(result))
 
     def update_categories(self):
-        self.hdri_categories = {c for a in self.hdris.values() for c in a["categories"]}
+        self.hdri_categories = {c for a in self.hdris.values() for c in a[f"categories"]}
         self.hdri_tags = {t for a in self.hdris.values() for t in a["tags"]}
 
         self.texture_categories = {c for a in self.textures.values() for c in a["categories"]}
@@ -603,4 +603,4 @@ class Asset:
 
 
 asset_list = AssetList(FILES.asset_list)
-print(list(asset_list.hdris.values())[0])
+# print(list(asset_list.hdris.values())[0])
