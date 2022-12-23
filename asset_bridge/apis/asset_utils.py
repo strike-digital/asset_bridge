@@ -1,10 +1,9 @@
-from dataclasses import dataclass
-from typing import Callable, Literal, OrderedDict
-from ..settings import AssetTask
+from typing import OrderedDict
+from abc import ABC, abstractmethod
+# from ..settings import AssetTask
 from bpy.types import UILayout
 
 
-@dataclass
 class AssetMetadataItem():
     """Used to show a row in the asset info table."""
 
@@ -17,7 +16,6 @@ class AssetMetadataItem():
         layout.label(text="Info!")
 
 
-@dataclass
 class AssetListItem():
     """A light representation of an asset, only containing info needed for display before being selected"""
 
@@ -29,33 +27,44 @@ class AssetListItem():
     metadata: list[AssetMetadataItem]
 
 
-@dataclass
-class AssetList():
+class AssetList(ABC):
     """A list of all the assets from an API"""
 
     assets: OrderedDict[str, AssetListItem]
 
-    def __getattr__(self, key):
+    def __getitem__(self, key):
         return self.assets[key]
 
-    def __setattr__(self, key, value):
+    def __setitem__(self, key, value):
         self.assets[key] = value
 
+    @staticmethod
+    @abstractmethod
+    def get_data() -> dict:
+        """Return the raw asset list data from the website API as a dict.
+        This is then used to initialize the asset list"""
 
-@dataclass
-class Asset():
+    @abstractmethod
+    def __init__(self, data) -> None:
+        """Initialize a new asset list from the raw data returned by the website API."""
+
+
+class Asset(ABC):
     """A functional representation of an asset, used only for downloading or importing assets."""
 
     category: str
     quality: str
-    task: AssetTask
+    # task: AssetTask
     list_item: AssetListItem
 
-    def download_asset():
+    @abstractmethod
+    def download_asset(self):
         pass
 
-    def import_asset():
+    @abstractmethod
+    def import_asset(self):
         pass
 
-    def download_and_import_asset():
+    @abstractmethod
+    def download_and_import_asset(self):
         pass
