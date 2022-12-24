@@ -1,70 +1,42 @@
-from typing import OrderedDict
-from abc import ABC, abstractmethod
-# from ..settings import AssetTask
-from bpy.types import UILayout
+import json
+from ..constants import DIRS
+from ..api import apis
+from .asset_types import AssetAPI
 
 
-class AssetMetadataItem():
-    """Used to show a row in the asset info table."""
+def register_api(api: AssetAPI):
+    """Takes an asset api and initialises all of the asset lists with either cached or new data."""
+    apis[api.name] = api
 
-    label: str
-    values: list[str]
-    operator: str
-    icon: str
+    # Get the cached asset list data if it exists
+    api_file = DIRS.asset_lists / (api.name + ".json")
+    asset_lists_dict = {}
+    if api_file.exists():
+        with open(api_file, "r") as f:
+            try:
+                asset_lists_dict = json.load(f)
+            except json.JSONDecodeError:
+                pass
 
-    def draw(self, layout: UILayout):
-        layout.label(text="Info!")
+    # Initialize the asset lists with either the cached data, or new data from the internet, from the get_data function
+    for name, asset_list in api.asset_lists.items():
+        try:
+            list_data = asset_lists_dict[asset_list.name]
 
+            # TODO: Remove this!!!!!
+            #################################
+            if True:
+                raise KeyError
+            #################################
+            
+        except KeyError:
+            list_data = asset_list.get_data()
+            asset_lists_dict[asset_list.name] = list_data
 
-class AssetListItem():
-    """A light representation of an asset, only containing info needed for display before being selected"""
+        # Initialize
+        api.asset_lists[name] = asset_list(list_data)
 
-    type: str
-    preview: int
-    quality_levels: list[str]
-    categories: list[str]
-    tags: list[str]
-    metadata: list[AssetMetadataItem]
-
-
-class AssetList(ABC):
-    """A list of all the assets from an API"""
-
-    assets: OrderedDict[str, AssetListItem]
-
-    def __getitem__(self, key):
-        return self.assets[key]
-
-    def __setitem__(self, key, value):
-        self.assets[key] = value
-
-    @staticmethod
-    @abstractmethod
-    def get_data() -> dict:
-        """Return the raw asset list data from the website API as a dict.
-        This is then used to initialize the asset list"""
-
-    @abstractmethod
-    def __init__(self, data) -> None:
-        """Initialize a new asset list from the raw data returned by the website API."""
-
-
-class Asset(ABC):
-    """A functional representation of an asset, used only for downloading or importing assets."""
-
-    category: str
-    quality: str
-    # task: AssetTask
-    list_item: AssetListItem
-
-    @abstractmethod
-    def download_asset(self):
-        pass
-
-    @abstractmethod
-    def import_asset(self):
-        pass
-
-    @abstractmethod
-    def download_and_import_asset(self):
-        pass
+    # Write the new cached data
+    with open(api_file, "w") as f:
+        json.dump(asset_lists_dict, f)
+            

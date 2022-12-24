@@ -1,10 +1,13 @@
 from collections import OrderedDict
-from ..asset_utils import AssetList
+from ..asset_types import AssetList
 
 
 class PH_AssetList(AssetList):
 
-    def get_data(self):
+    name = "PolyHavenAssetList"
+
+    @staticmethod
+    def get_data():
         print("Data!")
         return {}
 

@@ -1,4 +1,4 @@
-from ..asset_utils import AssetListItem
+from ..asset_types import AssetListItem
 
 
 class PH_AssetListItem(AssetListItem):
