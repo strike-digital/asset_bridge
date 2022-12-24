@@ -28,7 +28,7 @@ def register_api(api: AssetAPI):
             if True:
                 raise KeyError
             #################################
-            
+
         except KeyError:
             list_data = asset_list.get_data()
             asset_lists_dict[asset_list.name] = list_data
@@ -38,5 +38,4 @@ def register_api(api: AssetAPI):
 
     # Write the new cached data
     with open(api_file, "w") as f:
-        json.dump(asset_lists_dict, f)
-            
+        json.dump(asset_lists_dict, f, indent=2)

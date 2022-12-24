@@ -1,29 +1,34 @@
+from dataclasses import dataclass
 from typing import Dict, OrderedDict
 from abc import ABC, abstractmethod
 from bpy.types import UILayout
 
 
+@dataclass
 class AssetMetadataItem():
     """Used to show a row in the asset info table."""
 
     label: str
-    values: list[str]
-    operator: str
-    icon: str
+    values: str | list[str]
+
+    operator: str = ""
+    icon: str = -1
 
     def draw(self, layout: UILayout):
-        layout.label(text="Info!")
+        row = layout.row(align=True)
+        row.label(text=self.label)
 
 
-class AssetListItem():
+class AssetListItem(ABC):
     """A light representation of an asset, only containing info needed for display before being selected"""
 
     type: str
-    preview: int
-    quality_levels: list[str]
+    label: str
     categories: list[str]
-    tags: list[str]
-    metadata: list[AssetMetadataItem]
+
+    preview: int = -1
+    tags: list[str] = []
+    metadata: list[AssetMetadataItem] = []
 
 
 class AssetList(ABC):
