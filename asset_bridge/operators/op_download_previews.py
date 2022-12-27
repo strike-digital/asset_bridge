@@ -4,8 +4,7 @@ from time import perf_counter
 
 import bpy
 
-from .op_report_message import AB_OT_report_message, report_message
-
+from .op_report_message import report_message
 from ..apis.asset_types import AssetListItem
 from ..api import get_apis
 from ..settings import AssetBridgeSettings
@@ -34,6 +33,8 @@ class AB_OT_download_previews(Operator):
 
             def download_preview(asset: AssetListItem):
                 """Download a single preview and increment the progress"""
+                if progress.cancelled:
+                    return
                 asset.download_preview()
                 progress.increment()
                 names.remove(asset.name)
@@ -64,8 +65,12 @@ class AB_OT_download_previews(Operator):
             for thread in threads:
                 thread.join()
 
-            task.finish()
             finished = True
+            if progress.cancelled:
+                report_message(message="Download cancelled.", main_thread=True)
+                return
+
+            task.finish()
             report_message(
                 message=f"Downloaded {len(assets)} asset previews in {perf_counter() - start:.2f}s",
                 main_thread=True,

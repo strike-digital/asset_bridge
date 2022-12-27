@@ -11,6 +11,7 @@ class Progress:
         self.data = data or self.data
         self.propname = propname or self.propname
         self.message = ""
+        self.cancelled = False
         self.progress = 0
         setattr(self.data, f"{self.propname}_active", True)
 
@@ -28,8 +29,6 @@ class Progress:
 
     def increment(self, value=1):
         self.progress += value
-        # setattr(self.data, self.propname, int(self.read()))
-        # self.ab.import_progress = int(self.read())
 
     def read(self):
         return self.progress / self.max * 100
@@ -37,7 +36,10 @@ class Progress:
     def end(self):
         """Reset the progress properties"""
         update_prop(self.data, f"{self.propname}_active", False)
-        # setattr(self.data, f"{self.propname}_active", False)
         self._progress = 0
         self.__class__.data = None
         self.__class__.propname = ""
+
+    def cancel(self):
+        update_prop(self.data, f"{self.propname}_active", False)
+        self.cancelled = True
