@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Dict, OrderedDict
+from typing import OrderedDict
+from collections import OrderedDict as ODict
 from abc import ABC, abstractmethod
 from bpy.types import UILayout
 
@@ -22,13 +23,20 @@ class AssetMetadataItem():
 class AssetListItem(ABC):
     """A light representation of an asset, only containing info needed for display before being selected"""
 
-    type: str
-    label: str
-    categories: list[str]
+    idname: str  # The unique Asset Bridge identifier of this asset
+    name: str  # The api name of the asset
+    label: str  # The name visible in the UI
+    type: str  # HDRI/Texture/Model etc.
+    categories: list[str]  # The categories that this asset is in
 
     preview: int = -1
     tags: list[str] = []
-    metadata: list[AssetMetadataItem] = []
+    metadata: list[AssetMetadataItem] = []  # Info to be drawn in the metadata table
+
+    @abstractmethod
+    def download_preview(self) -> str:
+        """Download a preview for this asset.
+        Returns an empty string if the download was successful or an error message otherwise"""
 
 
 class AssetList(ABC):
@@ -41,6 +49,18 @@ class AssetList(ABC):
 
     def __setitem__(self, key, value):
         self.assets[key] = value
+
+    def get(self, key):
+        return self.assets.get(key)
+
+    def keys(self):
+        return self.assets.keys()
+
+    def values(self):
+        return self.assets.values()
+
+    def items(self):
+        return self.assets.items()
 
     @staticmethod
     @abstractmethod
@@ -75,8 +95,25 @@ class Asset(ABC):
 
 
 class AssetAPI(ABC):
+    """Represets a website/online api containing assets"""
 
     name: str
     url: str
     description: str
-    asset_lists: Dict[str, AssetList]
+    asset_lists: OrderedDict[str, AssetList]
+
+    @property
+    def all_assets(self):
+        """The assets from all asset lists in this API"""
+        all_assets = ODict()
+        for asset_list in self.asset_lists.values():
+            all_assets.update(asset_list.assets)
+        return all_assets
+
+    def __getitem__(self, name):
+        return self.all_assets[name]
+
+    def __setitem__(self, name, value):
+        for asset_list in self.asset_lists.values():
+            if name in asset_list.keys():
+                asset_list[name] = value

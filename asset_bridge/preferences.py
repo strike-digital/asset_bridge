@@ -1,3 +1,5 @@
+from .settings import AssetBridgeSettings
+from .constants import PREVIEW_DOWNLOAD_TASK_NAME
 from .ui import draw_download_previews
 from bpy.types import AddonPreferences, UILayout
 from bpy.props import StringProperty
@@ -23,8 +25,8 @@ class AddonPreferences(AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        ab = context.window_manager.asset_bridge
-        if True or ab.preview_download_progress_active:
+        ab: AssetBridgeSettings = context.window_manager.asset_bridge
+        if True or PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
             draw_download_previews(layout)
             return
 
