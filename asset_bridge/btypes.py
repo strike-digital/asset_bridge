@@ -285,6 +285,7 @@ class BOperator():
             bl_idname = idname
             bl_label = label
             bl_options = options
+            __original__ = cls
 
             wrap_text = wrap_text
 
@@ -294,7 +295,7 @@ class BOperator():
                 @classmethod
                 def description(cls, context, props):
                     if props:
-                        return props.bl_description
+                        return props.bl_description.replace("  ", "")
                     else:
                         return op_description
             else:

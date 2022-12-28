@@ -5,6 +5,7 @@ from time import perf_counter
 import bpy
 
 from .op_report_message import report_message
+
 from ..apis.asset_types import AssetListItem
 from ..api import get_apis
 from ..settings import AssetBridgeSettings

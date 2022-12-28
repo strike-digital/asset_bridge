@@ -1,16 +1,20 @@
+import os
+
+from .api import get_apis
 from .settings import AssetBridgeSettings
-from .constants import PREVIEW_DOWNLOAD_TASK_NAME
-from .ui import draw_download_previews
+from .constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME
+from .ui import draw_download_previews, draw_downloads_path
 from bpy.types import AddonPreferences, UILayout
 from bpy.props import StringProperty
 
 
-class AddonPreferences(AddonPreferences):
+class ABAddonPreferences(AddonPreferences):
     bl_idname = __package__
     layout: UILayout
 
     def lib_path_update(self, context):
         """Update all references to library paths"""
+        print("lib_path_update")
 
     lib_path: StringProperty(
         name="External Downloads path",
@@ -26,17 +30,18 @@ class AddonPreferences(AddonPreferences):
     def draw(self, context):
         layout = self.layout
         ab: AssetBridgeSettings = context.window_manager.asset_bridge
-        if True or PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
+        assets = get_apis().all_assets
+
+        preview_files = os.listdir(DIRS.previews)
+        if len(preview_files) != len(assets) or PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
             draw_download_previews(layout)
             return
 
-        if not draw_downloads_path(layout, context):
-            return
+        draw_downloads_path(layout, context)
 
         row = layout.box().row(align=True)
         row.scale_y = 1.5
-        draw_download_previews(row, reload=True)
-        # row.operator(AB_OT_clear_asset_folder.bl_idname, icon="FILE_REFRESH")
+        draw_download_previews(row, in_box=False, text="Redownload previews")
         row.operator(
             "wm.url_open",
             icon="FUND",

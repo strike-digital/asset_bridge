@@ -1,6 +1,3 @@
-from random import random
-from time import sleep
-
 from ...constants import DIRS
 
 from ..asset_utils import download_file
