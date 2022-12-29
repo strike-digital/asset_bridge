@@ -1,6 +1,6 @@
 import os
 
-from .api import get_apis
+from .api import get_asset_lists
 from .settings import AssetBridgeSettings
 from .constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME
 from .ui import draw_download_previews, draw_downloads_path
@@ -30,7 +30,7 @@ class ABAddonPreferences(AddonPreferences):
     def draw(self, context):
         layout = self.layout
         ab: AssetBridgeSettings = context.window_manager.asset_bridge
-        assets = get_apis().all_assets
+        assets = get_asset_lists().all_assets
 
         preview_files = os.listdir(DIRS.previews)
         if len(preview_files) != len(assets) or PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():

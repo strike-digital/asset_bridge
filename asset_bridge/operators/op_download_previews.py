@@ -7,7 +7,7 @@ import bpy
 from .op_report_message import report_message
 
 from ..apis.asset_types import AssetListItem
-from ..api import get_apis
+from ..api import get_asset_lists
 from ..settings import AssetBridgeSettings
 from ..constants import PREVIEW_DOWNLOAD_TASK_NAME
 from ..btypes import BOperator
@@ -20,7 +20,7 @@ class AB_OT_download_previews(Operator):
 
     def execute(self, context):
         ab: AssetBridgeSettings = context.window_manager.asset_bridge
-        assets = get_apis().all_assets
+        assets = get_asset_lists().all_assets
 
         task = ab.new_task(name=PREVIEW_DOWNLOAD_TASK_NAME)
         progress = task.new_progress(len(assets))
