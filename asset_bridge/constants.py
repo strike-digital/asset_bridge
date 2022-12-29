@@ -2,6 +2,8 @@ from pathlib import Path
 from .helpers.prefs import get_prefs
 import bpy
 
+# This should be changed during the build process in build.py
+__IS_DEV__ = True
 ASSET_LIB_VERSION = (1, 0, 0)
 PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"
 

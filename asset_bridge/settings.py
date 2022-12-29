@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING, OrderedDict
 from bpy.types import PropertyGroup
 from bpy.props import StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
 from time import time_ns
@@ -48,6 +49,8 @@ class AssetBridgeSettings(PropertyGroup):
     __reg_order__ = 1
 
     tasks: CollectionProperty(type=AssetTask)
+    if TYPE_CHECKING:
+        tasks: OrderedDict[str, AssetTask]
 
     tasks_progress = {}
 

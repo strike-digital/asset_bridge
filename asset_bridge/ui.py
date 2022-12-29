@@ -10,7 +10,7 @@ from bpy.types import UILayout, Context
 import bpy
 
 
-def draw_download_previews(layout: UILayout, text="", in_box: bool = True):
+def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool = True):
     """Draw the button and interface for downloading the asset previews"""
     if in_box:
         layout = layout.box().column()
@@ -29,6 +29,7 @@ def draw_download_previews(layout: UILayout, text="", in_box: bool = True):
         op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or "Download previews")
         op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes\
             depending on internet access."
+        op.reload = reload
 
     return layout
 

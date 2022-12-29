@@ -16,7 +16,7 @@ def main_thread_timer():
         func(*args, **kwargs)
 
 
-def run_in_main_thread(function, args, kwargs=None):
+def run_in_main_thread(function, args=(), kwargs=None):
     """Run the given function in the main thread when it is next available.
     This is useful because it is usually a bad idea to modify blend data at arbitrary times on separate threads,
     as this can causes weird error messages, and even crashes."""
