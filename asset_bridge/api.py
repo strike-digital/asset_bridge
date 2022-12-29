@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from .apis.asset_types import AssetList, AssetListItem
 
 

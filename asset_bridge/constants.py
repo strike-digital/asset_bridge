@@ -18,8 +18,6 @@ class Dirs():
     def update(self):
         self.library = Path(get_prefs(bpy.context).lib_path)
 
-    bpy.app.timers.register(update)
-
 
 class Files():
 
@@ -28,3 +26,5 @@ class Files():
 
 DIRS = Dirs()
 FILES = Files()
+
+bpy.app.timers.register(DIRS.update)
