@@ -1,6 +1,8 @@
 from pathlib import Path
-from .helpers.library import is_lib_path_valid
+
+from .settings import get_ab_settings
 from .helpers.prefs import get_prefs
+from .helpers.library import is_lib_path_valid
 from .operators.op_cancel_task import AB_OT_cancel_task
 from .operators.op_download_previews import AB_OT_download_previews
 from .constants import PREVIEW_DOWNLOAD_TASK_NAME
@@ -14,7 +16,7 @@ def draw_download_previews(layout: UILayout, text="", in_box: bool = True):
         layout = layout.box().column()
         layout.scale_y = 1.5
 
-    ab = bpy.context.window_manager.asset_bridge
+    ab = get_ab_settings(bpy.context)
     if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
         row = layout.row(align=True)
         task = ab.tasks[PREVIEW_DOWNLOAD_TASK_NAME]
@@ -24,7 +26,7 @@ def draw_download_previews(layout: UILayout, text="", in_box: bool = True):
         op.name = PREVIEW_DOWNLOAD_TASK_NAME
         op.bl_description = "Cancel downloading previews"
     else:
-        op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or"Download previews")
+        op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or "Download previews")
         op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes\
             depending on internet access."
 

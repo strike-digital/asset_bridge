@@ -1,7 +1,7 @@
 import os
 
 from .api import get_asset_lists
-from .settings import AssetBridgeSettings
+from .settings import get_ab_settings
 from .constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME
 from .ui import draw_download_previews, draw_downloads_path
 from bpy.types import AddonPreferences, UILayout
@@ -29,11 +29,16 @@ class ABAddonPreferences(AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        ab: AssetBridgeSettings = context.window_manager.asset_bridge
+        ab = get_ab_settings(context)
         assets = get_asset_lists().all_assets
 
         preview_files = os.listdir(DIRS.previews)
-        if len(preview_files) != len(assets) or PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
+        if diff := len(preview_files) - len(assets) or PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
+            if diff:
+                diff = abs(diff)
+                are = "are" if diff > 1 else "is"
+                s = "s" if diff > 1 else ""
+                layout.label(text=f"There {are} {diff} new asset preview{s} to download")
             draw_download_previews(layout)
             return
 

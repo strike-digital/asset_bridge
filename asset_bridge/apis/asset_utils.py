@@ -37,8 +37,8 @@ def register_asset_list(new_list: Type[AssetList]):
             for duplicate in duplicates:
                 asset = new_list[duplicate]
                 del new_list[duplicate]
-                new_list[duplicate + "_1"] = asset
-                asset.idname = duplicate + "_1"
+                new_list[f"{duplicate}_1"] = asset
+                asset.idname = f"{duplicate}_1"
 
     # Initialize
     asset_lists[new_list.name] = new_list(asset_list_data)

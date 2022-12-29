@@ -25,8 +25,8 @@ class AssetTask(PropertyGroup):
     name: StringProperty()
 
     progress: Progress = property(
-        lambda self: bpy.context.window_manager.asset_bridge.tasks_progress.get(self.name),
-        lambda self, value: bpy.context.window_manager.asset_bridge.tasks_progress.update({self.name: value}),
+        lambda self: get_ab_settings(bpy.context).tasks_progress.get(self.name),
+        lambda self, value: get_ab_settings(bpy.context).tasks_progress.update({self.name: value}),
     )
 
     def new_progress(self, max_steps):
@@ -36,7 +36,7 @@ class AssetTask(PropertyGroup):
     def finish(self):
         if self.progress:
             self.progress.end()
-        tasks = bpy.context.window_manager.asset_bridge.tasks
+        tasks = get_ab_settings(bpy.context).tasks
         idx = list(tasks.values()).index(tasks[self.name])
         tasks.remove(idx)
 
@@ -57,6 +57,11 @@ class AssetBridgeSettings(PropertyGroup):
         task.name = name
         self.tasks_progress[name] = None
         return task
+
+
+def get_ab_settings(context: bpy.types.Context) -> AssetBridgeSettings:
+    """Get the global asset bridge settings, registered to `context.window_manager.asset_bridge`"""
+    return context.window_manager.asset_bridge
 
 
 def register():

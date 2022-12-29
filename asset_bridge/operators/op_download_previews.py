@@ -8,7 +8,7 @@ from .op_report_message import report_message
 
 from ..apis.asset_types import AssetListItem
 from ..api import get_asset_lists
-from ..settings import AssetBridgeSettings
+from ..settings import get_ab_settings
 from ..constants import PREVIEW_DOWNLOAD_TASK_NAME
 from ..btypes import BOperator
 from bpy.types import Operator
@@ -19,7 +19,7 @@ class AB_OT_download_previews(Operator):
     """Download the previews for all of the assets"""
 
     def execute(self, context):
-        ab: AssetBridgeSettings = context.window_manager.asset_bridge
+        ab = get_ab_settings(context)
         assets = get_asset_lists().all_assets
 
         task = ab.new_task(name=PREVIEW_DOWNLOAD_TASK_NAME)
@@ -76,6 +76,8 @@ class AB_OT_download_previews(Operator):
                 message=f"Downloaded {len(assets)} asset previews in {perf_counter() - start:.2f}s",
                 main_thread=True,
             )
+
+            bpy.ops.asset_bridge.create_dummy_assets()
 
         # Download the previews on a separate thread to avoid freezing the UI
         thread = Thread(target=download_all_previews)

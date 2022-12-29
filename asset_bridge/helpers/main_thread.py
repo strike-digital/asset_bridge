@@ -13,7 +13,6 @@ def main_thread_timer():
     This is checked every n seconds, where n is the return value"""
     while not main_thread_queue.empty():
         func, args, kwargs = main_thread_queue.get()
-        # print(f"executing function '{func.__name__}' on main thread")
         func(*args, **kwargs)
 
 

@@ -1,4 +1,4 @@
-from ..settings import AssetBridgeSettings, AssetTask
+from ..settings import AssetTask, get_ab_settings
 from ..btypes import BOperator
 from bpy.types import Operator
 from bpy.props import StringProperty
@@ -14,7 +14,7 @@ class AB_OT_cancel_task(Operator):
         if not self.name:
             raise ValueError("No task name specified")
 
-        ab: AssetBridgeSettings = context.window_manager.asset_bridge
+        ab = get_ab_settings(context)
         task: AssetTask = ab.tasks[self.name]
         if not task.progress:
             raise ValueError(f"Task '{self.name}' has no progress")
