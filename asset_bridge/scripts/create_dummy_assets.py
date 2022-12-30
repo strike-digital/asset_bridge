@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -9,8 +10,11 @@ from bpy.types import Material, Object, World
 
 addon_utils.enable(Path(__file__).parents[1].name)
 from asset_bridge.api import get_asset_lists
-from asset_bridge.constants import DIRS
+from asset_bridge.constants import DIRS, FILES
 from asset_bridge.settings import AssetBridgeIDSettings
+from asset_bridge.catalog import AssetCatalogFile
+"""Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
+These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
 
 start = perf_counter()
 
@@ -21,9 +25,44 @@ args = parser.parse_args(args)
 
 asset_list = get_asset_lists()[args.asset_list_name]
 
-catalog = AssetCatalogFile(DIRS.asset_browser)
-catalog.reset()
 
+def update_progress_file(value):
+    if FILES.lib_progress.exists():
+        with open(FILES.lib_progress, "r") as f:
+            contents = json.load(f)
+    else:
+        contents = {}
+    contents[asset_list.name] = value
+    with open(FILES.lib_progress, "w") as f:
+        json.dump(contents, f, indent=2)
+
+
+update_progress_file(0)
+
+# setup catalog file
+catalog = AssetCatalogFile(DIRS.dummy_assets)
+catalog.add_catalog(asset_list.label)
+
+paths = set()
+
+# Add the catalog paths
+for asset_item in asset_list.values():
+    name = asset_item.catalog_path.split('/')[-1]
+    paths.add(f"{asset_list.label}/{asset_item.catalog_path}")
+
+# Add the intermediate paths (so that the names don't have the asterisk next to them in the asset browser)
+intermediate_paths = set()
+
+for path in paths:
+    parts = path.split('/')
+    catalog.ensure_catalog_exists(parts[-1], path)
+    for i, part in enumerate(parts[:-1]):
+        intermediate_paths.add("/".join(parts[:i + 1]))
+
+for path in intermediate_paths:
+    catalog.ensure_catalog_exists(path.split('/')[-1], path)
+
+# Convert between bpy.types and bpy.data
 type_to_data = {World: bpy.data.worlds, Object: bpy.data.objects, Material: bpy.data.materials}
 
 
@@ -31,8 +70,15 @@ def get_asset_data(asset) -> AssetBridgeIDSettings:
     return asset.asset_bridge
 
 
+prev_progress = 0
+progress = 0
+completed = False
+
+interval = .01
+last_update = 0
+
 # Create a data block for each asset, and set it's properties
-for asset_item in asset_list.values():
+for i, asset_item in enumerate(asset_list.values()):
     params = {}
     if asset_item.bl_type == Object:
         params["object_data"] = None
@@ -50,9 +96,18 @@ for asset_item in asset_list.values():
     for tag in asset_item.tags:
         asset.asset_data.tags.new(tag)
 
-    # Load previews
+    # Load previews (This is the slowest part, not sure how to speed it up)
     with bpy.context.temp_override(id=asset):
         bpy.ops.ed.lib_id_load_custom_preview(filepath=str(DIRS.previews / f"{asset_item.idname}.png"))
+
+    # Set the catalog
+    asset.asset_data.catalog_id = catalog[asset_list.label + "/" + asset_item.catalog_path].uuid
+    progress += 1
+    if perf_counter() - last_update > interval:
+        update_progress_file(progress)
+        last_update = perf_counter()
+
+completed = True
 
 # Save
 blend_file = DIRS.dummy_assets / (asset_list.name + ".blend")

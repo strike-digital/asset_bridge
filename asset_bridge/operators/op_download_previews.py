@@ -95,7 +95,7 @@ class AB_OT_download_previews(Operator):
                 report_message(message="Download cancelled.", main_thread=True)
                 return
 
-            task.finish()
+            # task.finish()
             report_message(
                 message=f"Downloaded {len(assets)} asset previews in {perf_counter() - start:.2f}s",
                 main_thread=True,

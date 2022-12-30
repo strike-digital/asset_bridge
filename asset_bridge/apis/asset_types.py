@@ -29,6 +29,7 @@ class AssetListItem(ABC):
     bl_type: ID  # The type of asset to import (World, Object, Material etc.)
     categories: list[str]  # The categories that this asset is in
     authors: list[str]  # The authors of this asset
+    catalog_path: str  # The path to the asset in the asset browser
 
     preview: int = -1
     tags: list[str] = []
@@ -43,6 +44,8 @@ class AssetListItem(ABC):
 class AssetList(ABC):
     """A list of all the assets from an API"""
 
+    name: str
+    label: str
     assets: OrderedDict[str, AssetListItem]
     url: str
     description: str

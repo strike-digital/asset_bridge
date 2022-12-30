@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-from .helpers.library import is_lib_path_invalid
+from .helpers.library import ensure_bl_asset_library_exists, is_lib_path_invalid
 
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
@@ -67,8 +67,10 @@ class ABAddonPreferences(AddonPreferences):
                 show_popup(message=message, severity="WARNING", confirm=True, title="Warning!", confirm_func=confirm)
                 return
 
+        # Update referenecs
         self["_lib_path"] = str(new_path)
         DIRS.update()
+        ensure_bl_asset_library_exists()
 
         # write to the config file
         with open(FILES.lib_info, "w") as f:

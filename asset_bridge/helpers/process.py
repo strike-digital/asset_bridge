@@ -21,4 +21,7 @@ def new_blender_process(
     if background:
         args.append("-b")
 
-    return subprocess.Popen([bpy.app.binary_path, *args, "--python", script, *script_args],)
+    return subprocess.Popen([bpy.app.binary_path, *args, "--python", script, *script_args],
+                            # stdout=subprocess.PIPE,
+                            # stderr=subprocess.PIPE,
+                           )

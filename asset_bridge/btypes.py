@@ -47,7 +47,7 @@ class BMenu():
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the menu class, with whatever arguments you want.
     all of the arguments are optional, as they can all be inferred from the class name and __doc__.
-    This works best for operators that use the naming convension ADDON_NAME_MT_menu_name.
+    This works best for menus that use the naming convension ADDON_NAME_MT_menu_name.
 
     Args:
         label (str): The name of the menu that is displayed when it is drawn in the UI.
@@ -97,7 +97,7 @@ class BPanel():
     To use it, add it as a decorator to the panel class, with whatever arguments you want.
     The only required arguments are the space and region types,
     and the rest can be inferred from the class name and __doc__.
-    This works best for operators that use the naming convension ADDON_NAME_PT_panel_name.
+    This works best for panels that use the naming convension ADDON_NAME_PT_panel_name.
 
     Args:
         space_type (str): The type of editor to draw this panel in (e.g. VIEW_3D, NODE_EDITOR, etc.)

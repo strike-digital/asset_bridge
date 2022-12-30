@@ -18,7 +18,10 @@ class PH_AssetListItem(AssetListItem):
         self.authors = list(data["authors"].keys()) or [""]
 
         self.categories = data["categories"]
-        self.tags = data["tags"]
+        names = ["Hdris", "Textures", "Models"]
+        self.catalog_path = f"{names[data['type']]}/{self.categories[0]}"
+
+        self.tags = data["tags"] + data["categories"]
         self.page_url = f"https://polyhaven.com/a/{name}"
 
         # TODO: Add more and make them context sensitive

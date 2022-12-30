@@ -89,4 +89,3 @@ def unregister():
     del bpy.types.Object.asset_bridge
     del bpy.types.World.asset_bridge
     del bpy.types.Material.asset_bridge
-    

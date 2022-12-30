@@ -62,6 +62,7 @@ class AssetCatalogFile():
     def add_catalog(self, name, path: str = "", uuid: str = ""):
         uuid = uuid or str(uuid4())
         path = path or name
+
         with open(self.catalog_file, "a") as f:
             f.write(f"{uuid}:{path}:{name}\n")
         self.update_catalogs()

@@ -9,6 +9,7 @@ from ...vendor import requests
 class PH_AssetList(AssetList):
 
     name = "poly_haven"
+    label = "Poly Haven"
     assets = OrderedDict()
 
     url = "http://polyhaven.com"

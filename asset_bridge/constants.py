@@ -6,6 +6,7 @@ import bpy
 # This should be changed during the build process in build.py
 __IS_DEV__ = True
 ASSET_LIB_VERSION = (1, 0, 0)
+ASSET_LIB_NAME = "Asset Bridge"
 PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"
 
 
@@ -41,6 +42,7 @@ class Files():
     def update(self, lib_path: Path = ""):
         lib = lib_path or DIRS.library
         self.lib_info = lib / "lib_info.json"
+        self.lib_progress = DIRS.dummy_assets / "progress.json"
         return self
 
 
