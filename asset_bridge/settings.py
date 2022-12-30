@@ -124,6 +124,12 @@ class AssetBridgeSettings(PropertyGroup):
         set=set_asset_quality,
     )
 
+    reload_asset: BoolProperty(
+        name="Re-Download asset",
+        description="Re-Download this asset, instead of using the already downloaded version",
+        default=False,
+    )
+
 
 class AssetBridgeIDSettings(PropertyGroup):
     """Used to identify whether a datablock has been imported by asset bridge"""

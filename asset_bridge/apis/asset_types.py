@@ -1,7 +1,11 @@
-from dataclasses import dataclass
-from typing import OrderedDict
+from dataclasses import dataclass, field
+from itertools import zip_longest
+import os
+from typing import Callable, OrderedDict
 from abc import ABC, abstractmethod
-from bpy.types import ID, UILayout
+
+from ..constants import DIRS
+from bpy.types import ID, Context, UILayout
 
 
 @dataclass
@@ -12,11 +16,53 @@ class AssetMetadataItem():
     values: str | list[str]
 
     operator: str = ""
-    icon: str = -1
+    operator_kwargs: dict | list[dict] = field(default_factory=dict)
+    icon: str = "NONE"
+    to_string: Callable = None  # A function that takes a value and returns a formatted string
 
-    def draw(self, layout: UILayout):
+    def draw(self, layout: UILayout, context: Context):
         row = layout.row(align=True)
-        row.label(text=self.label)
+        operator = self.operator
+
+        split = row.split(align=True)
+        left = split.box().column(align=True)
+        label = self.label if self.label.endswith(":") else self.label + ":"
+        left.label(text=label)
+        left.scale_y = .75
+
+        values = self.values
+        if isinstance(values, str):
+            values = [values]
+
+        operator_kwargs = self.operator_kwargs
+        if isinstance(operator_kwargs, dict):
+            operator_kwargs = [operator_kwargs]
+
+        right_row = split.box().row(align=True)
+        right = right_row.column(align=True)
+        right.scale_y = left.scale_y
+        for kwargs, val in zip_longest(operator_kwargs, values):
+            right.alignment = "LEFT"
+            label = self.to_string(val) if self.to_string else val
+            right.label(text=f" {label}", icon=self.icon)
+            """This is some magic that places the operator button on top of the label,
+            which allows the text to be left aligned rather than in the center.
+            It works by creating a dummy row above the operator, and then giving it a negative scale,
+            which pushes the operator up to be directly over the text.
+            If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter.
+            It is also entirely overkill"""
+            if operator:
+                subcol = right.column(align=True)
+                sub = subcol.column(align=True)
+                sub.scale_y = -1
+                sub.prop(context.scene.render, "resolution_x")  # A random property
+                subrow = subcol.row(align=True)
+                op = subrow.operator(operator, text="", emboss=True)
+                for name, value in kwargs.items():
+                    setattr(op, name, value)
+
+            if val != list(values)[0]:
+                left.label(text="")
 
 
 class AssetListItem(ABC):
@@ -42,6 +88,16 @@ class AssetListItem(ABC):
     def download_preview(self) -> str:
         """Download a preview for this asset.
         Returns an empty string if the download was successful or an error message otherwise"""
+
+    def is_downloaded(self, quality_level) -> bool:
+        """Return whether this asset has been downloaded at a certain quality level"""
+        assets_dir = DIRS.assets
+        quality_dir = assets_dir / self.idname / quality_level
+        if not quality_dir.exists():
+            return False
+        if not os.listdir(quality_dir):
+            return False
+        return True
 
 
 class AssetList(ABC):

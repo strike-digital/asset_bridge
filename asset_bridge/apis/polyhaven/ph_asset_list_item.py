@@ -1,3 +1,10 @@
+from datetime import datetime
+import json
+from threading import Thread
+
+from ...settings import get_ab_settings
+from ...helpers.main_thread import force_ui_update
+import bpy
 from ...helpers.library import human_readable_file_size
 from .ph_asset import PH_Asset
 from bpy.types import Material, Object, World
@@ -28,13 +35,74 @@ class PH_AssetListItem(AssetListItem):
         self.tags = data["tags"] + data["categories"]
         self.page_url = f"https://polyhaven.com/a/{name}"
 
-        # TODO: Add more and make them context sensitive
-        self.metadata = [
-            AssetMetadataItem("Link", self.page_url, "wm.url_opn"),
-            AssetMetadataItem("Downloads", f"{data['download_count']:,}"),
-            AssetMetadataItem("Tags", data["tags"])
-        ]
+        self.loading_asset = False
 
+        # Add metadata items
+        self.metadata = [
+            AssetMetadataItem(
+                "Link",
+                "Poly Haven",
+                "wm.url_open",
+                operator_kwargs={"url": self.page_url},
+            ),
+            AssetMetadataItem(
+                f"Author{'s' if len(data['authors']) > 1 else ''}",
+                data["authors"],
+                operator="asset_bridge.open_ph_author_website",
+                operator_kwargs=[{"author_name": name} for name in data["authors"]],
+            ),
+            AssetMetadataItem(
+                "Downloads",
+                f"{data['download_count']:,}",
+            ),
+        ]  # yapf: disable
+
+        if "dimensions" in data:
+
+            # This needs the context to work so pass it as an argument
+            def dimensions_to_string(value):
+                """Show dimensions in metric or imperial units depending on scene settings.
+                This is my gift to the americans, burmese and the liberians of the world."""
+                unit_system = bpy.context.scene.unit_settings.system
+                if unit_system in ["METRIC", "NONE"]:
+                    coefficient = 1
+                    suffix = "m"
+                else:
+                    coefficient = 3.2808399
+                    suffix = "ft"
+                dims = json.loads(value)
+                return f"{dims[0] / 1000 * coefficient:.0f}{suffix} x {dims[1] / 1000 * coefficient:.0f}{suffix}"
+
+            self.metadata.append(
+                AssetMetadataItem(
+                    "Dimensions",
+                    str(data["dimensions"]),
+                    to_string=dimensions_to_string,
+                ))
+
+        if "evs" in data:
+            self.metadata.append(AssetMetadataItem("EVs", str(data["evs"])))
+
+        if "whitebalance" in data:
+            self.metadata.append(AssetMetadataItem("Whitebalance", f"{str(data['whitebalance'])}K"))
+
+        self.metadata.append(
+            AssetMetadataItem(
+                "Date published",
+                datetime.fromtimestamp(data["date_published"]).strftime(format="%d/%m/%Y"),
+            ))
+
+        if "date_taken" in data:
+            self.metadata.append(
+                AssetMetadataItem(
+                    "Date taken",
+                    datetime.fromtimestamp(data["date_taken"]).strftime(format="%d/%m/%Y"),
+                ))
+
+        self.metadata.append(AssetMetadataItem(
+            "Tags",
+            data["tags"],
+        ))
         # TODO: Maybe load the preview here
         pass
 
@@ -43,10 +111,23 @@ class PH_AssetListItem(AssetListItem):
         """The quality levels of Poly haven assets aren't accessible from the normal asset list,
         So here we load the full asset and cache it, use its data to get the quality levels."""
         if not self.asset:
-            self.asset = PH_Asset(self)
+
+            def load_asset():
+                asset = PH_Asset(self)
+                self.asset = asset
+                self.loading_asset = False
+                force_ui_update(area_types={"FILE_BROWSER"}, region_types={"TOOLS"})
+
+            if not self.loading_asset:
+                thread = Thread(target=load_asset)
+                thread.start()
+                self.loading_asset = True
+            ab = get_ab_settings(bpy.context)
+            return [("1k", "1k (00MB)", "1k")]
+
         items = []
         quality_data = list(self.asset.get_quality_data())
-        quality_data.sort()
+        quality_data.sort(key=lambda name: int(name.split("k")[0]))
         for name in quality_data:
             size = human_readable_file_size(self.asset.get_download_size(name)).replace(" ", "")
             label = f"{name} ({size})"

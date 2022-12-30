@@ -22,7 +22,33 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         layout = self.layout
         ab = get_ab_settings(context)
         asset = ab.selected_asset
-        if asset:
-            layout.label(text=ab.selected_asset.label)
-            layout.prop(ab, "asset_quality")
-        
+        if not asset:
+            return
+        # layout.label(text=ab.selected_asset.label)
+        # layout.prop(ab, "asset_quality")
+        is_downloaded = asset.is_downloaded(ab.asset_quality)
+
+        # Toprow
+        col = layout.column(align=True)
+        box = col.box()
+        bigrow = box.row(align=True)
+        row = bigrow.row(align=True)
+        row.label(text="", icon="CHECKMARK" if is_downloaded else "IMPORT")
+        row = bigrow.row(align=True)
+        row.alignment = "CENTER"
+        text = "   " + asset.label if is_downloaded else asset.label + "    "
+        row.label(text=text)
+
+        if is_downloaded:
+            row = bigrow.row(align=True)
+            row.alignment = "RIGHT"
+            row.prop(ab, "reload_asset", text="", icon="FILE_REFRESH", emboss=ab.reload_asset)
+
+        box = col.box()
+        box.prop(ab, "asset_quality", text="Quality")
+
+        col = box.column(align=True)
+        metadata = asset.metadata
+        for item in metadata:
+            item.draw(col, context)
+        # draw_asset_info(col, context, asset)
