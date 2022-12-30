@@ -13,17 +13,10 @@ class PH_Asset(Asset):
         self.quality = quality
         self.name = asset_list_item.name
         self.type = asset_list_item.type
+        self.downloads_path = self.list_item.downloads_path / quality
 
+        # example: https://api.polyhaven.com/files/carrot_cake
         self.raw_data = requests.get(f"https://api.polyhaven.com/files/{self.name}").json()
-
-    def download_asset(self):
-        return
-
-    def import_asset(self):
-        return
-
-    def download_and_import_asset(self):
-        return
 
     def get_quality_data(self) -> dict[str, dict]:
         data = self.raw_data
@@ -32,14 +25,33 @@ class PH_Asset(Asset):
         elif self.type in {"texture", "model"}:
             return data["blend"]
 
-    def get_download_size(self, quality_level: str):
+    def get_files_to_download(self, quality_level: str):
         data = self.get_quality_data()[quality_level]
         if self.type == "hdri":
-            return data["exr"]["size"]
+            return [data["exr"]]
         else:
-            total = 0
-            for file in data["blend"]["include"].values():
-                total += file["size"]
+            files = []
+            files = list(data["blend"]["include"].values())
             if self.type == "model":
-                total += data["blend"]["size"]
-            return total
+                files.append(data["blend"])
+            return files
+
+    def get_download_size(self, quality_level: str):
+        return sum([f["size"] for f in self.get_files_to_download(quality_level)])
+
+    def download_asset(self):
+        if not self.quality:
+            raise ValueError(f"Cannot download {self.name} without providing a quality level")
+
+        # if self.type == "model":
+
+        files = self.get_files_to_download(self.quality)
+        for file in files:
+            print(file["url"])
+        return
+
+    def import_asset(self):
+        return
+
+    def download_and_import_asset(self):
+        return

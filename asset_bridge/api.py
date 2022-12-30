@@ -11,22 +11,22 @@ class AllAssetLists():
     def __init__(self):
         self.asset_lists = OrderedDict()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.asset_lists)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> AssetList:
         return self.asset_lists[key]
 
     def __setitem__(self, key, value):
         self.asset_lists[key] = value
 
-    def keys(self):
+    def keys(self) -> set[AssetList]:
         return self.asset_lists.keys()
 
-    def values(self):
+    def values(self) -> set[AssetList]:
         return self.asset_lists.values()
 
-    def items(self):
+    def items(self) -> set[list[str, AssetList]]:
         return self.asset_lists.items()
 
     @property

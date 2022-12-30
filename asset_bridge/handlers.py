@@ -3,9 +3,6 @@ from .settings import get_ab_settings
 import bpy
 from bpy.app import handlers
 from bpy.types import Scene
-from mathutils import Vector as V
-
-# depsgraph asset browser handler
 
 
 def get_asset_quality(context):
@@ -32,18 +29,6 @@ def get_browser_area(name) -> bpy.types.Area:
     return None
 
 
-def get_active_region(mouse_pos):
-    mouse_pos = V(mouse_pos)
-    for area in bpy.context.screen.areas:
-        print(mouse_pos, area.x, area.x + area.width)
-        if (area.x < mouse_pos.x < area.x + area.width) and (area.y < mouse_pos.y < area.y + area.height):
-            for region in area.regions:
-                if region.type == "WINDOW":
-                    return region
-    else:
-        return None
-
-
 def is_link(area):
     return "LINK" in area.spaces.active.params.import_type
 
@@ -58,15 +43,14 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         name = world.asset_bridge.idname
         bpy.data.worlds.remove(world)
         print("World!", name)
-        # bpy.ops.asset_bridge.import_asset(
-        #     "INVOKE_DEFAULT",
-        #     asset_name=name,
-        #     asset_quality=quality,
-        #     link=is_link(get_browser_area(name)),
-        #     reload=reload,
-        #     from_asset_browser=True,
-        #     at_mouse=True,
-        # )
+        bpy.ops.asset_bridge.import_asset(
+            "INVOKE_DEFAULT",
+            asset_name=name,
+            asset_quality=quality,
+            link=is_link(get_browser_area(name)),
+            reload=reload,
+            at_mouse=True,
+        )
 
     # Materials
     for obj in scene.objects:
@@ -96,15 +80,14 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         name = obj.asset_bridge.idname
         bpy.data.objects.remove(obj)
         print("Object!", name)
-        # bpy.ops.asset_bridge.import_asset(
-        #     "INVOKE_DEFAULT",
-        #     asset_name=name,
-        #     at_mouse=True,
-        #     link=is_link(get_browser_area(name)),
-        #     asset_quality=quality,
-        #     reload=reload,
-        #     from_asset_browser=True,
-        # )
+        bpy.ops.asset_bridge.import_asset(
+            "INVOKE_DEFAULT",
+            asset_name=name,
+            at_mouse=True,
+            link=is_link(get_browser_area(name)),
+            asset_quality=quality,
+            reload=reload,
+        )
 
         continue
 
@@ -117,19 +100,19 @@ def undo_post(scene, _):
     This prevents that by checking for any asset bridge empty and removing it
     before there is an update to the depsgraph"""
     # Hdris
-    if (world := scene.world) and world.is_asset_bridge:
+    if (world := scene.world) and world.asset_bridge.is_asset_bridge:
         bpy.data.worlds.remove(world)
 
     # Materials
     for obj in scene.objects:
         for slot in obj.material_slots:
-            if (mat := slot.material) and mat.is_asset_bridge:
+            if (mat := slot.material) and mat.asset_bridge.is_asset_bridge:
                 bpy.data.materials.remove(mat)
 
     # Models
     obj_remove = []
     for obj in scene.objects:
-        if obj.is_asset_bridge:
+        if obj.asset_bridge.is_asset_bridge:
             obj_remove.append(obj)
 
     for obj in obj_remove:

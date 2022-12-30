@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from itertools import zip_longest
 import os
@@ -84,15 +86,22 @@ class AssetListItem(ABC):
     tags: list[str] = []
     metadata: list[AssetMetadataItem] = []  # Info to be drawn in the metadata table
 
+    @property
+    def downloads_path(self):
+        return DIRS.assets / self.idname
+
     @abstractmethod
     def download_preview(self) -> str:
         """Download a preview for this asset.
         Returns an empty string if the download was successful or an error message otherwise"""
 
+    @abstractmethod
+    def to_asset(self, quality_level: str) -> Asset:
+        """Return an Asset type for downloading and importing of this asset"""
+
     def is_downloaded(self, quality_level) -> bool:
         """Return whether this asset has been downloaded at a certain quality level"""
-        assets_dir = DIRS.assets
-        quality_dir = assets_dir / self.idname / quality_level
+        quality_dir = self.downloads_path / quality_level
         if not quality_dir.exists():
             return False
         if not os.listdir(quality_dir):

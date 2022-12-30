@@ -138,3 +138,6 @@ class PH_AssetListItem(AssetListItem):
         size = 128
         url = f"https://cdn.polyhaven.com/asset_img/thumbs/{self.name}.png?width={size}&height={size}"
         download_file(url, DIRS.previews, f"{self.idname}.png")
+
+    def to_asset(self, quality_level) -> PH_Asset:
+        return PH_Asset(self, quality_level)
