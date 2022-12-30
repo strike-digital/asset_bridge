@@ -112,7 +112,7 @@ class HTTPAdapter(BaseAdapter):
     def __setstate__(self, state):
         self.proxy_manager = {}
         self.config = {}
-        for (attr, value) in state.items():
+        for attr, value in state.items():
             setattr(self, attr, value)
         self.init_poolmanager(self._pool_connections, self._pool_maxsize, block=self._pool_block)
 
@@ -148,7 +148,7 @@ class HTTPAdapter(BaseAdapter):
         if proxy in self.proxy_manager:
             manager = self.proxy_manager[proxy]
         elif proxy.lower().startswith('socks'):
-            (username, password) = get_auth_from_url(proxy)
+            username, password = get_auth_from_url(proxy)
             manager = self.proxy_manager[proxy] = SOCKSProxyManager(proxy, username=username, password=password, num_pools=self._pool_connections, maxsize=self._pool_maxsize, block=self._pool_block, **proxy_kwargs)
         else:
             proxy_headers = self.proxy_headers(proxy)
@@ -308,7 +308,7 @@ class HTTPAdapter(BaseAdapter):
         :rtype: dict
         """
         headers = {}
-        (username, password) = get_auth_from_url(proxy)
+        username, password = get_auth_from_url(proxy)
         if username:
             headers['Proxy-Authorization'] = _basic_auth_str(username, password)
         return headers
@@ -339,7 +339,7 @@ class HTTPAdapter(BaseAdapter):
         chunked = not (request.body is None or 'Content-Length' in request.headers)
         if isinstance(timeout, tuple):
             try:
-                (connect, read) = timeout
+                connect, read = timeout
                 timeout = TimeoutSauce(connect=connect, read=read)
             except ValueError:
                 raise ValueError(f'Invalid timeout {timeout}. Pass a (connect, read) timeout tuple, or a single float to set both timeouts to the same value.')
@@ -357,7 +357,7 @@ class HTTPAdapter(BaseAdapter):
                 try:
                     skip_host = 'Host' in request.headers
                     low_conn.putrequest(request.method, url, skip_accept_encoding=True, skip_host=skip_host)
-                    for (header, value) in request.headers.items():
+                    for header, value in request.headers.items():
                         low_conn.putheader(header, value)
                     low_conn.endheaders()
                     for i in request.body:

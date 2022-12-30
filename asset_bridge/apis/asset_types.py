@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import OrderedDict
 from abc import ABC, abstractmethod
-from bpy.types import UILayout
+from bpy.types import ID, UILayout
 
 
 @dataclass
@@ -26,7 +26,9 @@ class AssetListItem(ABC):
     name: str  # The api name of the asset
     label: str  # The name visible in the UI
     type: str  # HDRI/Texture/Model etc.
+    bl_type: ID  # The type of asset to import (World, Object, Material etc.)
     categories: list[str]  # The categories that this asset is in
+    authors: list[str]  # The authors of this asset
 
     preview: int = -1
     tags: list[str] = []

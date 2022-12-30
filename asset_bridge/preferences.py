@@ -1,14 +1,16 @@
+import json
 import os
+from pathlib import Path
 
+from .helpers.library import is_lib_path_invalid
+
+from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
-
 from .operators.op_download_previews import AB_OT_download_previews
-
 from .btypes import BMenu
-
 from .api import get_asset_lists
 from .settings import get_ab_settings
-from .constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME, __IS_DEV__
+from .constants import ASSET_LIB_VERSION, DIRS, FILES, PREVIEW_DOWNLOAD_TASK_NAME, __IS_DEV__
 from .ui import draw_download_previews, draw_downloads_path
 from bpy.types import AddonPreferences, UILayout, Menu
 from bpy.props import StringProperty
@@ -18,9 +20,59 @@ class ABAddonPreferences(AddonPreferences):
     bl_idname = __package__
     layout: UILayout
 
-    def lib_path_update(self, context):
+    def lib_path_set(self, new_path):
         """Update all references to library paths"""
-        print("lib_path_update")
+
+        # Check that path is valid
+        if is_lib_path_invalid(new_path):
+            self["_lib_path"] = new_path
+            return
+
+        default_info_contents = {"version": ASSET_LIB_VERSION}
+
+        # temporarily initialize a new files class at the new location to get the library info file
+        temp_files = FILES.__class__()
+        lib_info_file = temp_files.update(Path(new_path)).lib_info
+
+        # Deal with potential future versions of the library
+        if lib_info_file.exists():
+            with open(lib_info_file, "r") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError as e:
+                    print(e)
+                    data = default_info_contents
+            version = data["version"]
+
+            # Breaking update
+            if version[0] > ASSET_LIB_VERSION[0]:
+                message = """This folder has been created in a much newer version of the addon,
+                and as such cannot be used by this version of the addon."""
+
+                show_popup(message=message, title="Error", severity="WARNING")
+                return
+
+            # Major update
+            elif version[1] > ASSET_LIB_VERSION[1] and not version[0] < ASSET_LIB_VERSION[0]:
+
+                def confirm():
+                    with open(lib_info_file, "w") as f:
+                        json.dump(default_info_contents, f, indent=2)
+
+                    self.lib_path = new_path
+
+                message = """This folder has been used by a newer version of this addon,
+                and as such it may not work with the current version.
+                Are you sure you want to continue?"""
+                show_popup(message=message, severity="WARNING", confirm=True, title="Warning!", confirm_func=confirm)
+                return
+
+        self["_lib_path"] = str(new_path)
+        DIRS.update()
+
+        # write to the config file
+        with open(FILES.lib_info, "w") as f:
+            json.dump(default_info_contents, f, indent=2)
 
     lib_path: StringProperty(
         name="External Downloads path",
@@ -30,7 +82,8 @@ class ABAddonPreferences(AddonPreferences):
         )),
         default="",
         subtype="DIR_PATH",
-        update=lib_path_update,
+        get=lambda self: self.get("_lib_path", ""),
+        set=lib_path_set,
     )
 
     def format_download_label(self, needed_previews):
@@ -45,6 +98,11 @@ class ABAddonPreferences(AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+
+        if draw_downloads_path(layout, context):
+            # if the downloads path isn't valid
+            return
+
         ab = get_ab_settings(context)
         all_assets = get_asset_lists().all_assets
 
@@ -65,8 +123,6 @@ class ABAddonPreferences(AddonPreferences):
             # Draw the button/progress bar
             draw_download_previews(layout, reload=first_time)
             return
-
-        draw_downloads_path(layout, context)
 
         row = layout.box().row(align=True)
         row.scale_y = 1.5
@@ -94,7 +150,7 @@ class AB_MT_download_previews_menu(Menu):
     def draw(self, context):
         layout = self.layout
         layout.scale_y = 1.5
-        op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text="Reload all assets")
+        op = layout.operator(AB_OT_download_previews.bl_idname, icon="FILE_REFRESH", text="Reload all assets")
         op.bl_description = "Redownload all previews and re setup the asset catalog again (good for debugging)"
         op.reload = True
 

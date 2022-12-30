@@ -62,6 +62,14 @@ class AssetBridgeSettings(PropertyGroup):
         return task
 
 
+class AssetBridgeIDSettings(PropertyGroup):
+    """Used to identify whether a datablock has been imported by asset bridge"""
+
+    is_asset_bridge: BoolProperty()
+
+    idname: StringProperty()
+
+
 def get_ab_settings(context: bpy.types.Context) -> AssetBridgeSettings:
     """Get the global asset bridge settings, registered to `context.window_manager.asset_bridge`"""
     return context.window_manager.asset_bridge
@@ -70,6 +78,15 @@ def get_ab_settings(context: bpy.types.Context) -> AssetBridgeSettings:
 def register():
     bpy.types.WindowManager.asset_bridge = PointerProperty(type=AssetBridgeSettings)
 
+    bpy.types.Object.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
+    bpy.types.World.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
+    bpy.types.Material.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
+
 
 def unregister():
     del bpy.types.WindowManager.asset_bridge
+
+    del bpy.types.Object.asset_bridge
+    del bpy.types.World.asset_bridge
+    del bpy.types.Material.asset_bridge
+    

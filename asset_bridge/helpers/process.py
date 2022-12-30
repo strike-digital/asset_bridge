@@ -13,10 +13,12 @@ def new_blender_process(
 
     if script_args is None:
         script_args = []
+    else:
+        script_args.insert(0, "--")
     args = []
     if factory:
         args.append("--factory-startup")
     if background:
         args.append("-b")
 
-    return subprocess.Popen([bpy.app.binary_path, *args, "--python", script, "--", *script_args],)
+    return subprocess.Popen([bpy.app.binary_path, *args, "--python", script, *script_args],)

@@ -16,3 +16,5 @@
 asset_list.json
 __pycache__/
 old_version/
+dev.py
+downloads

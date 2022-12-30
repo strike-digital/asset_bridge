@@ -1,3 +1,4 @@
+from bpy.types import Material, Object, World
 from ...constants import DIRS
 
 from ..asset_utils import download_file
@@ -8,11 +9,14 @@ class PH_AssetListItem(AssetListItem):
 
     def __init__(self, name: str, data: dict):
         asset_types = ["hdri", "texture", "model"]
+        bl_types = [World, Material, Object]
         self.name = name
         self.label = data["name"]
         self.idname = name
-
         self.type = asset_types[data["type"]]
+        self.bl_type = bl_types[data["type"]]
+        self.authors = list(data["authors"].keys()) or [""]
+
         self.categories = data["categories"]
         self.tags = data["tags"]
         self.page_url = f"https://polyhaven.com/a/{name}"

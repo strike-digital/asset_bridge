@@ -1,1 +1,0 @@
-Made using [pvendor by 3D Ninjas](https://github.com/3dninjas/pdistx)

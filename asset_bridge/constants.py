@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from .helpers.prefs import get_prefs
 import bpy
@@ -17,16 +18,40 @@ class Dirs():
     scripts = addon / "scripts"
 
     # We need the context to create these, so run them in a timer.
-    def update(self):
-        self.library = Path(get_prefs(bpy.context).lib_path)
+    def update(self, lib_path: Path = None):
+        self.library = Path(lib_path) if lib_path is not None else Path(get_prefs(bpy.context).lib_path)
+        self.assets = self.library / "assets"
+        self.dummy_assets = self.library / "dummy_assets"
+        FILES.update()
+
+        all_paths = [v for v in (self.__dict__).values() if isinstance(v, Path)]
+        for dir in all_paths:
+            dir.mkdir(parents=True, exist_ok=True)
+
+        # Recache the new path
+        with open(FILES.prefs, "w") as f:
+            json.dump({"lib_path": str(self.library)}, f, indent=2)
 
 
 class Files():
 
     script_create_dummy_assets = Dirs.scripts / "create_dummy_assets.py"
+    prefs = Dirs.addon / "prefs.json"
+
+    def update(self, lib_path: Path = ""):
+        lib = lib_path or DIRS.library
+        self.lib_info = lib / "lib_info.json"
+        return self
 
 
 DIRS = Dirs()
 FILES = Files()
 
-bpy.app.timers.register(DIRS.update)
+# We need to initially load the path from the cached file, as we don't have access to the addon preferences at register
+with open(FILES.prefs, "r") as f:
+    try:
+        data = json.load(f)
+    except json.JSONDecodeError:
+        data = {"lib_path": ""}
+
+    DIRS.update(lib_path=data["lib_path"])
