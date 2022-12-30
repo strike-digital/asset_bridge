@@ -23,9 +23,7 @@ def register_asset_list(new_list: Type[AssetList]):
                 pass
 
     # Initialize the asset lists with either the cached data, or new data from the internet, from the get_data function
-    # TODO: Remove this!!!!!
-    #################################
-    if True or not asset_list_data:
+    if not asset_list_data:
         asset_list_data = new_list.get_data()
 
     # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name

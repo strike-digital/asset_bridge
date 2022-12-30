@@ -16,8 +16,6 @@ from asset_bridge.catalog import AssetCatalogFile
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
 These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
 
-start = perf_counter()
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--asset_list_name")
 args = sys.argv[sys.argv.index('--') + 1:]
@@ -27,11 +25,13 @@ asset_list = get_asset_lists()[args.asset_list_name]
 
 
 def update_progress_file(value):
+    # Get the already written progress
     if FILES.lib_progress.exists():
         with open(FILES.lib_progress, "r") as f:
             contents = json.load(f)
     else:
         contents = {}
+    # Write the new progress value
     contents[asset_list.name] = value
     with open(FILES.lib_progress, "w") as f:
         json.dump(contents, f, indent=2)
@@ -70,11 +70,8 @@ def get_asset_data(asset) -> AssetBridgeIDSettings:
     return asset.asset_bridge
 
 
-prev_progress = 0
 progress = 0
-completed = False
-
-interval = .01
+progress_update_interval = .01
 last_update = 0
 
 # Create a data block for each asset, and set it's properties
@@ -102,12 +99,13 @@ for i, asset_item in enumerate(asset_list.values()):
 
     # Set the catalog
     asset.asset_data.catalog_id = catalog[asset_list.label + "/" + asset_item.catalog_path].uuid
+
+    # Update the progress
     progress += 1
-    if perf_counter() - last_update > interval:
+    if perf_counter() - last_update > progress_update_interval:
         update_progress_file(progress)
         last_update = perf_counter()
 
-completed = True
 
 # Save
 blend_file = DIRS.dummy_assets / (asset_list.name + ".blend")
@@ -117,7 +115,5 @@ bpy.ops.wm.save_mainfile(filepath=str(blend_file), check_existing=False)
 blend1_file = DIRS.dummy_assets / (asset_list.name + ".blend1")
 if blend1_file.exists():
     os.remove(blend1_file)
-
-print(f"Finished in {perf_counter() - start:.2f}s")
 
 bpy.ops.wm.quit_blender()

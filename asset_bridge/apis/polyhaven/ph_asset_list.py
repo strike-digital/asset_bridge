@@ -19,7 +19,6 @@ class PH_AssetList(AssetList):
     @staticmethod
     def get_data() -> dict:
         url = "https://api.polyhaven.com/assets"
-        print("Data!")
         return requests.get(url).json()
 
     def __init__(self, data: dict):

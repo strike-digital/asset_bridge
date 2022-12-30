@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, OrderedDict
 from bpy.types import PropertyGroup
 from bpy.props import StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
-from time import time_ns
+from time import perf_counter, time_ns
 import bpy
 
 from .helpers.progress import Progress
@@ -24,6 +24,8 @@ class AssetTask(PropertyGroup):
     __reg_order__ = 0
 
     name: StringProperty()
+
+    start_time: FloatProperty(default=0)
 
     progress: Progress = property(
         lambda self: get_ab_settings(bpy.context).tasks_progress.get(self.name),
@@ -56,6 +58,7 @@ class AssetBridgeSettings(PropertyGroup):
 
     def new_task(self, name: str = "") -> AssetTask:
         task = self.tasks.add()
+        task.start_time = perf_counter()
         name = name or str(time_ns())
         task.name = name
         self.tasks_progress[name] = None

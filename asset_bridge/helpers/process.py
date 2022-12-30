@@ -8,6 +8,7 @@ def new_blender_process(
     script_args: list = None,
     factory: bool = True,
     background: bool = True,
+    use_stdout: bool = True,
 ) -> subprocess.Popen:
     """Create a new blender process and return a reference to it"""
 
@@ -20,8 +21,7 @@ def new_blender_process(
         args.append("--factory-startup")
     if background:
         args.append("-b")
+    
+    kwargs = {"stdout": subprocess.PIPE} if use_stdout else {}
 
-    return subprocess.Popen([bpy.app.binary_path, *args, "--python", script, *script_args],
-                            # stdout=subprocess.PIPE,
-                            # stderr=subprocess.PIPE,
-                           )
+    return subprocess.Popen([bpy.app.binary_path, *args, "--python", script, *script_args], **kwargs)
