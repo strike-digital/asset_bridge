@@ -10,7 +10,7 @@ class PH_AssetList(AssetList):
 
     name = "poly_haven"
     label = "Poly Haven"
-    assets = OrderedDict()
+    assets: OrderedDict[str, PH_AssetListItem] = OrderedDict()
 
     url = "http://polyhaven.com"
     description = """Poly Haven is a curated public asset library for visual effects artists and game designers,

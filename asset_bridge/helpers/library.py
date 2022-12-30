@@ -38,3 +38,14 @@ def ensure_bl_asset_library_exists():
 
         asset_libs[-1].path = str(DIRS.dummy_assets)
         bpy.ops.wm.save_userpref()
+
+
+def human_readable_file_size(num, suffix=""):
+    """Stolen from stack overflow: https://stackoverflow.com/a/1094933/18864758"""
+
+    # If the files are in Zetabytes, something has gone very wrong
+    for unit in ["", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]:
+        if abs(num) < 1024.0:
+            return f"{num:3.0f}{unit}{suffix}"
+        num /= 1024.0
+    return f"{num:.1f}Yi{suffix}"

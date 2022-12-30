@@ -31,6 +31,9 @@ class AssetListItem(ABC):
     authors: list[str]  # The authors of this asset
     catalog_path: str  # The path to the asset in the asset browser
 
+    # The different levels of quality in the format of blender enum property items
+    quality_levels: list[tuple[str, str, str]]
+
     preview: int = -1
     tags: list[str] = []
     metadata: list[AssetMetadataItem] = []  # Info to be drawn in the metadata table
@@ -82,9 +85,7 @@ class AssetList(ABC):
 class Asset(ABC):
     """A functional representation of an asset, used only for downloading or importing assets."""
 
-    category: str
-    quality: str
-    # task: AssetTask
+    quality: str = ""
     list_item: AssetListItem
 
     @abstractmethod
@@ -98,28 +99,3 @@ class Asset(ABC):
     @abstractmethod
     def download_and_import_asset(self):
         pass
-
-
-# class AssetAPI(ABC):
-#     """Represets a website/online api containing assets"""
-
-#     name: str
-#     url: str
-#     description: str
-#     asset_lists: OrderedDict[str, AssetList]
-
-#     @property
-#     def all_assets(self):
-#         """The assets from all asset lists in this API"""
-#         all_assets = ODict()
-#         for asset_list in self.asset_lists.values():
-#             all_assets.update(asset_list.assets)
-#         return all_assets
-
-#     def __getitem__(self, name):
-#         return self.all_assets[name]
-
-#     def __setitem__(self, name, value):
-#         for asset_list in self.asset_lists.values():
-#             if name in asset_list.keys():
-#                 asset_list[name] = value

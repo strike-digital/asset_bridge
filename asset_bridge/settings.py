@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, OrderedDict
+from .api import get_asset_lists
 from bpy.types import PropertyGroup
-from bpy.props import StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
+from bpy.props import EnumProperty, StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
 from time import perf_counter, time_ns
 import bpy
 
@@ -17,6 +18,18 @@ def add_progress(cls, name):
     ui_kwargs["get"] = lambda self: getattr(self, name)
     cls.__annotations__[f"ui_{name}"] = FloatProperty(**ui_kwargs)
     cls.__annotations__[f"{name}_active"] = BoolProperty()
+
+
+# This is needed to prevent the dynamic enum bug that causes the label of the enum items to go weird:
+# https://github.com/3dninjas/3dn-bip/issues/51
+_item_map = dict()
+
+
+def _make_item(id, name, descr):
+    lookup = f"{str(id)}\0{str(name)}\0{str(descr)}"
+    if lookup not in _item_map:
+        _item_map[lookup] = (id, name, descr)
+    return _item_map[lookup]
 
 
 class AssetTask(PropertyGroup):
@@ -63,6 +76,53 @@ class AssetBridgeSettings(PropertyGroup):
         task.name = name
         self.tasks_progress[name] = None
         return task
+
+    prev_asset_name: StringProperty(default="NONE")
+
+    @property
+    def selected_asset(self):
+        name = self.asset_idname
+        if name == "NONE":
+            return None
+        return get_asset_lists().all_assets[name]
+
+    @property
+    def asset_idname(self):
+        context = bpy.context
+        handle = context.asset_file_handle
+        if handle:
+            asset = handle.asset_data
+            self.prev_asset_name = asset.description
+            return asset.description
+        elif self.prev_asset_name != "NONE":
+            return self.prev_asset_name
+        return "NONE"
+
+    def asset_quality_items(self, context):
+        asset = self.selected_asset
+        if asset:
+            items = []
+            for level in asset.quality_levels:
+                # Avoid enum bug
+                items.append(_make_item(level[0], level[1], level[2]))
+            return items
+        return [("NONE", "None", "None")]
+
+    def get_asset_quality(self):
+        maximum = len(self.asset_quality_items(None))
+        quality = self.get("_asset_quality", 0)
+        return min(quality, maximum - 1)
+
+    def set_asset_quality(self, value):
+        self["_asset_quality"] = value
+
+    asset_quality: EnumProperty(
+        name="Quality",
+        description="The quality level at which to download this asset",
+        items=asset_quality_items,
+        get=get_asset_quality,
+        set=set_asset_quality,
+    )
 
 
 class AssetBridgeIDSettings(PropertyGroup):
