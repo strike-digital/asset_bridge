@@ -5,12 +5,11 @@ from typing import TYPE_CHECKING
 
 from bpy.types import Context
 
-from ..asset_utils import download_file, file_name_from_url, import_hdri, import_model
+from ..asset_utils import download_file, file_name_from_url, import_hdri, import_model, import_material
 from ..asset_types import Asset, AssetListItem as PH_AssetListItem
 from ...operators.op_report_message import report_message
 from ...helpers.process import new_blender_process
 from ...vendor import requests
-
 
 if TYPE_CHECKING:
     from .ph_asset_list_item import PH_AssetListItem  # noqa F811
@@ -104,15 +103,30 @@ class PH_Asset(Asset):
                 report_message(f"Error setting up Poly Haven asset blend file:\n{out}", severity="ERROR")
 
     def import_asset(self, context: Context):
+        files = self.get_files()
 
         if self.type == "hdri":
-            image_file = self.get_files()[0]
+            image_file = files[0]
             world = import_hdri(image_file, name=f"{self.idname}_{self.quality}", link_method=self.link_method)
             context.scene.world = world
             return world
 
+        elif self.type == "texture":
+            # Find the files and add them to the dictionary with the correct keys for importing
+            texture_files = {}
+            files = {f.stem: f for f in files}
+            associations = {"diffuse": "diff", "displacement": "disp", "normal": "nor_gl", "roughness": "rough"}
+
+            for name, ph_name in associations.items():
+                file = files.get(f"{self.name}_{ph_name}_{self.quality}")
+                if file:
+                    texture_files[name] = file
+
+            mat = import_material(texture_files, f"{self.name}_{self.quality}", link_method=self.link_method)
+            return mat
+
         elif self.type == "model":
-            blend_file = [f for f in self.get_files() if str(f).endswith(".blend")][0]
+            blend_file = [f for f in files if str(f).endswith(".blend")][0]
             imported = import_model(context, blend_file, name=self.name, link_method=self.link_method)
             return imported
 

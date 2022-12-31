@@ -3,7 +3,7 @@ from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..helpers.drawing import get_active_window_region
 from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
-from bpy.types import Collection, Object, Operator
+from bpy.types import Collection, Material, Object, Operator
 from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
 from mathutils import Vector as V
 from ..btypes import BOperator
@@ -46,12 +46,11 @@ class AB_OT_import_asset(Operator):
         default="APPEND_REUSE",
     )
 
-    # link: BoolProperty(
-    #     description="Whether to link the asset from the downloaded file, or to append it fully into the scene",
-    #     default=False,
-    # )
+    material_slot = None
 
     def invoke(self, context, event):
+        self.material_slot = self.__class__.material_slot
+        self.__class__.material_slot = None
         self.mouse_pos_region = V((event.mouse_region_x, event.mouse_region_y))
         self.mouse_pos_window = V((event.mouse_x, event.mouse_y))
         return self.execute(context)
@@ -100,10 +99,15 @@ class AB_OT_import_asset(Operator):
         if not asset_list_item.is_downloaded(self.asset_quality) or ab.reload_asset:
             asset.download_asset()
 
+        material_slot = self.material_slot
+
         def import_asset():
             imported = asset.import_asset(context)
 
-            if isinstance(imported, Object):
+            if isinstance(imported, Material):
+                if material_slot:
+                    material_slot.material = imported
+            elif isinstance(imported, Object):
                 imported.location += location
             elif isinstance(imported, Collection):
                 for obj in imported.objects:

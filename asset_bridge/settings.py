@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, OrderedDict
+
 from .api import get_asset_lists
 from bpy.types import PropertyGroup
 from bpy.props import EnumProperty, StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
@@ -82,7 +83,7 @@ class AssetBridgeSettings(PropertyGroup):
     @property
     def selected_asset(self):
         name = self.asset_idname
-        if name == "NONE":
+        if not name or name == "NONE":
             return None
         return get_asset_lists().all_assets[name]
 

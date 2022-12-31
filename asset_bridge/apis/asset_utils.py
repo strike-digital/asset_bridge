@@ -2,6 +2,9 @@ import json
 import math
 from typing import Type
 
+from mathutils import Vector as V
+from ..ui import dpifac
+
 import bpy
 from ..constants import DIRS
 from ..api import asset_lists
@@ -13,7 +16,6 @@ from pathlib import Path
 
 def register_asset_list(new_list: Type[AssetList]):
     """Takes an asset api and initialises all of the asset lists with either cached or new data."""
-    # asset_lists[asset_list.name] = asset_list
 
     # Get the cached asset list data if it exists
     list_file = DIRS.asset_lists / (new_list.name + ".json")
@@ -50,6 +52,7 @@ def register_asset_list(new_list: Type[AssetList]):
 
 
 def file_name_from_url(url: str) -> str:
+    """Extract the file name from a URL"""
     return url.split('/')[-1].split("?")[0]
 
 
@@ -74,27 +77,115 @@ def download_file(url: str, download_path: Path, file_name: str = ""):
     return download_path
 
 
+def load_image(image_file, link_method, name=""):
+    """Load an image file according to the given link_method."""
+    image = bpy.data.images.load(str(image_file), check_existing=link_method in {"LINK", "APPEND_REUSE"})
+    if name:
+        image.name = name
+    return image
+
+
 def import_hdri(image_file, name, link_method="APPEND_REUSE"):
     """Import an hdri image file as a world and return it"""
-    image = bpy.data.images.load(str(image_file), check_existing=link_method in {"LINK", "APPEND_REUSE"})
+    image = load_image(image_file, link_method)
 
+    # Set up world
     world = bpy.data.worlds.new(name)
     world.use_nodes = True
     nodes = world.node_tree.nodes
 
+    # Add nodes
     background_node = nodes["Background"]
     output_node = nodes["World Output"]
     env_node = nodes.new("ShaderNodeTexEnvironment")
     env_node.image = image
 
+    # Link nodes
     links = world.node_tree.links
     links.new(env_node.outputs[0], background_node.inputs[0])
     links.new(background_node.outputs[0], output_node.inputs[0])
     return world
 
 
+def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
+    """import the provided PBR texture files as a material and return it"""
+    if not texture_files:
+        raise ValueError("Cannot import material when not texture files are provided")
+    
+    # Use existing material if it is the correct link method
+    mat = bpy.data.materials.get(name)
+    if mat and link_method != "APPEND":
+        return mat
+
+    # Create material
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    bsdf_node = nodes["Principled BSDF"]
+    out_node = nodes["Material Output"]
+    image_nodes = []
+    disp_node = None
+    nor_node = None
+
+    def new_image(file, input_index, node_name="", to_node=None, non_color=False):
+        """Add a new image node, and connect it to the given to_node if provided, or the bsdf node"""
+        if not to_node:
+            to_node = bsdf_node
+        image_node = nodes.new("ShaderNodeTexImage")
+        image_node.name = image_node.label = node_name
+        image = load_image(file, link_method)
+        image_node.image = image
+        links.new(image_node.outputs[0], to_node.inputs[input_index])
+        image_nodes.append(image_node)
+        if non_color:
+            image.colorspace_settings.name = "Non-Color"
+        return image
+
+    # Add images
+    if diff_file := texture_files.get("diffuse"):
+        new_image(diff_file, "Base Color", "Diffuse")
+
+    if rough_file := texture_files.get("roughness"):
+        new_image(rough_file, "Roughness", "Roughness", non_color=True)
+
+    if nor_file := texture_files.get("normal"):
+        nor_node = nodes.new("ShaderNodeNormalMap")
+        new_image(nor_file, "Color", "Normal", to_node=nor_node, non_color=True)
+        links.new(nor_node.outputs[0], bsdf_node.inputs["Normal"])
+
+    if disp_file := texture_files.get("displacement"):
+        disp_node = nodes.new("ShaderNodeDisplacement")
+        new_image(disp_file, "Height", "Displacement", to_node=disp_node)
+        links.new(disp_node.outputs[0], out_node.inputs["Displacement"])
+
+    # Add mapping and set locations
+    mapping_node = nodes.new("ShaderNodeMapping")
+    half_height = (300 * (len(image_nodes) - 1) / 2)
+    for i, node in enumerate(image_nodes):
+        x = bsdf_node.location.x - (node.width + 200) * dpifac()
+        y = bsdf_node.location.y - 300 * i + half_height - 200
+        node.location = (x, y)
+        links.new(mapping_node.outputs[0], node.inputs[0])
+    mapping_node.location = (node.location.x - mapping_node.width - 80, bsdf_node.location.y)
+
+    coords_node = nodes.new("ShaderNodeTexCoord")
+    links.new(coords_node.outputs["UV"], mapping_node.inputs[0])
+    coords_node.location = mapping_node.location - V((coords_node.width + 40, 0))
+
+    # Add normal and displacement nodes
+    if nor_node:
+        nor_image_node = nodes["Normal"]
+        nor_node.location = nor_image_node.location + V((nor_image_node.width + 40, 0))
+
+    if disp_node:
+        disp_node.location = bsdf_node.location + V((bsdf_node.width - disp_node.width, -680))
+    return mat
+
+
 def import_model(context, blend_file, name, link_method="APPEND_REUSE"):
     """Import a collection from the given blend file with the given name"""
+    # TODO: imlement the append_reuse link method for objects
     link = link_method == "LINK"
 
     collection = None
@@ -107,19 +198,22 @@ def import_model(context, blend_file, name, link_method="APPEND_REUSE"):
                 except IndexError:
                     pass
 
+    # Import the collection with the correct name from the blend file. Raises an error if it can't be found
     if not collection:
         with bpy.data.libraries.load(filepath=str(blend_file), link=link) as (data_from, data_to):
-            # import objects with the correct name, or if none are found, just import all objects
             for coll in data_from.collections:
                 if coll == f"{name}":
                     data_to.collections.append(coll)
                     break
+            else:
+                raise KeyError(f"Key {name} not found in collections {data_from.collections}\nIn blend file: {blend_file}")
 
     for obj in bpy.data.objects:
         obj.select_set(False)
 
     collection: bpy.types.Collection = collection or data_to.collections[0]
     if link:
+        # Create an empty to use as an instance collection so that it can be moved by the user.
         empty = bpy.data.objects.new(collection.name, None)
         empty.instance_type = "COLLECTION"
         empty.instance_collection = collection

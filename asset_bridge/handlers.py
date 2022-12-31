@@ -1,4 +1,5 @@
 # from asset_bridge.operators import AB_OT_import_asset
+from .operators.op_import_asset import AB_OT_import_asset
 import bpy
 from bpy.app import handlers
 from bpy.types import Scene
@@ -62,17 +63,16 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 # We can't pass a material slot directly, so set it as a class attribute.
                 # This is very hacky, and there's almost certainly a good reason not to do it,
                 # But I haven't found it yet ¯\_(ツ)_/¯
-                # AB_OT_import_asset.material_slot = slot
-                # bpy.ops.asset_bridge.import_asset(
-                #     "INVOKE_DEFAULT",
-                #     asset_name=name,
-                #     at_mouse=True,
-                #     # location=bpy.context.object.location,
-                #     asset_quality=quality,
-                #     link_method=link_method(get_browser_area(name)),
-                #     reload=reload,
-                #     from_asset_browser=True,
-                # )
+                AB_OT_import_asset.material_slot = slot
+                bpy.ops.asset_bridge.import_asset(
+                    "INVOKE_DEFAULT",
+                    asset_name=name,
+                    at_mouse=True,
+                    # location=bpy.context.object.location,
+                    asset_quality=quality,
+                    link_method=link_method(get_browser_area(name)),
+                    reload=reload,
+                )
 
     # Models
     objs = [o for o in scene.objects if o.asset_bridge.is_asset_bridge]
