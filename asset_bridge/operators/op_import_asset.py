@@ -1,8 +1,9 @@
+import bpy
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..helpers.drawing import get_active_window_region
-from bpy.props import BoolProperty, FloatVectorProperty, StringProperty
-from bpy.types import Operator
+from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
+from bpy.types import Collection, Object, Operator
 from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
 from mathutils import Vector as V
 from ..btypes import BOperator
@@ -36,10 +37,19 @@ class AB_OT_import_asset(Operator):
         default=False,
     )
 
-    link: BoolProperty(
-        description="Whether to link the asset from the downloaded file, or to append it fully into the scene",
-        default=False,
+    link_method: EnumProperty(
+        items=[
+            ("LINK", "Link", "Link"),
+            ("APPEND", "Append", "Append"),
+            ("APPEND_REUSE", "Append reuse", "Append reuse"),
+        ],
+        default="APPEND_REUSE",
     )
+
+    # link: BoolProperty(
+    #     description="Whether to link the asset from the downloaded file, or to append it fully into the scene",
+    #     default=False,
+    # )
 
     def invoke(self, context, event):
         self.mouse_pos_region = V((event.mouse_region_x, event.mouse_region_y))
@@ -83,9 +93,23 @@ class AB_OT_import_asset(Operator):
         else:
             location = V(self.location)
 
-        context.scene.cursor.location = location
+        ab = get_ab_settings(context)
         asset_list_item = get_asset_lists().all_assets[self.asset_name]
-        asset = asset_list_item.to_asset(self.asset_quality)
-        asset.download_asset()
-        print(asset)
+        asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
+
+        if not asset_list_item.is_downloaded(self.asset_quality) or ab.reload_asset:
+            asset.download_asset()
+
+        def import_asset():
+            imported = asset.import_asset(context)
+
+            if isinstance(imported, Object):
+                imported.location += location
+            elif isinstance(imported, Collection):
+                for obj in imported.objects:
+                    obj.location += location
+
+        # Blender is weird, and without executing this in a timer, all imported objects will be
+        # scaled to zero after execution. God knows why.
+        bpy.app.timers.register(import_asset)
         return {"FINISHED"}

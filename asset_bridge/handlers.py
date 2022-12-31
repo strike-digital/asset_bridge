@@ -1,8 +1,8 @@
 # from asset_bridge.operators import AB_OT_import_asset
-from .settings import get_ab_settings
 import bpy
 from bpy.app import handlers
 from bpy.types import Scene
+from .settings import get_ab_settings
 
 
 def get_asset_quality(context):
@@ -29,8 +29,8 @@ def get_browser_area(name) -> bpy.types.Area:
     return None
 
 
-def is_link(area):
-    return "LINK" in area.spaces.active.params.import_type
+def link_method(area):
+    return area.spaces.active.params.import_type
 
 
 @handlers.persistent
@@ -47,7 +47,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             "INVOKE_DEFAULT",
             asset_name=name,
             asset_quality=quality,
-            link=is_link(get_browser_area(name)),
+            link_method=link_method(get_browser_area(name)),
             reload=reload,
             at_mouse=True,
         )
@@ -69,7 +69,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 #     at_mouse=True,
                 #     # location=bpy.context.object.location,
                 #     asset_quality=quality,
-                #     link=is_link(get_browser_area(name)),
+                #     link_method=link_method(get_browser_area(name)),
                 #     reload=reload,
                 #     from_asset_browser=True,
                 # )
@@ -83,8 +83,8 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         bpy.ops.asset_bridge.import_asset(
             "INVOKE_DEFAULT",
             asset_name=name,
+            link_method=link_method(get_browser_area(name)),
             at_mouse=True,
-            link=is_link(get_browser_area(name)),
             asset_quality=quality,
             reload=reload,
         )

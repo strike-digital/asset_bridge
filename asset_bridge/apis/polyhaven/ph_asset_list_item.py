@@ -1,22 +1,22 @@
-from datetime import datetime
 import json
-from threading import Thread
-
-from ...settings import get_ab_settings
-from ...helpers.main_thread import force_ui_update
 import bpy
-from ...helpers.library import human_readable_file_size
-from .ph_asset import PH_Asset
+from datetime import datetime
+from threading import Thread
 from bpy.types import Material, Object, World
-from ...constants import DIRS
 
+from .ph_asset import PH_Asset
 from ..asset_utils import download_file
 from ..asset_types import AssetListItem, AssetMetadataItem
+from ...settings import get_ab_settings
+from ...helpers.main_thread import force_ui_update
+from ...helpers.library import human_readable_file_size
+from ...constants import DIRS
 
 
 class PH_AssetListItem(AssetListItem):
 
     def __init__(self, name: str, data: dict):
+        self.asset_type = PH_Asset
         self.asset: PH_Asset = None
 
         asset_types = ["hdri", "texture", "model"]
@@ -138,6 +138,3 @@ class PH_AssetListItem(AssetListItem):
         size = 128
         url = f"https://cdn.polyhaven.com/asset_img/thumbs/{self.name}.png?width={size}&height={size}"
         download_file(url, DIRS.previews, f"{self.idname}.png")
-
-    def to_asset(self, quality_level) -> PH_Asset:
-        return PH_Asset(self, quality_level)

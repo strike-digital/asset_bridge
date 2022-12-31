@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from itertools import zip_longest
 import os
-from typing import Callable, OrderedDict
+from typing import Callable, Literal, OrderedDict, Type
 from abc import ABC, abstractmethod
 
 from ..constants import DIRS
@@ -70,6 +70,8 @@ class AssetMetadataItem():
 class AssetListItem(ABC):
     """A light representation of an asset, only containing info needed for display before being selected"""
 
+    asset_type: Type[Asset]  # The api asset class
+
     idname: str  # The unique Asset Bridge identifier of this asset
     name: str  # The api name of the asset
     label: str  # The name visible in the UI
@@ -95,9 +97,16 @@ class AssetListItem(ABC):
         """Download a preview for this asset.
         Returns an empty string if the download was successful or an error message otherwise"""
 
-    @abstractmethod
-    def to_asset(self, quality_level: str) -> Asset:
+    def to_asset(
+        self,
+        quality_level: str,
+        link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"],
+    ) -> Asset:
         """Return an Asset type for downloading and importing of this asset"""
+        asset = self.asset_type(self)
+        asset.quality = quality_level
+        asset.link_method = link_method
+        return asset
 
     def is_downloaded(self, quality_level) -> bool:
         """Return whether this asset has been downloaded at a certain quality level"""
@@ -150,17 +159,18 @@ class AssetList(ABC):
 class Asset(ABC):
     """A functional representation of an asset, used only for downloading or importing assets."""
 
-    quality: str = ""
     list_item: AssetListItem
+    quality: str
+    link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"]
 
     @abstractmethod
     def download_asset(self):
         pass
 
     @abstractmethod
-    def import_asset(self):
+    def import_asset(self, context: Context):
         pass
 
     @abstractmethod
-    def download_and_import_asset(self):
+    def download_and_import_asset(self, context: Context):
         pass
