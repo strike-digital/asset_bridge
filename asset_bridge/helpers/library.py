@@ -49,3 +49,15 @@ def human_readable_file_size(num, suffix=""):
             return f"{num:3.0f}{unit}{suffix}"
         num /= 1024.0
     return f"{num:.1f}Yi{suffix}"
+
+
+def get_dir_size(directory):
+    """Get the total size of a directory in bytes."""
+    total = 0
+    with os.scandir(directory) as it:
+        for entry in it:
+            if entry.is_file():
+                total += entry.stat().st_size
+            elif entry.is_dir():
+                total += get_dir_size(entry.path)
+    return total

@@ -28,7 +28,7 @@ class PH_Asset(Asset):
 
     @property
     def downloads_path(self):
-        return self.list_item.downloads_path / self.quality
+        return self.list_item.downloads_dir / self.quality
 
     def get_quality_data(self) -> dict[str, dict]:
         data = self.raw_data

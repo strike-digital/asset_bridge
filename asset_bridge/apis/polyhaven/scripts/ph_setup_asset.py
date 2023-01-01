@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 import sys
 import bpy
@@ -17,4 +18,10 @@ for obj in bpy.context.scene.objects:
 
 bpy.context.scene.collection.children.link(collection)
 bpy.ops.wm.save_mainfile(filepath=str(Path(bpy.data.filepath).parent / f"{args.name}.blend"))
+
+# Remove blend1 file
+blend1_file = Path(bpy.data.filepath + "1")
+if blend1_file.exists():
+    os.remove(blend1_file)
+
 bpy.ops.wm.quit_blender()

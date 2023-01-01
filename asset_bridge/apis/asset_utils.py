@@ -161,6 +161,7 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
 
     # Add mapping and set locations
     mapping_node = nodes.new("ShaderNodeMapping")
+    mapping_node.name = mapping_node.label = "Mapping"
     half_height = (300 * (len(image_nodes) - 1) / 2)
     for i, node in enumerate(image_nodes):
         x = bsdf_node.location.x - (node.width + 200) * dpifac()
@@ -169,7 +170,9 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
         links.new(mapping_node.outputs[0], node.inputs[0])
     mapping_node.location = (node.location.x - mapping_node.width - 80, bsdf_node.location.y)
 
+    # Add texture coordinates
     coords_node = nodes.new("ShaderNodeTexCoord")
+    coords_node.name = coords_node.label = "Coords"
     links.new(coords_node.outputs["UV"], mapping_node.inputs[0])
     coords_node.location = mapping_node.location - V((coords_node.width + 40, 0))
 
@@ -179,6 +182,10 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
         nor_node.location = nor_image_node.location + V((nor_image_node.width + 40, 0))
 
     if disp_node:
+        # TODO: Get the average color and use it as the material color
+        # TODO: Add a preference for the default displacement method
+        # Maybe calculate the average displace value and use it as the midlevel
+        mat.cycles.displacement_method = "DISPLACEMENT"
         disp_node.location = bsdf_node.location + V((bsdf_node.width - disp_node.width, -680))
     return mat
 

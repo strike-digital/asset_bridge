@@ -1,12 +1,20 @@
+import os
+from threading import Thread
+
+from ..helpers.library import get_dir_size
+
+from .op_report_message import report_message
+
 import bpy
+
+from ..btypes import BOperator
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
-from ..helpers.drawing import get_active_window_region
+from ..helpers.main_thread import run_in_main_thread
+from ..helpers.drawing import get_active_window_region, point_under_mouse
 from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
 from bpy.types import Collection, Material, Object, Operator
-from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
 from mathutils import Vector as V
-from ..btypes import BOperator
 
 
 @BOperator("asset_bridge")
@@ -49,71 +57,96 @@ class AB_OT_import_asset(Operator):
     material_slot = None
 
     def invoke(self, context, event):
+        # This is the best way I know to be able to pass custom data to operators
         self.material_slot = self.__class__.material_slot
         self.__class__.material_slot = None
+
+        # Store mouse positions
         self.mouse_pos_region = V((event.mouse_region_x, event.mouse_region_y))
         self.mouse_pos_window = V((event.mouse_x, event.mouse_y))
         return self.execute(context)
 
     def execute(self, context):
 
-        # Get the position of the mouse in 3D space using raycasting
         if self.at_mouse:
-            depsgraph = context.evaluated_depsgraph_get()
+            # Get the position of the mouse in 3D space
             if context.region:
                 region = context.region
                 coord = self.mouse_pos_region
             else:
-                region = get_active_window_region(self.mouse_pos_window)
+                region = get_active_window_region(self.mouse_pos_window, fallback_area_type="VIEW_3D")
+                if not region:
+                    message = "Cannot import assets when another blender window is active"
+                    report_message(message, "WARNING")
+                    return {"CANCELLED"}
                 coord = self.mouse_pos_window - V((region.x, region.y))
-            r3d = region.data
 
-            view_vector = V(region_2d_to_vector_3d(region, r3d, coord))
-            ray_origin = V(region_2d_to_origin_3d(region, r3d, coord))
-
-            location = context.scene.ray_cast(depsgraph, ray_origin, view_vector)[1]
-
-            if location == V((0., 0., 0.)):
-                # If the ray doesn't intersect with any mesh, place it on the xy plane
-                # If view vector intersects with ground behind the camera, just place it in front of the camera
-                if (view_vector.z > 0 and ray_origin.z > 0) or (view_vector.z < 0 and ray_origin.z < 0):
-                    location = ray_origin + view_vector * (ray_origin.length / 2)
-                else:
-                    # find the intersection with the ground plane
-                    p1 = ray_origin
-                    p2 = p1 + view_vector
-
-                    x_slope = (p2.x - p1.x) / (p2.z - p1.z)
-                    y_slope = (p2.y - p1.y) / (p2.z - p1.z)
-                    xco = p1.x - (x_slope * p1.z)
-                    yco = p1.y - (y_slope * p1.z)
-
-                    location = V((xco, yco, 0.))
+            location = point_under_mouse(context, region, coord)
         else:
             location = V(self.location)
 
         ab = get_ab_settings(context)
         asset_list_item = get_asset_lists().all_assets[self.asset_name]
         asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
+        files = asset.get_files()
 
-        if not asset_list_item.is_downloaded(self.asset_quality) or ab.reload_asset:
-            asset.download_asset()
-
+        # These need to variables rather than instance attributes so that they
+        # can be accesed in another thread after the operator has finished.
         material_slot = self.material_slot
+        quality = self.asset_quality
 
-        def import_asset():
-            imported = asset.import_asset(context)
+        # Download the asset in a separate thread to avoid locking the interface,
+        # and then import the asset in the main thread again to avoid errors.
+        def download_and_import_asset():
 
-            if isinstance(imported, Material):
-                if material_slot:
-                    material_slot.material = imported
-            elif isinstance(imported, Object):
-                imported.location += location
-            elif isinstance(imported, Collection):
-                for obj in imported.objects:
-                    obj.location += location
+            if not asset_list_item.is_downloaded(quality) or ab.reload_asset:
+                max_size = asset.get_download_size(quality)
+                task = ab.new_task()
+                task.new_progress(max_size)
+
+                # Delete existing files
+                for file in files:
+                    os.remove(file)
+
+                # Run the draw operator
+                run_in_main_thread(
+                    bpy.ops.asset_bridge.draw_import_progress,
+                    args=["INVOKE_DEFAULT"],
+                    kwargs={
+                        "task_name": task.name,
+                        "location": location
+                    },
+                )
+
+                def check_progress():
+                    """Check to total file size of the downloading files, and update the progress accordingly"""
+                    if task.progress:
+                        task.progress.progress = get_dir_size(asset.downloads_dir)
+                        return .01
+                    return None
+                
+                # Download the asset
+                bpy.app.timers.register(check_progress)
+                asset.download_asset()
+                task.finish()
+
+            def import_asset():
+                imported = asset.import_asset(context)
+                if isinstance(imported, Material):
+                    if material_slot:
+                        material_slot.material = imported
+                elif isinstance(imported, Object):
+                    imported.location += location
+                elif isinstance(imported, Collection):
+                    for obj in imported.objects:
+                        obj.location += location
+
+            # This is modifying blender data, so needs to be run in the main thread
+            run_in_main_thread(import_asset)
+
+        thread = Thread(target=download_and_import_asset)
+        thread.start()
 
         # Blender is weird, and without executing this in a timer, all imported objects will be
         # scaled to zero after execution. God knows why.
-        bpy.app.timers.register(import_asset)
         return {"FINISHED"}

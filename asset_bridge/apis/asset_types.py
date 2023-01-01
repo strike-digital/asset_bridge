@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from itertools import zip_longest
 import os
+from pathlib import Path
 from typing import Callable, Literal, OrderedDict, Type
 from abc import ABC, abstractmethod
 
@@ -89,8 +90,14 @@ class AssetListItem(ABC):
     metadata: list[AssetMetadataItem] = []  # Info to be drawn in the metadata table
 
     @property
-    def downloads_path(self):
+    def downloads_dir(self):
+        """The directory where all of the asset files will be downloaded to.
+        IMPORTANT: This is for *All* quality levels, use the Asset class for a specific level, or do it manually"""
         return DIRS.assets / self.idname
+
+    @property
+    def preview_file(self):
+        return DIRS.previews / (self.idname + ".png")
 
     @abstractmethod
     def download_preview(self) -> str:
@@ -110,7 +117,7 @@ class AssetListItem(ABC):
 
     def is_downloaded(self, quality_level) -> bool:
         """Return whether this asset has been downloaded at a certain quality level"""
-        quality_dir = self.downloads_path / quality_level
+        quality_dir = self.downloads_dir / quality_level
         if not quality_dir.exists():
             return False
         if not os.listdir(quality_dir):
@@ -163,6 +170,15 @@ class Asset(ABC):
     quality: str
     link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"]
 
+    @property
+    def downloads_dir(self):
+        """The directory that the asset files will be downloaded to"""
+        return self.list_item.downloads_dir / self.quality
+
+    @abstractmethod
+    def get_download_size(self, quality_level):
+        """Return the number of bytes that need to be downloaded"""
+
     @abstractmethod
     def download_asset(self):
         pass
@@ -174,3 +190,10 @@ class Asset(ABC):
     @abstractmethod
     def download_and_import_asset(self, context: Context):
         pass
+
+    def get_files(self) -> list[Path]:
+        "Get a list of downloaded files"
+        files = []
+        for (dirpath, dirnames, filenames) in os.walk(self.list_method.downloads_path / self.quality):
+            files += [Path(dirpath) / file for file in filenames]
+        return files
