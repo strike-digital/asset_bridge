@@ -1,3 +1,4 @@
+from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
 from ..settings import get_ab_settings
 from ..helpers.math import vec_lerp
 import bpy
@@ -6,7 +7,7 @@ from bpy.types import Operator
 from bpy_extras.view3d_utils import location_3d_to_region_2d
 import gpu
 from gpu_extras.batch import batch_for_shader
-from mathutils import Vector as V
+from mathutils import Color, Vector as V
 from ..btypes import BOperator
 
 handlers = []
@@ -91,11 +92,26 @@ class AB_OT_draw_import_progress(Operator):
             (3, 0),
         ]
 
+        uv = coords
         fac = task.progress_prop / 100
         offset = location_3d_to_region_2d(context.region, context.region.data, location)
         size = V([100] * 2)
+        size *= 5
         size.x *= self.aspect
         line_width = 2
+
+        coords = [V(c) * size + offset for c in coords]
+        color = Color()
+        color.hsv = (.5, 1, 1)
+
+        gpu.state.blend_set("ALPHA")
+        batch = batch_for_shader(ASSET_PROGRESS_SHADER, "TRIS", {"pos": coords, "uv": uv}, indices=indices)
+        ASSET_PROGRESS_SHADER.bind()
+        ASSET_PROGRESS_SHADER.uniform_float("color", (*list(color), 1))
+        ASSET_PROGRESS_SHADER.uniform_sampler("image", self.texture)
+        batch.draw(ASSET_PROGRESS_SHADER)
+        gpu.state.blend_set("ALPHA")
+        return
 
         # Arrow
         height = .16
