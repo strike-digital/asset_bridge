@@ -96,22 +96,25 @@ class AB_OT_draw_import_progress(Operator):
         fac = task.progress_prop / 100
         offset = location_3d_to_region_2d(context.region, context.region.data, location)
         size = V([100] * 2)
-        size *= 5
         size.x *= self.aspect
         line_width = 2
 
-        coords = [V(c) * size + offset for c in coords]
-        color = Color()
-        color.hsv = (.5, 1, 1)
-
-        gpu.state.blend_set("ALPHA")
-        batch = batch_for_shader(ASSET_PROGRESS_SHADER, "TRIS", {"pos": coords, "uv": uv}, indices=indices)
-        ASSET_PROGRESS_SHADER.bind()
-        ASSET_PROGRESS_SHADER.uniform_float("color", (*list(color), 1))
-        ASSET_PROGRESS_SHADER.uniform_sampler("image", self.texture)
-        batch.draw(ASSET_PROGRESS_SHADER)
-        gpu.state.blend_set("ALPHA")
-        return
+        # Custom shader version
+        if False:
+            coords = [V(c) * size + offset for c in coords]
+            color = Color()
+            color.hsv = (.5, 0, 1)
+            size *= 5
+            print(self.aspect)
+            gpu.state.blend_set("ALPHA")
+            batch = batch_for_shader(ASSET_PROGRESS_SHADER, "TRIS", {"pos": coords, "uv": uv}, indices=indices)
+            ASSET_PROGRESS_SHADER.bind()
+            ASSET_PROGRESS_SHADER.uniform_float("color", (*list(color), 1))
+            ASSET_PROGRESS_SHADER.uniform_float("aspect", self.aspect)
+            ASSET_PROGRESS_SHADER.uniform_sampler("image", self.texture)
+            batch.draw(ASSET_PROGRESS_SHADER)
+            gpu.state.blend_set("ALPHA")
+            return
 
         # Arrow
         height = .16

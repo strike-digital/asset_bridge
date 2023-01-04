@@ -1,5 +1,6 @@
 uniform vec4 color;
 uniform sampler2D image;
+uniform float aspect;
 
 in vec2 Uv;
 out vec4 fragColor;
@@ -47,17 +48,24 @@ void main()
 {
   vec2 uv = (Uv - .5) * 2.;
   float roundness = .2;
-  float size = .99;
-  float invSize = 1. - size;
+  vec2 size = vec2(.99);
+  float invSize = 1. - size.y;
   vec2 boxUv = uv;
   float triSize = .2;
+
+  boxUv.x *= aspect;
+  size.x *= aspect;
   boxUv = boxUv * (1. + triSize) - triSize;
   boxUv.x += triSize * 2;
-  float dist = sdRoundedBox(boxUv, vec2(size), vec4(roundness, roundness, roundness, 0));
+
+  float dist = sdRoundedBox(boxUv, size, vec4(roundness, roundness, roundness, 0));
 
   vec2 p1 = vec2(-1.0 + invSize, -1.0 + invSize);
   vec2 p2 = vec2(-0.7 + invSize, -1.0 + invSize);
   vec2 p3 = vec2(-1.0 + invSize, -1.4 + invSize);
+  p1.x *= aspect;
+  p2.x *= aspect;
+  p3.x *= aspect;
   float bodyDist = min(sdTriangle(boxUv, p1, p2, p3), dist);
 
   vec2 insideUv = boxUv * 1.1;
@@ -77,7 +85,9 @@ void main()
   vec4 borderColor = clamp(color * vec4(1- dist), vec4(0.), vec4(1.)); 
   // outColor.w = 1. - dist;
   
-  vec2 imageUv = insideUv / 2 + .5;
+  vec2 imageUv = insideUv;
+  imageUv.x /= aspect;
+  imageUv = imageUv / 2 + .5;
   vec4 image = texture2D(image, imageUv);
 
   // Stop image repeating

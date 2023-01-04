@@ -194,6 +194,6 @@ class Asset(ABC):
     def get_files(self) -> list[Path]:
         "Get a list of downloaded files"
         files = []
-        for (dirpath, dirnames, filenames) in os.walk(self.list_method.downloads_path / self.quality):
+        for (dirpath, dirnames, filenames) in os.walk(self.downloads_dir):
             files += [Path(dirpath) / file for file in filenames]
         return files

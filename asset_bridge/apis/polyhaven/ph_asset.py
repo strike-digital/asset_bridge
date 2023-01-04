@@ -51,13 +51,6 @@ class PH_Asset(Asset):
     def get_download_size(self, quality_level: str):
         return sum([f["size"] for f in self.get_files_to_download(quality_level)])
 
-    def get_files(self):
-        "Get a list of downloaded files"
-        files = []
-        for (dirpath, dirnames, filenames) in os.walk(self.downloads_path):
-            files += [Path(dirpath) / file for file in filenames]
-        return files
-
     def download_asset(self):
         if not self.quality:
             raise ValueError(f"Cannot download {self.name} without providing a quality level")
@@ -67,9 +60,9 @@ class PH_Asset(Asset):
         paths: list[Path] = []
         for url in urls:
             if self.type == "model" and not url.endswith(".blend"):
-                paths.append(self.downloads_path / "textures")
+                paths.append(self.downloads_dir / "textures")
             else:
-                paths.append(self.downloads_path)
+                paths.append(self.downloads_dir)
 
         threads = []
 
