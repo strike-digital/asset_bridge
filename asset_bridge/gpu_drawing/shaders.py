@@ -1,9 +1,13 @@
 from pathlib import Path
+import bpy
 import gpu
 
 
 def load_shader(vert_path: Path, frag_path: Path, geom_path: Path = "") -> gpu.types.GPUShader:
     """Creates a shader from a fragment and vertex glsl file"""
+    if bpy.app.background:
+        return None
+
     paths = [Path(vert_path), Path(frag_path)]
     if geom_path:
         paths.append(Path(geom_path))

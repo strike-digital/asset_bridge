@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from ..asset_utils import register_asset_list
 
-from asset_bridge.apis.polyhaven.ph_asset_list_item import PH_AssetListItem
+from .ph_asset_list_item import PH_AssetListItem
 from ..asset_types import AssetList
 from ...vendor import requests
 

@@ -2,6 +2,10 @@ import json
 import os
 from pathlib import Path
 
+from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
+
+from .operators.op_initialize_asset_lists import AB_OT_initialize_asset_lists
+
 from .helpers.library import ensure_bl_asset_library_exists, is_lib_path_invalid
 
 from .operators.op_show_popup import show_popup
@@ -106,13 +110,14 @@ class ABAddonPreferences(AddonPreferences):
             return
 
         ab = get_ab_settings(context)
-        all_assets = get_asset_lists().all_assets
+        lists_obj = get_asset_lists()
 
-        # Draw the download previews button/progress bar
-        preview_files = os.listdir(DIRS.previews)
-        new_assets_available = len(all_assets) > len(preview_files)
+        # # Draw the download previews button/progress bar
+        new_assets_available = lists_obj.new_assets_available()
         # Check if there are new assets/whether they are already downloading
-        if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys() or new_assets_available:
+        if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys() or new_assets_available or not lists_obj.all_initialized:
+            all_assets = lists_obj.all_assets
+            preview_files = os.listdir(DIRS.previews)
             first_time = len(preview_files) == 0
             task = ab.tasks.get(PREVIEW_DOWNLOAD_TASK_NAME)
             task_steps = task.progress.max if task else 0
@@ -130,13 +135,12 @@ class ABAddonPreferences(AddonPreferences):
         row.scale_y = 1.5
 
         op = row.operator_menu_hold(
-            AB_OT_download_previews.bl_idname,
+            AB_OT_check_for_new_assets.bl_idname,
             icon="IMPORT",
             text="Check for new assets",
             menu=AB_MT_download_previews_menu.__name__,
         )
         op.bl_description = "Check for new assets, and if they exist, download their previews and update the library."
-        op.reload = False
 
         # draw_download_previews(row, in_box=False, text="Check for new assets", reload=False)
         row.operator(

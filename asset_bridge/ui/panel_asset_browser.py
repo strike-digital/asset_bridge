@@ -1,3 +1,4 @@
+from . import wrap_text
 from ..settings import get_ab_settings
 from bpy_extras.asset_utils import AssetBrowserPanel
 from ..constants import ASSET_LIB_NAME
@@ -21,11 +22,15 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
     def draw(self, context):
         layout = self.layout
         ab = get_ab_settings(context)
-        asset = ab.selected_asset
+        try:
+            asset = ab.selected_asset
+        except KeyError:
+            wrap_text(context, "Asset not found", layout.box(), centered=True)
+            return
+
         if not asset:
             return
-        # layout.label(text=ab.selected_asset.label)
-        # layout.prop(ab, "asset_quality")
+
         is_downloaded = asset.is_downloaded(ab.asset_quality)
 
         # Toprow

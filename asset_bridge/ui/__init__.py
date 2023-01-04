@@ -1,5 +1,9 @@
 from pathlib import Path
 
+from ..operators.op_initialize_asset_lists import AB_OT_initialize_asset_lists
+
+from ..api import get_asset_lists
+
 from ..settings import get_ab_settings
 from ..helpers.prefs import get_prefs
 from ..helpers.library import is_lib_path_invalid
@@ -58,7 +62,9 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
         layout = layout.box().column()
         layout.scale_y = 1.5
 
+    lists_obj = get_asset_lists()
     ab = get_ab_settings(bpy.context)
+
     if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
         row = layout.row(align=True)
         task = ab.tasks[PREVIEW_DOWNLOAD_TASK_NAME]
@@ -68,11 +74,20 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
         op.name = PREVIEW_DOWNLOAD_TASK_NAME
         op.bl_description = "Cancel downloading previews"
     else:
-        op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or "Download previews")
-        op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes\
-            depending on internet access."
+        # If not all of the asset lists have been downloaded
+        if not lists_obj.all_initialized:
+            layout.operator(
+                AB_OT_initialize_asset_lists.bl_idname,
+                icon="IMPORT",
+                text=text or "Download asset previews",
+            )
+        else:
+            # Draw the download previews button
+            op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or "Download previews")
+            op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes\
+                depending on internet access."
 
-        op.reload = reload
+            op.reload = reload
 
     return layout
 

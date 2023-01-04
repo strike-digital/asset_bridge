@@ -14,9 +14,12 @@ import shutil
 from pathlib import Path
 
 
-def register_asset_list(new_list: Type[AssetList]):
-    """Takes an asset api and initialises all of the asset lists with either cached or new data."""
+"""Contains useful common functions to be used by the various apis"""
 
+
+def register_asset_list(new_list: Type[AssetList]):
+    """"""
+    asset_lists[new_list.name] = new_list
     # Get the cached asset list data if it exists
     list_file = DIRS.asset_lists / (new_list.name + ".json")
     asset_list_data = {}
@@ -27,9 +30,9 @@ def register_asset_list(new_list: Type[AssetList]):
             except json.JSONDecodeError:
                 pass
 
-    # Initialize the asset lists with either the cached data, or new data from the internet, from the get_data function
     if not asset_list_data:
-        asset_list_data = new_list.get_data()
+        # no cached data found, wait for user to initialize the asset list.
+        return
 
     # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name
     for name, other_list in asset_lists.items():
@@ -45,10 +48,6 @@ def register_asset_list(new_list: Type[AssetList]):
 
     # Initialize
     asset_lists[new_list.name] = new_list(asset_list_data)
-
-    # Write the new cached data
-    with open(list_file, "w") as f:
-        json.dump(asset_list_data, f, indent=2)
 
 
 def file_name_from_url(url: str) -> str:

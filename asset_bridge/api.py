@@ -1,4 +1,11 @@
 from collections import OrderedDict
+import json
+import os
+from threading import Thread
+
+from .helpers.math import clamp
+
+from .constants import DIRS
 
 from .apis.asset_types import AssetList, AssetListItem
 
@@ -7,6 +14,70 @@ class AllAssetLists():
     """Contains a list of all asset Lists, and is a top level structure for accessing their information."""
 
     asset_lists: OrderedDict[str, AssetList]
+
+    def is_initialized(self, name: str):
+        """Check whether an asset list has been initialized with data yet, or if it still needs to be downloaded."""
+        return isinstance(self.asset_lists[name], AssetList)
+
+    @property
+    def all_initialized(self):
+        """Check whether all asset lists have been initialized"""
+        for name in self.asset_lists:
+            if not self.is_initialized(name):
+                return False
+        return True
+
+    def initialize_asset_list(self, name):
+        """Takes an asset list and initialises it with new data from the internet"""
+        asset_list = self.asset_lists[name]
+
+        # Get new data from the internet, from the get_data function
+        asset_list_data = asset_list.get_data()
+
+        # Initialize
+        if self.is_initialized(asset_list.name):
+            self.asset_lists[asset_list.name] = asset_list.__class__(asset_list_data)
+        else:
+            self.asset_lists[asset_list.name] = asset_list(asset_list_data)
+
+        # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name
+        for name, other_list in self.asset_lists.items():
+            if name == asset_list.name:
+                continue
+
+            if duplicates := other_list.assets.keys() & asset_list.assets.keys():
+                for duplicate in duplicates:
+                    asset = asset_list[duplicate]
+                    del asset_list[duplicate]
+                    asset_list[f"{duplicate}_1"] = asset
+                    asset.idname = f"{duplicate}_1"
+
+        # Write the new cached data
+        list_file = DIRS.asset_lists / (asset_list.name + ".json")
+        with open(list_file, "w") as f:
+            json.dump(asset_list_data, f, indent=2)
+
+        return asset_list
+
+    def initialize_all(self):
+        """Initialize all current asset lists"""
+
+        # Initialize each one in a separate thread for performance.
+        threads = []
+        asset_lists = self.asset_lists.copy()
+        for asset_list in asset_lists:
+            thread = Thread(target=self.initialize_asset_list, args=[asset_list])
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+    def new_assets_available(self):
+        """Return the number of assets that still need to be downloaded"""
+        preview_files = os.listdir(DIRS.previews)
+        difference = len(self.all_assets) - len(preview_files)
+        return clamp(difference, 0, len(self.all_assets))
 
     def __init__(self):
         self.asset_lists = OrderedDict()

@@ -1,6 +1,15 @@
 from mathutils import Vector as V
 
 
+def clamp(value, min=0.0, max=1.0):
+    """Clamp the value to between the specified min and max"""
+    if value < min:
+        value = min
+    elif value > max:
+        value = max
+    return value
+
+
 def lerp(fac, a, b):
     """Linear interpolation between a and b."""
     return a + (b - a) * fac

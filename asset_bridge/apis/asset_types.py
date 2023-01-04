@@ -133,7 +133,7 @@ class AssetList(ABC):
     assets: OrderedDict[str, AssetListItem]
     url: str
     description: str
-
+    
     def __getitem__(self, key) -> AssetListItem:
         return self.assets[key]
 

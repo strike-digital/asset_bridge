@@ -16,6 +16,8 @@ from asset_bridge.catalog import AssetCatalogFile
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
 These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
 
+# TODO: Only set up the assets that need to be, to speed up getting new assets
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--asset_list_name")
 args = sys.argv[sys.argv.index('--') + 1:]

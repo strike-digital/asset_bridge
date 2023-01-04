@@ -32,6 +32,7 @@ class AB_OT_download_previews(Operator):
 
     def execute(self, context):
         ab = get_ab_settings(context)
+
         assets = get_asset_lists().all_assets
 
         if not self.reload:

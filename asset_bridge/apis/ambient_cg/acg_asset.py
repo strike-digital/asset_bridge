@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from .acg_asset_list_item import ACG_AssetListItem  # noqa F811
 
 
-class PH_Asset(Asset):
+class ACG_Asset(Asset):
 
     def __init__(self, asset_list_item: ACG_AssetListItem):
         self.list_item = asset_list_item
