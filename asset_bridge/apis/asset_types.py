@@ -96,8 +96,16 @@ class AssetListItem(ABC):
         return DIRS.assets / self.idname
 
     @property
+    def preview_name(self):
+        return self.idname + ".png"
+
+    @property
+    def previews_dir(self):
+        return DIRS.previews
+
+    @property
     def preview_file(self):
-        return DIRS.previews / (self.idname + ".png")
+        return self.previews_dir / self.preview_name
 
     @abstractmethod
     def download_preview(self) -> str:

@@ -1,3 +1,4 @@
+import math
 from mathutils import Vector as V
 
 
@@ -8,6 +9,11 @@ def clamp(value, min=0.0, max=1.0):
     elif value > max:
         value = max
     return value
+
+
+def roundup(x: float, increment: int) -> int:
+    """Round x up to the nearest specified increment"""
+    return int(math.ceil(x / increment)) * int(increment)
 
 
 def lerp(fac, a, b):

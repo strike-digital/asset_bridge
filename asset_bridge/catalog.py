@@ -64,6 +64,7 @@ class AssetCatalogFile():
         path = path or name
 
         with open(self.catalog_file, "a") as f:
+            print(uuid, path, name)
             f.write(f"{uuid}:{path}:{name}\n")
         self.update_catalogs()
 

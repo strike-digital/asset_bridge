@@ -29,6 +29,7 @@ class AB_OT_create_dummy_assets(Operator):
         asset_lists = get_asset_lists()
         ensure_bl_asset_library_exists()
         catalog = AssetCatalogFile(DIRS.dummy_assets)
+        # return {"FINISHED"}
         catalog.reset()
 
         # Update/create the progress bar
@@ -43,24 +44,40 @@ class AB_OT_create_dummy_assets(Operator):
 
         # Create a blender process for each asset list
         processes: Dict[str, subprocess.Popen] = {}
-        for asset_list_name in asset_lists.keys():
+        for asset_list_name in [list(asset_lists.keys())[0]]:
+            print(asset_list_name)
+            print(asset_list_name)
+            print(asset_list_name)
+            print(asset_list_name)
             process = new_blender_process(
                 Files.script_create_dummy_assets,
                 script_args=["--asset_list", asset_list_name],
-                use_stdout=True,
+                use_stdout=False,
+                # use_stdout=True,
             )
             processes[asset_list_name] = process
 
         start = perf_counter()
         update_interval = .01
 
+        def output_log(name, process):
+            try:
+                out = process.stdout.read().decode()
+            except AttributeError:
+                out = "stdin not used"
+            print(out)
+            with open(DIRS.dummy_assets / f"log_{name}.txt", "w") as f:
+                f.write(out)
+            return out
+
         def check_processes():
             """Check all of the blender processes and get the progress from them"""
 
             # If cancel button is pressed
             if progress.cancelled:
-                for process in processes.values():
+                for name, process in processes.items():
                     process.kill()
+                    output_log(name, process)
                 report_message("Setup cancelled.", severity="INFO")
                 return
 
@@ -72,17 +89,19 @@ class AB_OT_create_dummy_assets(Operator):
 
             # Handle a time out if the process continues for more than 100 seconds. I really hope no ones computer is
             # Slow enough to run into this naturally, but oh well.
-            if perf_counter() - start > 100:
+            # TODO: Make this a sensible number
+            if perf_counter() - start > 20:
                 completed = True
-                for process in processes.values():
+                for name, process in processes.items():
                     process.kill()
-                report_message(message="Process timed out, please try again", severity="ERROR")
+                    log = output_log(name, process)
+                report_message(message=f"Process timed out, please try again.\nError log:\n{log}", severity="ERROR")
 
             if completed:
                 # Handle any errors
                 errors = False
                 for name, process in processes.items():
-                    out = process.stdout.read().decode()
+                    out = output_log(name, process)
                     if "Error" in out:
                         report_message(f"Error creating assets for {name}:\n{out}", severity="ERROR")
                         errors = True

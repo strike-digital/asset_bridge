@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from bpy.types import Context
 
-from ..asset_utils import download_file, file_name_from_url, import_hdri, import_model, import_material
+from ..asset_utils import HDRI, MATERIAL, MODEL, download_file, file_name_from_url, import_hdri, import_model, import_material
 from ..asset_types import Asset, AssetListItem as PH_AssetListItem
 from ...operators.op_report_message import report_message
 from ...helpers.process import new_blender_process
@@ -31,19 +31,19 @@ class PH_Asset(Asset):
 
     def get_quality_data(self) -> dict[str, dict]:
         data = self.raw_data
-        if self.type == "hdri":
+        if self.type == HDRI:
             return data["hdri"]
-        elif self.type in {"texture", "model"}:
+        elif self.type in {MATERIAL, MODEL}:
             return data["blend"]
 
     def get_files_to_download(self, quality_level: str) -> list[dict]:
         data = self.get_quality_data()[quality_level]
-        if self.type == "hdri":
+        if self.type == HDRI:
             return [data["exr"]]
         else:
             files = []
             files = list(data["blend"]["include"].values())
-            if self.type == "model":
+            if self.type == MODEL:
                 files.append(data["blend"])
             return files
 
@@ -58,7 +58,7 @@ class PH_Asset(Asset):
         urls = [f["url"] for f in urls]
         paths: list[Path] = []
         for url in urls:
-            if self.type == "model" and not url.endswith(".blend"):
+            if self.type == MODEL and not url.endswith(".blend"):
                 paths.append(self.downloads_dir / "textures")
             else:
                 paths.append(self.downloads_dir)
@@ -77,7 +77,7 @@ class PH_Asset(Asset):
             thread.join()
 
         # Process the downloaded blend file if needed
-        if self.type == "model":
+        if self.type == MODEL:
 
             blend_file = [f for f in self.get_files() if f.suffix == ".blend"][0]
             process = new_blender_process(
@@ -97,13 +97,13 @@ class PH_Asset(Asset):
     def import_asset(self, context: Context):
         files = self.get_files()
 
-        if self.type == "hdri":
+        if self.type == HDRI:
             image_file = files[0]
             world = import_hdri(image_file, name=f"{self.idname}_{self.quality}", link_method=self.link_method)
             context.scene.world = world
             return world
 
-        elif self.type == "texture":
+        elif self.type == MATERIAL:
             # Find the files and add them to the dictionary with the correct keys for importing
             texture_files = {}
             files = {f.stem: f for f in files}
@@ -117,7 +117,7 @@ class PH_Asset(Asset):
             mat = import_material(texture_files, f"{self.name}_{self.quality}", link_method=self.link_method)
             return mat
 
-        elif self.type == "model":
+        elif self.type == MODEL:
             blend_file = [f for f in files if str(f).endswith(".blend")][0]
             imported = import_model(context, blend_file, name=self.name, link_method=self.link_method)
             return imported

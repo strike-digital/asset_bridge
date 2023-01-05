@@ -1,11 +1,10 @@
-import json
 import bpy
 from datetime import datetime
 from threading import Thread
 from bpy.types import Material, Object, World
 
 from .ph_asset import PH_Asset
-from ..asset_utils import download_file
+from ..asset_utils import HDRI, MATERIAL, MODEL, dimensions_to_string, download_file
 from ..asset_types import AssetListItem, AssetMetadataItem
 from ...settings import get_ab_settings
 from ...helpers.main_thread import force_ui_update
@@ -19,7 +18,7 @@ class PH_AssetListItem(AssetListItem):
         self.asset_type = PH_Asset
         self.asset: PH_Asset = None
 
-        asset_types = ["hdri", "texture", "model"]
+        asset_types = [HDRI, MATERIAL, MODEL]
         bl_types = [World, Material, Object]
         self.name = name
         self.label = data["name"]
@@ -29,7 +28,7 @@ class PH_AssetListItem(AssetListItem):
         self.authors = list(data["authors"].keys()) or [""]
 
         self.categories = data["categories"]
-        names = ["Hdris", "Textures", "Models"]
+        names = ["Hdris", "Materials", "Models"]
         self.catalog_path = f"{names[data['type']]}/{self.categories[0]}"
 
         self.tags = data["tags"] + data["categories"]
@@ -58,27 +57,12 @@ class PH_AssetListItem(AssetListItem):
         ]  # yapf: disable
 
         if "dimensions" in data:
-
             # This needs the context to work so pass it as an argument
-            def dimensions_to_string(value):
-                """Show dimensions in metric or imperial units depending on scene settings.
-                This is my gift to the americans, burmese and the liberians of the world."""
-                unit_system = bpy.context.scene.unit_settings.system
-                if unit_system in ["METRIC", "NONE"]:
-                    coefficient = 1
-                    suffix = "m"
-                else:
-                    coefficient = 3.2808399
-                    suffix = "ft"
-                dims = json.loads(value)
-                return f"{dims[0] / 1000 * coefficient:.0f}{suffix} x {dims[1] / 1000 * coefficient:.0f}{suffix}"
-
-            self.metadata.append(
-                AssetMetadataItem(
-                    "Dimensions",
-                    str(data["dimensions"]),
-                    to_string=dimensions_to_string,
-                ))
+            self.metadata.append(AssetMetadataItem(
+                "Dimensions",
+                [data["dimensions"]],
+                to_string=dimensions_to_string,
+            ))
 
         if "evs" in data:
             self.metadata.append(AssetMetadataItem("EVs", str(data["evs"])))

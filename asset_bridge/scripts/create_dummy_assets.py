@@ -25,6 +25,8 @@ args = parser.parse_args(args)
 
 asset_list = get_asset_lists()[args.asset_list_name]
 
+print("1", flush=True)
+
 
 def update_progress_file(value):
     # Get the already written progress
@@ -39,12 +41,15 @@ def update_progress_file(value):
         json.dump(contents, f, indent=2)
 
 
+print("2", flush=True)
+
 update_progress_file(0)
 
 # setup catalog file
 catalog = AssetCatalogFile(DIRS.dummy_assets)
 catalog.add_catalog(asset_list.label)
 
+print("3", flush=True)
 paths = set()
 
 # Add the catalog paths
@@ -54,9 +59,11 @@ for asset_item in asset_list.values():
 
 # Add the intermediate paths (so that the names don't have the asterisk next to them in the asset browser)
 intermediate_paths = set()
+print(len(paths))
 
 for path in paths:
     parts = path.split('/')
+    # print(parts, name, flush=True)
     catalog.ensure_catalog_exists(parts[-1], path)
     for i, part in enumerate(parts[:-1]):
         intermediate_paths.add("/".join(parts[:i + 1]))
@@ -64,6 +71,7 @@ for path in paths:
 for path in intermediate_paths:
     catalog.ensure_catalog_exists(path.split('/')[-1], path)
 
+print("4")
 # Convert between bpy.types and bpy.data
 type_to_data = {World: bpy.data.worlds, Object: bpy.data.objects, Material: bpy.data.materials}
 
@@ -76,6 +84,7 @@ progress = 0
 progress_update_interval = .01
 last_update = 0
 
+print("5")
 # Create a data block for each asset, and set it's properties
 for i, asset_item in enumerate(asset_list.values()):
     params = {}
@@ -107,7 +116,6 @@ for i, asset_item in enumerate(asset_list.values()):
     if perf_counter() - last_update > progress_update_interval:
         update_progress_file(progress)
         last_update = perf_counter()
-
 
 # Save
 blend_file = DIRS.dummy_assets / (asset_list.name + ".blend")

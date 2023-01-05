@@ -14,6 +14,11 @@ import shutil
 from pathlib import Path
 
 
+HDRI = "hdri"
+MATERIAL = "material"
+MODEL = "model"
+
+
 """Contains useful common functions to be used by the various apis"""
 
 
@@ -55,14 +60,14 @@ def file_name_from_url(url: str) -> str:
     return url.split('/')[-1].split("?")[0]
 
 
-def download_file(url: str, download_path: Path, file_name: str = ""):
+def download_file(url: str, download_dir: Path, file_name: str = ""):
     """Download a file from the provided url to the given file path"""
-    if not isinstance(download_path, Path):
-        download_path = Path(download_path)
+    if not isinstance(download_dir, Path):
+        download_dir = Path(download_dir)
 
-    download_path.mkdir(exist_ok=True)
+    download_dir.mkdir(exist_ok=True)
     file_name = file_name or file_name_from_url(url)
-    download_path = download_path / file_name
+    download_dir = download_dir / file_name
 
     result = requests.get(url, stream=True)
     if result.status_code != 200:
@@ -71,9 +76,9 @@ def download_file(url: str, download_path: Path, file_name: str = ""):
             f.write(result.status_code)
         raise requests.ConnectionError()
 
-    with open(download_path, 'wb') as f:
+    with open(download_dir, 'wb') as f:
         shutil.copyfileobj(result.raw, f)
-    return download_path
+    return download_dir
 
 
 def load_image(image_file, link_method, name=""):
@@ -82,6 +87,28 @@ def load_image(image_file, link_method, name=""):
     if name:
         image.name = name
     return image
+
+
+def dimensions_to_string(dimensions: list[float] | str) -> str:
+    """Show dimensions in metric or imperial units depending on scene settings.
+    This is my gift to the americans, burmese and the liberians of the world.
+    The dimensions can be either a list or the string representation of a list (used for asset metadata)."""
+    unit_system = bpy.context.scene.unit_settings.system
+    if unit_system in ["METRIC", "NONE"]:
+        coefficient = 1
+        suffix = "m"
+    else:
+        coefficient = 3.2808399
+        suffix = "ft"
+    if isinstance(dimensions, str):
+        dims = json.loads(dimensions)
+    else:
+        dims = dimensions
+    string = ""
+    for dim in dims:
+        string += f"{dim / 1000 * coefficient:.0f}{suffix} x "
+    string = string[:-3]
+    return string
 
 
 def import_hdri(image_file, name, link_method="APPEND_REUSE"):
@@ -110,7 +137,7 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
     """import the provided PBR texture files as a material and return it"""
     if not texture_files:
         raise ValueError("Cannot import material when not texture files are provided")
-    
+
     # Use existing material if it is the correct link method
     mat = bpy.data.materials.get(name)
     if mat and link_method != "APPEND":

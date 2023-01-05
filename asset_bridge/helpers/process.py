@@ -28,4 +28,4 @@ def new_blender_process(
 
     kwargs = {"stdout": subprocess.PIPE} if use_stdout else {}
 
-    return subprocess.Popen([bpy.app.binary_path, *args, "--python", script, *script_args], **kwargs)
+    return subprocess.Popen([bpy.app.binary_path, *args, "--python-exit-code", "1", "--python", script, *script_args], **kwargs)
