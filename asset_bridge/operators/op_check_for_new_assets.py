@@ -16,8 +16,8 @@ class AB_OT_check_for_new_assets(Operator):
         lists_obj.initialize_all()
         new_assets = lists_obj.new_assets_available()
         if new_assets:
-            suffix = "s" if len(new_assets) > 1 else ""
-            are = "are" if len(new_assets) > 1 else "is"
+            suffix = "s" if new_assets > 1 else ""
+            are = "are" if new_assets > 1 else "is"
             if self.report_message:
                 report_message(f"There {are} {new_assets} new asset{suffix} to download.", "INFO")
         elif self.report_message:

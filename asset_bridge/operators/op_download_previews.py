@@ -63,7 +63,7 @@ class AB_OT_download_previews(Operator):
                     return
                 asset.download_preview()
                 progress.increment()
-                names.remove(asset.name)
+                names.remove(asset.idname)
 
             def update_message():
                 """Update the message with a random preview name.

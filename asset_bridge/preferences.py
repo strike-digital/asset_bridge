@@ -4,8 +4,6 @@ from pathlib import Path
 
 from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
 
-from .operators.op_initialize_asset_lists import AB_OT_initialize_asset_lists
-
 from .helpers.library import ensure_bl_asset_library_exists, is_lib_path_invalid
 
 from .operators.op_show_popup import show_popup
@@ -112,7 +110,7 @@ class ABAddonPreferences(AddonPreferences):
         ab = get_ab_settings(context)
         lists_obj = get_asset_lists()
 
-        # # Draw the download previews button/progress bar
+        # Draw the download previews button/progress bar
         new_assets_available = lists_obj.new_assets_available()
         # Check if there are new assets/whether they are already downloading
         if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys() or new_assets_available or not lists_obj.all_initialized:
@@ -124,7 +122,7 @@ class ABAddonPreferences(AddonPreferences):
 
             # Draw info showing the number of previews to download, only if it is not the first time download
             if new_assets_available and task_steps != len(all_assets) and not first_time:
-                needed_previews = set(all_assets) - {p.replace(".png", "") for p in preview_files}
+                needed_previews = set(a.label for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
                 layout.label(text=self.format_download_label(needed_previews))
 
             # Draw the button/progress bar

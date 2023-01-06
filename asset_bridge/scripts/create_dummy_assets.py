@@ -23,9 +23,6 @@ args = sys.argv[sys.argv.index('--') + 1:]
 args = parser.parse_args(args)
 
 asset_list = get_asset_lists()[args.asset_list_name]
-
-print("1", flush=True)
-
 progress_file = DIRS.dummy_assets / f"{asset_list.name}_progress.txt"
 
 
@@ -35,15 +32,12 @@ def update_progress_file(value):
         f.write(str(value))
 
 
-print("2", flush=True)
-
 update_progress_file(0)
 
 # setup catalog file
 catalog = AssetCatalogFile(DIRS.dummy_assets, f"{asset_list.name}.cats.txt", load_from_file=False)
 catalog.add_catalog(asset_list.label)
 
-print("3", flush=True)
 paths = set()
 
 # Add the catalog paths
@@ -66,7 +60,6 @@ for path in intermediate_paths:
 
 catalog.write()
 
-print("4")
 # Convert between bpy.types and bpy.data
 type_to_data = {World: bpy.data.worlds, Object: bpy.data.objects, Material: bpy.data.materials}
 
@@ -79,7 +72,6 @@ progress = 0
 progress_update_interval = .01
 last_update = 0
 
-print("5")
 # Create a data block for each asset, and set it's properties
 for i, asset_item in enumerate(asset_list.values()):
     params = {}

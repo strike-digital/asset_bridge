@@ -128,9 +128,9 @@ class AssetListItem(ABC):
         link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"],
     ) -> Asset:
         """Return an Asset type for downloading and importing of this asset"""
-        asset = self.asset_type(self)
-        asset.quality = quality_level
-        asset.link_method = link_method
+        asset = self.asset_type(self, quality_level, link_method)
+        # asset.quality = quality_level
+        # asset.link_method = link_method
         return asset
 
     def is_downloaded(self, quality_level) -> bool:
@@ -148,6 +148,7 @@ class AssetList(ABC):
 
     name: str
     label: str
+    acronym: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
     assets: OrderedDict[str, AssetListItem]
     url: str
     description: str
@@ -170,6 +171,9 @@ class AssetList(ABC):
     def items(self) -> set[tuple[str, AssetListItem]]:
         return self.assets.items()
 
+    def get_idname(self, asset_name):
+        return f"{self.acronym}_{asset_name}"
+
     @staticmethod
     @abstractmethod
     def get_data() -> dict:
@@ -185,13 +189,22 @@ class Asset(ABC):
     """A functional representation of an asset, used only for downloading or importing assets."""
 
     list_item: AssetListItem
-    quality: str
+    quality_level: str
     link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"]
 
     @property
-    def downloads_dir(self):
+    def download_dir(self):
         """The directory that the asset files will be downloaded to"""
-        return self.list_item.downloads_dir / self.quality
+        return self.list_item.downloads_dir / self.quality_level
+
+    @abstractmethod
+    def __init__(
+        self,
+        asset_list_item: AssetListItem,
+        quality_level: str,
+        link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"],
+    ):
+        pass
 
     @abstractmethod
     def get_download_size(self, quality_level):
@@ -212,6 +225,6 @@ class Asset(ABC):
     def get_files(self) -> list[Path]:
         "Get a list of downloaded files"
         files = []
-        for (dirpath, dirnames, filenames) in os.walk(self.downloads_dir):
+        for (dirpath, dirnames, filenames) in os.walk(self.download_dir):
             files += [Path(dirpath) / file for file in filenames]
         return files

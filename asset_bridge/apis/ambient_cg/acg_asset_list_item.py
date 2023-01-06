@@ -20,11 +20,11 @@ class ACG_AssetListItem(AssetListItem):
         self.name = name
         self.idname = name
         data_type = data["dataType"]
-        self.asset_type = asset_types[data_type]
+        self.type = asset_types[data_type]
         self.bl_type = bl_types[data_type]
         self.tags = data["tags"]
         for tag in data["tags"]:
-            if tag not in {"hdri"}:
+            if tag not in {"hdri", "3d"}:
                 category = tag
                 break
         else:
@@ -42,6 +42,7 @@ class ACG_AssetListItem(AssetListItem):
         # self.label = name
 
         # The quality levels to show in the UI, in the format of an EnumProperty items list
+        self.quality_data = data["quality_levels"]
         self.quality_levels = []
         for name, quality_data in data["quality_levels"].items():
             label = name.lower().replace('-', ' ').replace("lq", "Low").replace("sq", "Medium").replace("hq", "High")

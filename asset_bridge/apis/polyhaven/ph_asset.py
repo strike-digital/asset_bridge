@@ -15,19 +15,27 @@ if TYPE_CHECKING:
 
 
 class PH_Asset(Asset):
+    """The Poly Haven asset is a bit different because it sometimes needs to be created in order to
+    get information about the available quality levels of the asset. As such, the quality_level and link_method
+    arguments are optional here, as opposed to the others where they are required."""
 
-    def __init__(self, asset_list_item: PH_AssetListItem):
+    def __init__(self, asset_list_item: PH_AssetListItem, quality_level: str = "", link_method: str = ""):
         self.list_item = asset_list_item
         self.name = asset_list_item.name
         self.idname = asset_list_item.idname
         self.type = asset_list_item.type
+
+        if quality_level:
+            self.quality_level = quality_level
+        if link_method:
+            self.link_method = link_method
 
         # example: https://api.polyhaven.com/files/carrot_cake
         self.raw_data = requests.get(f"https://api.polyhaven.com/files/{self.name}").json()
 
     @property
     def downloads_path(self):
-        return self.list_item.downloads_dir / self.quality
+        return self.list_item.downloads_dir / self.quality_level
 
     def get_quality_data(self) -> dict[str, dict]:
         data = self.raw_data
@@ -51,17 +59,17 @@ class PH_Asset(Asset):
         return sum([f["size"] for f in self.get_files_to_download(quality_level)])
 
     def download_asset(self):
-        if not self.quality:
+        if not self.quality_level:
             raise ValueError(f"Cannot download {self.name} without providing a quality level")
 
-        urls = self.get_files_to_download(self.quality)
+        urls = self.get_files_to_download(self.quality_level)
         urls = [f["url"] for f in urls]
         paths: list[Path] = []
         for url in urls:
             if self.type == MODEL and not url.endswith(".blend"):
-                paths.append(self.downloads_dir / "textures")
+                paths.append(self.download_dir / "textures")
             else:
-                paths.append(self.downloads_dir)
+                paths.append(self.download_dir)
 
         threads = []
 
@@ -99,7 +107,7 @@ class PH_Asset(Asset):
 
         if self.type == HDRI:
             image_file = files[0]
-            world = import_hdri(image_file, name=f"{self.idname}_{self.quality}", link_method=self.link_method)
+            world = import_hdri(image_file, name=f"{self.idname}_{self.quality_level}", link_method=self.link_method)
             context.scene.world = world
             return world
 
@@ -110,11 +118,11 @@ class PH_Asset(Asset):
             associations = {"diffuse": "diff", "displacement": "disp", "normal": "nor_gl", "roughness": "rough"}
 
             for name, ph_name in associations.items():
-                file = files.get(f"{self.name}_{ph_name}_{self.quality}")
+                file = files.get(f"{self.name}_{ph_name}_{self.quality_level}")
                 if file:
                     texture_files[name] = file
 
-            mat = import_material(texture_files, f"{self.name}_{self.quality}", link_method=self.link_method)
+            mat = import_material(texture_files, f"{self.name}_{self.quality_level}", link_method=self.link_method)
             return mat
 
         elif self.type == MODEL:

@@ -44,16 +44,19 @@ class AllAssetLists():
             item.asset_list = asset_list
 
         # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name
-        for name, other_list in self.asset_lists.items():
-            if name == asset_list.name:
-                continue
+        # for name, asset in asset_list.assets.items():
+        #     asset.idname = f"{asset_list.acronym}_{asset.idname}"
 
-            if duplicates := other_list.assets.keys() & asset_list.assets.keys():
-                for duplicate in duplicates:
-                    asset = asset_list[duplicate]
-                    del asset_list[duplicate]
-                    asset_list[f"{duplicate}_1"] = asset
-                    asset.idname = f"{duplicate}_1"
+        # for name, other_list in self.asset_lists.items():
+        #     if name == asset_list.name:
+        #         continue
+
+        #     if duplicates := other_list.assets.keys() & asset_list.assets.keys():
+        #         for duplicate in duplicates:
+        #             asset = asset_list[duplicate]
+        #             del asset_list[duplicate]
+        #             asset_list[f"{duplicate}_1"] = asset
+        #             asset.idname = f"{duplicate}_1"
 
         # Write the new cached data
         # This is very slow, so only do it when needed to prevent long register times.

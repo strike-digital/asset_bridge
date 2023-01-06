@@ -54,6 +54,8 @@ def human_readable_file_size(num, suffix=""):
 def get_dir_size(directory):
     """Get the total size of a directory in bytes."""
     total = 0
+    if not Path(directory).exists():
+        return total
     with os.scandir(directory) as it:
         for entry in it:
             if entry.is_file():

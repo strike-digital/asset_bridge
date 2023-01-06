@@ -75,11 +75,12 @@ class AB_OT_import_asset(Operator):
                 coord = self.mouse_pos_region
             else:
                 region = get_active_window_region(self.mouse_pos_window, fallback_area_type="VIEW_3D")
-                if not region:
-                    message = "Cannot import assets when another blender window is active"
-                    report_message(message, "WARNING")
-                    return {"CANCELLED"}
                 coord = self.mouse_pos_window - V((region.x, region.y))
+                # TODO: Try and fix this
+                if not region or any(c < 0 for c in coord):
+                    message = "Cannot import assets when another blender window is active"
+                    report_message(message, "ERROR")
+                    return {"CANCELLED"}
 
             location = point_under_mouse(context, region, coord)
         else:
@@ -121,10 +122,10 @@ class AB_OT_import_asset(Operator):
                 def check_progress():
                     """Check to total file size of the downloading files, and update the progress accordingly"""
                     if task.progress:
-                        task.progress.progress = get_dir_size(asset.downloads_dir)
+                        task.progress.progress = get_dir_size(asset.download_dir)
                         return .01
                     return None
-                
+
                 # Download the asset
                 bpy.app.timers.register(check_progress)
                 asset.download_asset()
