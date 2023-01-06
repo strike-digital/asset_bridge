@@ -46,7 +46,7 @@ def human_readable_file_size(num, suffix=""):
     # If the files are in Zetabytes, something has gone very wrong
     for unit in ["", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]:
         if abs(num) < 1024.0:
-            return f"{num:3.0f}{unit}{suffix}"
+            return f"{num:.0f}{unit}{suffix}"
         num /= 1024.0
     return f"{num:.1f}Yi{suffix}"
 

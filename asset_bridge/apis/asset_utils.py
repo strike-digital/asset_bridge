@@ -1,5 +1,6 @@
 import json
 import math
+from time import perf_counter
 from typing import Type
 
 from mathutils import Vector as V
@@ -13,12 +14,9 @@ from ..vendor import requests
 import shutil
 from pathlib import Path
 
-
 HDRI = "hdri"
 MATERIAL = "material"
 MODEL = "model"
-
-
 """Contains useful common functions to be used by the various apis"""
 
 
@@ -39,6 +37,11 @@ def register_asset_list(new_list: Type[AssetList]):
         # no cached data found, wait for user to initialize the asset list.
         return
 
+    start = perf_counter()
+    asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
+    print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
+    return
+
     # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name
     for name, other_list in asset_lists.items():
         if name == new_list.name:
@@ -52,7 +55,10 @@ def register_asset_list(new_list: Type[AssetList]):
                 asset.idname = f"{duplicate}_1"
 
     # Initialize
-    asset_lists[new_list.name] = new_list(asset_list_data)
+    new_list = new_list(asset_list_data)
+    asset_lists[new_list.name] = new_list
+    for item in new_list.assets.values():
+        item.asset_list = new_list
 
 
 def file_name_from_url(url: str) -> str:
@@ -239,7 +245,8 @@ def import_model(context, blend_file, name, link_method="APPEND_REUSE"):
                     data_to.collections.append(coll)
                     break
             else:
-                raise KeyError(f"Key {name} not found in collections {data_from.collections}\nIn blend file: {blend_file}")
+                raise KeyError(
+                    f"Key {name} not found in collections {data_from.collections}\nIn blend file: {blend_file}")
 
     for obj in bpy.data.objects:
         obj.select_set(False)

@@ -20,8 +20,9 @@ class AssetMetadataItem():
 
     operator: str = ""
     operator_kwargs: dict | list[dict] = field(default_factory=dict)
-    icon: str = "NONE"
+    icons: str | list[str] = "NONE"
     to_string: Callable = None  # A function that takes a value and returns a formatted string
+    label_icon: str = "NONE"
 
     def draw(self, layout: UILayout, context: Context):
         row = layout.row(align=True)
@@ -30,12 +31,16 @@ class AssetMetadataItem():
         split = row.split(align=True)
         left = split.box().column(align=True)
         label = self.label if self.label.endswith(":") else self.label + ":"
-        left.label(text=label)
+        left.label(text=label, icon=self.label_icon)
         left.scale_y = .75
 
         values = self.values
         if isinstance(values, str):
             values = [values]
+
+        icons = self.icons
+        if isinstance(icons, str):
+            icons = [icons] * len(values)
 
         operator_kwargs = self.operator_kwargs
         if isinstance(operator_kwargs, dict):
@@ -44,10 +49,10 @@ class AssetMetadataItem():
         right_row = split.box().row(align=True)
         right = right_row.column(align=True)
         right.scale_y = left.scale_y
-        for kwargs, val in zip_longest(operator_kwargs, values):
+        for icon, kwargs, val in zip_longest(icons, operator_kwargs, values):
             right.alignment = "LEFT"
             label = self.to_string(val) if self.to_string else val
-            right.label(text=f" {label}", icon=self.icon)
+            right.label(text=f" {label}", icon=icon or "NONE")
             """This is some magic that places the operator button on top of the label,
             which allows the text to be left aligned rather than in the center.
             It works by creating a dummy row above the operator, and then giving it a negative scale,
@@ -72,6 +77,7 @@ class AssetListItem(ABC):
     """A light representation of an asset, only containing info needed for display before being selected"""
 
     asset_type: Type[Asset]  # The api asset class
+    asset_list: AssetList  # The asset list that this list item is contained within
 
     idname: str  # The unique Asset Bridge identifier of this asset
     name: str  # The api name of the asset
@@ -107,6 +113,10 @@ class AssetListItem(ABC):
     def preview_file(self):
         return self.previews_dir / self.preview_name
 
+    @property
+    def progress_file(self):
+        return DIRS.dummy_assets / f"{self.name}"
+
     @abstractmethod
     def download_preview(self) -> str:
         """Download a preview for this asset.
@@ -141,7 +151,7 @@ class AssetList(ABC):
     assets: OrderedDict[str, AssetListItem]
     url: str
     description: str
-    
+
     def __getitem__(self, key) -> AssetListItem:
         return self.assets[key]
 

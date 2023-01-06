@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 from pathlib import Path
 import sys
@@ -10,7 +9,7 @@ from bpy.types import Material, Object, World
 
 addon_utils.enable(Path(__file__).parents[1].name)
 from asset_bridge.api import get_asset_lists
-from asset_bridge.constants import DIRS, FILES
+from asset_bridge.constants import DIRS
 from asset_bridge.settings import AssetBridgeIDSettings
 from asset_bridge.catalog import AssetCatalogFile
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
@@ -27,18 +26,13 @@ asset_list = get_asset_lists()[args.asset_list_name]
 
 print("1", flush=True)
 
+progress_file = DIRS.dummy_assets / f"{asset_list.name}_progress.txt"
+
 
 def update_progress_file(value):
-    # Get the already written progress
-    if FILES.lib_progress.exists():
-        with open(FILES.lib_progress, "r") as f:
-            contents = json.load(f)
-    else:
-        contents = {}
     # Write the new progress value
-    contents[asset_list.name] = value
-    with open(FILES.lib_progress, "w") as f:
-        json.dump(contents, f, indent=2)
+    with open(progress_file, "w") as f:
+        f.write(str(value))
 
 
 print("2", flush=True)
@@ -46,7 +40,7 @@ print("2", flush=True)
 update_progress_file(0)
 
 # setup catalog file
-catalog = AssetCatalogFile(DIRS.dummy_assets)
+catalog = AssetCatalogFile(DIRS.dummy_assets, f"{asset_list.name}.cats.txt", load_from_file=False)
 catalog.add_catalog(asset_list.label)
 
 print("3", flush=True)
@@ -59,7 +53,6 @@ for asset_item in asset_list.values():
 
 # Add the intermediate paths (so that the names don't have the asterisk next to them in the asset browser)
 intermediate_paths = set()
-print(len(paths))
 
 for path in paths:
     parts = path.split('/')
@@ -70,6 +63,8 @@ for path in paths:
 
 for path in intermediate_paths:
     catalog.ensure_catalog_exists(path.split('/')[-1], path)
+
+catalog.write()
 
 print("4")
 # Convert between bpy.types and bpy.data

@@ -27,18 +27,21 @@ class AllAssetLists():
                 return False
         return True
 
-    def initialize_asset_list(self, name):
+    def initialize_asset_list(self, name, data=None):
         """Takes an asset list and initialises it with new data from the internet"""
         asset_list = self.asset_lists[name]
 
         # Get new data from the internet, from the get_data function
-        asset_list_data = asset_list.get_data()
+        asset_list_data = data or asset_list.get_data()
 
         # Initialize
         if self.is_initialized(asset_list.name):
-            self.asset_lists[asset_list.name] = asset_list.__class__(asset_list_data)
+            asset_list = asset_list.__class__(asset_list_data)
         else:
-            self.asset_lists[asset_list.name] = asset_list(asset_list_data)
+            asset_list = asset_list(asset_list_data)
+        self.asset_lists[asset_list.name] = asset_list
+        for item in asset_list.values():
+            item.asset_list = asset_list
 
         # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name
         for name, other_list in self.asset_lists.items():
@@ -53,9 +56,11 @@ class AllAssetLists():
                     asset.idname = f"{duplicate}_1"
 
         # Write the new cached data
-        list_file = DIRS.asset_lists / (asset_list.name + ".json")
-        with open(list_file, "w") as f:
-            json.dump(asset_list_data, f, indent=2)
+        # This is very slow, so only do it when needed to prevent long register times.
+        if not data:
+            list_file = DIRS.asset_lists / (asset_list.name + ".json")
+            with open(list_file, "w") as f:
+                json.dump(asset_list_data, f, indent=2)
 
         return asset_list
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 from uuid import uuid4
@@ -28,23 +29,40 @@ class AssetCatalog():
 class AssetCatalogFile():
     """Represents a file containing the catalog info for a blender asset library."""
 
-    def __init__(self, catalog_dir):
-        self.catalog_file = Path(catalog_dir) / "blender_assets.cats.txt"
+    def __init__(self, catalog_dir, filename="", load_from_file=True):
+        # By default, use the normal catalog file name, but can also use a custom one
+        self.catalog_file = Path(catalog_dir) / (filename or "blender_assets.cats.txt")
+        self.catalogs = {}
         self.ensure_exists()
-        self.update_catalogs()
+        if load_from_file:
+            self.update_catalog_from_file()
 
     def __getitem__(self, name) -> AssetCatalog:
         return self.catalogs[name]
 
+    def write(self):
+        """Update the catalog file on the disk"""
+        with open(self.catalog_file, "w") as f:
+            f.write(CATALOG_HEADER)
+            for catalog in self.catalogs.values():
+                f.write(f"{catalog.uuid}:{catalog.path}:{catalog.name}\n")
+
+    def merge(self, other_catalog: AssetCatalogFile):
+        """Combine two AssetCatalogFile objects, merging all entries"""
+        self.catalogs.update(other_catalog.catalogs)
+
     def ensure_exists(self):
+        """Ensure that this catalog file exists"""
         if not self.catalog_file.exists():
             with open(self.catalog_file, "w") as f:
                 f.write(CATALOG_HEADER)
 
-    def update_catalogs(self):
+    def update_catalog_from_file(self):
+        """Read and set the catalogs from the file"""
         self.catalogs = self.get_catalogs()
 
     def get_catalogs(self) -> Dict[str, AssetCatalog]:
+        """Read the catalogs from the file"""
         catalogs = {}
         with open(self.catalog_file, "r") as f:
             for line in f.readlines():
@@ -55,30 +73,22 @@ class AssetCatalogFile():
         return catalogs
 
     def reset(self):
-        with open(self.catalog_file, "w") as f:
-            f.write(CATALOG_HEADER)
-        self.update_catalogs()
+        """Remove all catalogs"""
+        self.catalogs = {}
 
     def add_catalog(self, name, path: str = "", uuid: str = ""):
+        """Add a catalog"""
         uuid = uuid or str(uuid4())
         path = path or name
 
-        with open(self.catalog_file, "a") as f:
-            print(uuid, path, name)
-            f.write(f"{uuid}:{path}:{name}\n")
-        self.update_catalogs()
+        self.catalogs[path] = AssetCatalog(uuid, path, name)
 
     def remove_catalog(self, path):
-        catalog = self.catalogs[path]
-        with open(self.catalog_file, "r") as f:
-            lines = f.readlines()
-        with open(self.catalog_file, "w") as f:
-            for line in lines:
-                if line == str(catalog):
-                    continue
-                f.write(line)
+        """Remove a catalog"""
+        del self.catalogs[path]
 
     def ensure_catalog_exists(self, name, path=""):
+        """Ensure that a catalog exists, and if it doesn't, create one."""
         path = path or name
         if name not in self.catalogs:
             self.add_catalog(name, path)

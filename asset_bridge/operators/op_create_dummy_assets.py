@@ -1,6 +1,5 @@
-import json
 import subprocess
-from time import perf_counter, sleep
+from time import perf_counter
 from typing import Dict
 
 from ..helpers.main_thread import force_ui_update
@@ -28,9 +27,6 @@ class AB_OT_create_dummy_assets(Operator):
     def execute(self, context):
         asset_lists = get_asset_lists()
         ensure_bl_asset_library_exists()
-        catalog = AssetCatalogFile(DIRS.dummy_assets)
-        # return {"FINISHED"}
-        catalog.reset()
 
         # Update/create the progress bar
         ab = get_ab_settings(context)
@@ -44,10 +40,7 @@ class AB_OT_create_dummy_assets(Operator):
 
         # Create a blender process for each asset list
         processes: Dict[str, subprocess.Popen] = {}
-        for asset_list_name in [list(asset_lists.keys())[0]]:
-            print(asset_list_name)
-            print(asset_list_name)
-            print(asset_list_name)
+        for asset_list_name in asset_lists.keys():
             print(asset_list_name)
             process = new_blender_process(
                 Files.script_create_dummy_assets,
@@ -66,7 +59,7 @@ class AB_OT_create_dummy_assets(Operator):
             except AttributeError:
                 out = "stdin not used"
             print(out)
-            with open(DIRS.dummy_assets / f"log_{name}.txt", "w") as f:
+            with open(DIRS.dummy_assets / f"{name}_log.txt", "w") as f:
                 f.write(out)
             return out
 
@@ -98,6 +91,18 @@ class AB_OT_create_dummy_assets(Operator):
                 report_message(message=f"Process timed out, please try again.\nError log:\n{log}", severity="ERROR")
 
             if completed:
+
+                catalog = AssetCatalogFile(DIRS.dummy_assets)
+                catalog.reset()
+                for name in processes:
+                    file = DIRS.dummy_assets / f"{name}.cats.txt"
+                    if not file.exists():
+                        task.finish()
+                        raise FileExistsError(f"Cannot open catalog file {file}")
+                    other_catalog = AssetCatalogFile(DIRS.dummy_assets, f"{name}.cats.txt")
+                    catalog.merge(other_catalog)
+                catalog.write()
+
                 # Handle any errors
                 errors = False
                 for name, process in processes.items():
@@ -121,13 +126,17 @@ class AB_OT_create_dummy_assets(Operator):
                 return update_interval
 
             # Update progress
-            with open(FILES.lib_progress, "r") as f:
-                try:
-                    contents = json.load(f)
-                except json.JSONDecodeError:
-                    sleep(.1)
-                    return update_interval
-            progress.progress = sum(contents.values())
+            total = 0
+            for name in processes:
+                file = DIRS.dummy_assets / f"{name}_progress.txt"
+                if not file.exists():
+                    continue
+                with open(file, "r") as f:
+                    try:
+                        total += int(f.read())
+                    except ValueError:
+                        return update_interval
+            progress.progress = total
 
             return update_interval
 

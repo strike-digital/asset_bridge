@@ -28,7 +28,7 @@ class PH_AssetListItem(AssetListItem):
         self.authors = list(data["authors"].keys()) or [""]
 
         self.categories = data["categories"]
-        names = ["Hdris", "Materials", "Models"]
+        names = ["HDRIs", "Materials", "Models"]
         self.catalog_path = f"{names[data['type']]}/{self.categories[0]}"
 
         self.tags = data["tags"] + data["categories"]
@@ -87,8 +87,13 @@ class PH_AssetListItem(AssetListItem):
             "Tags",
             data["tags"],
         ))
+        self.metadata.append(
+            AssetMetadataItem("Support",
+                              "Patreon",
+                              "wm.url_open",
+                              operator_kwargs={"url": "https://www.patreon.com/polyhaven/overview"},
+                              label_icon="FUND"))
         # TODO: Maybe load the preview here
-        pass
 
     @property
     def quality_levels(self):

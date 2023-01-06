@@ -62,7 +62,7 @@ class ACG_AssetList(AssetList):
                         first = False
                         continue
                     levels = quality_data.get(row[0], {})
-                    levels[row[1]] = {"filetype": row[2], "size": row[3]}
+                    levels[row[1]] = {"size": int(row[3])}
                     quality_data[row[0]] = levels
         
         thread = Thread(target=get_csv_data)
