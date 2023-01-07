@@ -25,7 +25,9 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         try:
             asset = ab.selected_asset
         except KeyError:
-            wrap_text(context, "Asset not found", layout.box(), centered=True)
+            box = layout.box()
+            box.alert = True
+            wrap_text(context, "Asset not found", box, centered=True)
             return
 
         if not asset:
@@ -56,4 +58,3 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         metadata = asset.metadata
         for item in metadata:
             item.draw(col, context)
-        # draw_asset_info(col, context, asset)

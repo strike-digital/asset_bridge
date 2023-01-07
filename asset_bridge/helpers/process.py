@@ -1,5 +1,7 @@
 from pathlib import Path
 import subprocess
+import traceback
+from types import TracebackType
 import bpy
 
 
@@ -29,3 +31,8 @@ def new_blender_process(
     kwargs = {"stdout": subprocess.PIPE} if use_stdout else {}
 
     return subprocess.Popen([bpy.app.binary_path, *args, "--python-exit-code", "1", "--python", script, *script_args], **kwargs)
+
+
+def format_traceback(traceback_object: TracebackType) -> str:
+    """Format a traceback object into a string"""
+    return ''.join(traceback.format_exception(None, traceback_object, traceback_object.__traceback__))

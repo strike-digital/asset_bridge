@@ -10,6 +10,15 @@ ASSET_LIB_NAME = "Asset Bridge"
 PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"
 
 
+# The names of useful node groups
+class NodeGroups():
+
+    anti_tiling = "AB-anti_tiling"
+
+
+NODE_GROUPS = NodeGroups()
+
+
 # I know this isn't really a constant, but hey, sue me.
 class Dirs():
 
@@ -17,6 +26,7 @@ class Dirs():
     asset_lists = addon / "asset_lists"
     previews = addon / "previews"
     scripts = addon / "scripts"
+    resources = addon / "resources"
 
     # We need the context to create these, so run them in a timer.
     def update(self, lib_path: Path = None):
@@ -37,6 +47,7 @@ class Dirs():
 class Files():
 
     script_create_dummy_assets = Dirs.scripts / "create_dummy_assets.py"
+    resources_blend = Dirs.resources / "resources.blend"
     prefs = Dirs.addon / "prefs.json"
 
     def update(self, lib_path: Path = ""):

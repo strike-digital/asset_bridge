@@ -39,15 +39,41 @@ class ACG_AssetListItem(AssetListItem):
         label = re.sub("([A-Z])", " \\1", label)[1:]
         label = re.sub("(\\d\\d\\d)", " \\1 ", label)
         self.label = label
-        # self.label = name
 
         # The quality levels to show in the UI, in the format of an EnumProperty items list
         self.quality_data = data["quality_levels"]
         self.quality_levels = []
         for name, quality_data in data["quality_levels"].items():
+            if "PREVIEW" in name:
+                continue
             label = name.lower().replace('-', ' ').replace("lq", "Low").replace("sq", "Medium").replace("hq", "High")
             label = f"{label} ({human_readable_file_size(quality_data['size'])})"
             self.quality_levels.append((name, label, f"Download this asset at {label} quality"))
+            # self.quality_levels.append((name, name, f"Download this asset at {label} quality"))
+
+        model_levels = ["LQ", "SQ", "HQ"]
+
+        def sort_quality(level: list[str]):
+            """Sort the quality levels"""
+            name = level[0]
+            parts = name.split("-")
+            value = 0
+            if self.type == HDRI:
+                if "TONEMAPPED" in name:
+                    value += 100
+                qual = parts[0].split("K")[0]
+                try:
+                    value += int(qual)
+                except ValueError as e:
+                    print(f"Error sorting quality levels for asset {self.name}: {e}")
+            elif self.type == MODEL:
+                try:
+                    value += model_levels.index(parts[0])
+                except ValueError:
+                    pass
+            return value
+
+        self.quality_levels.sort(key=sort_quality)
 
         # Setup info for the metadata panel
         self.metadata = [

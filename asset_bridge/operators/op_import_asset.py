@@ -1,6 +1,8 @@
 import os
 from threading import Thread
 
+from ..helpers.process import format_traceback
+
 from ..helpers.library import get_dir_size
 
 from .op_report_message import report_message
@@ -10,7 +12,7 @@ import bpy
 from ..btypes import BOperator
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
-from ..helpers.main_thread import run_in_main_thread
+from ..helpers.main_thread import force_ui_update, run_in_main_thread
 from ..helpers.drawing import get_active_window_region, point_under_mouse
 from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
 from bpy.types import Collection, Material, Object, Operator
@@ -122,25 +124,40 @@ class AB_OT_import_asset(Operator):
                 def check_progress():
                     """Check to total file size of the downloading files, and update the progress accordingly"""
                     if task.progress:
-                        task.progress.progress = get_dir_size(asset.download_dir)
+                        orig_progress = task.progress.progress
+                        if (size := get_dir_size(asset.download_dir)) != orig_progress:
+                            task.progress.progress = size
+                            force_ui_update(area_types="VIEW_3D")
                         return .01
                     return None
 
                 # Download the asset
                 bpy.app.timers.register(check_progress)
-                asset.download_asset()
+                try:
+                    asset.download_asset()
+                except Exception as e:
+                    report_message(
+                        f"Error downloading asset {asset.idname}:\n{format_traceback(e)}",
+                        severity="ERROR",
+                        main_thread=True,
+                    )
+                force_ui_update(area_types="VIEW_3D")
                 task.finish()
 
             def import_asset():
-                imported = asset.import_asset(context)
-                if isinstance(imported, Material):
-                    if material_slot:
-                        material_slot.material = imported
-                elif isinstance(imported, Object):
-                    imported.location += location
-                elif isinstance(imported, Collection):
-                    for obj in imported.objects:
-                        obj.location += location
+                try:
+                    imported = asset.import_asset(context)
+
+                    if isinstance(imported, Material):
+                        if material_slot:
+                            material_slot.material = imported
+                    elif isinstance(imported, Object):
+                        imported.location += location
+                    elif isinstance(imported, Collection):
+                        for obj in imported.objects:
+                            obj.location += location
+                except Exception as e:
+                    report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
 
             # This is modifying blender data, so needs to be run in the main thread
             run_in_main_thread(import_asset)

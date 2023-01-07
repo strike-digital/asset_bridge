@@ -63,7 +63,7 @@ class ACG_AssetList(AssetList):
                         first = False
                         continue
                     levels = quality_data.get(row[0], {})
-                    levels[row[1]] = {"size": int(row[3])}
+                    levels[row[1]] = {"size": int(row[3]), "file_type": row[2]}
                     quality_data[row[0]] = levels
         
         thread = Thread(target=get_csv_data)
@@ -100,6 +100,8 @@ class ACG_AssetList(AssetList):
         # TODO: support more asset types (Terrain, Decals, Images, Atlasses etc.)
         for name, asset_info in data.items():
             if asset_info["dataType"] in {"Material", "HDRI", "3DModel"}:
+                if name == "3DRock001":
+                    continue
                 item = ACG_AssetListItem(name, asset_info)
                 item.idname = self.get_idname(name)
                 self.assets[item.idname] = item

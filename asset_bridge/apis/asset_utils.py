@@ -1,13 +1,14 @@
 import json
 import math
 from time import perf_counter
-from typing import Type
+from typing import Dict, Type
+from bpy.types import Material, NodeGroup
 
 from mathutils import Vector as V
 from ..ui import dpifac
 
 import bpy
-from ..constants import DIRS
+from ..constants import DIRS, FILES, NODE_GROUPS
 from ..api import asset_lists
 from .asset_types import AssetList
 from ..vendor import requests
@@ -71,7 +72,7 @@ def download_file(url: str, download_dir: Path, file_name: str = ""):
     if not isinstance(download_dir, Path):
         download_dir = Path(download_dir)
 
-    download_dir.mkdir(exist_ok=True)
+    download_dir.mkdir(exist_ok=True, parents=True)
     file_name = file_name or file_name_from_url(url)
     download_dir = download_dir / file_name
 
@@ -117,6 +118,30 @@ def dimensions_to_string(dimensions: list[float] | str) -> str:
     return string
 
 
+def append_node_group(blend_file: Path, node_group_name: str, link_method: str = "APPEND_REUSE") -> NodeGroup:
+    """Append a node group to the current blend file.
+
+    Args:
+        blend_file (Path): The path to the blend file containing the node group.
+        node_group_name (str): The name of the node group to append.
+        link_method (str, optional): One of ["LINK", "APPEND", "APPEND_REUSE"]. Defaults to "APPEND_REUSE".
+
+    Returns:
+        NodeGroup: the appended node group.
+    """
+
+    if link_method == "APPEND_REUSE" and node_group_name in set(bpy.data.node_groups.keys()):
+        return bpy.data.node_groups[node_group_name]
+
+    with bpy.data.libraries.load(str(blend_file), link=link_method == "LINK") as (data_from, data_to):
+        if node_group_name not in data_from.node_groups:
+            raise KeyError(f"Name {node_group_name} could not be appended, not found in {list(data_from.node_groups)}")
+
+        data_to.node_groups.append(node_group_name)
+
+    return data_to.node_groups[0]
+
+
 def import_hdri(image_file, name, link_method="APPEND_REUSE"):
     """Import an hdri image file as a world and return it"""
     image = load_image(image_file, link_method)
@@ -139,8 +164,22 @@ def import_hdri(image_file, name, link_method="APPEND_REUSE"):
     return world
 
 
-def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
-    """import the provided PBR texture files as a material and return it"""
+def import_material(
+    texture_files: Dict[str, Path],
+    name: str,
+    link_method="APPEND_REUSE",
+    mute_displacement=True,
+) -> Material:
+    """import the provided PBR texture files as a material and return it
+
+    Args:
+        texture_files (Dict[str, Path]): A dictionary of file paths to the supported texture files: [diffuse, ao, roughness, metalness, normal, displacement]
+        name (str): The name of the imported material
+        link_method (str, optional): The link method to use. Defaults to "APPEND_REUSE".
+
+    Returns:
+        bpy.types.Material: The imported material
+    """
     if not texture_files:
         raise ValueError("Cannot import material when not texture files are provided")
 
@@ -159,6 +198,7 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
     image_nodes = []
     disp_node = None
     nor_node = None
+    ao_mix_node = None
 
     def new_image(file, input_index, node_name="", to_node=None, non_color=False):
         """Add a new image node, and connect it to the given to_node if provided, or the bsdf node"""
@@ -172,11 +212,24 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
         image_nodes.append(image_node)
         if non_color:
             image.colorspace_settings.name = "Non-Color"
-        return image
+        return image_node
 
     # Add images
     if diff_file := texture_files.get("diffuse"):
-        new_image(diff_file, "Base Color", "Diffuse")
+        diff_node = new_image(diff_file, "Base Color", "Diffuse")
+
+        # Ambient occlusion
+        if ao_file := texture_files.get("ao"):
+            ao_mix_node = nodes.new("ShaderNodeMix")
+            ao_mix_node.data_type = "RGBA"
+            ao_mix_node.blend_type = "MULTIPLY"
+            links.new(diff_node.outputs[0], ao_mix_node.inputs[6])
+            links.new(ao_mix_node.outputs[2], bsdf_node.inputs["Base Color"])
+
+            ao_image_node = new_image(ao_file, 7, "Ambient Occlusion", to_node=ao_mix_node, non_color=True)
+
+    if metal_file := texture_files.get("metalness"):
+        new_image(metal_file, "Metallic", "Metalness", non_color=True)
 
     if rough_file := texture_files.get("roughness"):
         new_image(rough_file, "Roughness", "Roughness", non_color=True)
@@ -189,7 +242,8 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
     if disp_file := texture_files.get("displacement"):
         disp_node = nodes.new("ShaderNodeDisplacement")
         new_image(disp_file, "Height", "Displacement", to_node=disp_node)
-        links.new(disp_node.outputs[0], out_node.inputs["Displacement"])
+        link = links.new(disp_node.outputs[0], out_node.inputs["Displacement"])
+        link.is_muted = mute_displacement
 
     # Add mapping and set locations
     mapping_node = nodes.new("ShaderNodeMapping")
@@ -202,11 +256,21 @@ def import_material(texture_files: dict, name: str, link_method="APPEND_REUSE"):
         links.new(mapping_node.outputs[0], node.inputs[0])
     mapping_node.location = (node.location.x - mapping_node.width - 80, bsdf_node.location.y)
 
+    # Set up anti tiling node group
+    node_group = append_node_group(FILES.resources_blend, NODE_GROUPS.anti_tiling, link_method=link_method)
+    anti_tiling_node = nodes.new("ShaderNodeGroup")
+    anti_tiling_node.node_tree = node_group
+    links.new(anti_tiling_node.outputs[0], mapping_node.inputs[0])
+    anti_tiling_node.location = mapping_node.location - V((anti_tiling_node.width + 40, 0))
+
     # Add texture coordinates
     coords_node = nodes.new("ShaderNodeTexCoord")
     coords_node.name = coords_node.label = "Coords"
-    links.new(coords_node.outputs["UV"], mapping_node.inputs[0])
-    coords_node.location = mapping_node.location - V((coords_node.width + 40, 0))
+    links.new(coords_node.outputs["UV"], anti_tiling_node.inputs[0])
+    coords_node.location = anti_tiling_node.location - V((coords_node.width + 40, 0))
+
+    if ao_mix_node:
+        ao_mix_node.location = ao_image_node.location + V((ao_image_node.width + 40, 0))
 
     # Add normal and displacement nodes
     if nor_node:
