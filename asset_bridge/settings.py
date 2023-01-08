@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, OrderedDict
 
 from .api import get_asset_lists
-from bpy.types import PropertyGroup
+from bpy.types import ID, PropertyGroup
 from bpy.props import EnumProperty, StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
 from time import perf_counter, time_ns
 import bpy
@@ -135,14 +135,23 @@ class AssetBridgeSettings(PropertyGroup):
 class AssetBridgeIDSettings(PropertyGroup):
     """Used to identify whether a datablock has been imported by asset bridge"""
 
-    is_asset_bridge: BoolProperty()
+    # Used to tell with data blocks are dummies that should be replaced with downloaded assets
+    is_dummy: BoolProperty()
 
     idname: StringProperty()
+
+    # Used to tell if a datablock has been imported by asset bridge
+    is_asset_bridge: BoolProperty()
 
 
 def get_ab_settings(context: bpy.types.Context) -> AssetBridgeSettings:
     """Get the global asset bridge settings, registered to `context.window_manager.asset_bridge`"""
     return context.window_manager.asset_bridge
+
+
+def get_asset_settings(data_block: ID) -> AssetBridgeIDSettings:
+    """Get the asset bridge settings for the given data block"""
+    return data_block.asset_bridge
 
 
 def register():

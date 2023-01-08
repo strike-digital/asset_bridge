@@ -1,4 +1,4 @@
-from . import wrap_text
+from ..helpers.ui import wrap_text
 from ..settings import get_ab_settings
 from bpy_extras.asset_utils import AssetBrowserPanel
 from ..constants import ASSET_LIB_NAME

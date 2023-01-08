@@ -22,6 +22,11 @@ def init():
 
     modules = get_all_submodules(Path(__file__).parent)
     ordered_classes = get_ordered_classes_to_register(modules)
+
+    # Custom attributes to prevent registering, and to enable proper registration order
+    for i, cls in enumerate(ordered_classes):
+        if hasattr(cls, "__no_reg__") and cls.__no_reg__:
+            ordered_classes.pop(i)
     ordered_classes.sort(key=lambda cls: cls.__reg_order__ if hasattr(cls, "__reg_order__") else 10000)
 
 

@@ -61,16 +61,18 @@ class ACG_AssetListItem(AssetListItem):
             if self.type == HDRI:
                 if "TONEMAPPED" in name:
                     value += 100
-                qual = parts[0].split("K")[0]
-                try:
-                    value += int(qual)
-                except ValueError as e:
-                    print(f"Error sorting quality levels for asset {self.name}: {e}")
             elif self.type == MODEL:
                 try:
                     value += model_levels.index(parts[0])
                 except ValueError:
                     pass
+
+            if self.type in {HDRI, MATERIAL}:
+                qual = parts[0].split("K")[0]
+                try:
+                    value += int(qual)
+                except ValueError as e:
+                    print(f"Error sorting quality levels for asset {self.name}: {e}")
             return value
 
         self.quality_levels.sort(key=sort_quality)

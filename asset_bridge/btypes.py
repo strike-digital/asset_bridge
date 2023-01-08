@@ -134,14 +134,13 @@ class BPanel():
     default_closed: bool = False
     header_button_expand: bool = False
 
-    # Panel.bl_options
-
     def __call__(self, cls):
         """This takes the decorated class and populate's the bl_ attributes with either the supplied values,
         or a best guess based on the other values"""
         cls_name_end = cls.__name__.split("PT_")[-1]
         idname = self.idname if self.idname else cls.__name__
         label = self.label or cls_name_end.replace("_", " ").title()
+        label = cls.bl_label if hasattr(cls, "bl_label") else label
         parent_id = self.parent.bl_idname if hasattr(self.parent, "bl_idname") else self.parent
 
         if self.description:

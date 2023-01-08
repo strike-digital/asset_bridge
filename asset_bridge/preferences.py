@@ -13,7 +13,7 @@ from .btypes import BMenu
 from .api import get_asset_lists
 from .settings import get_ab_settings
 from .constants import ASSET_LIB_VERSION, DIRS, FILES, PREVIEW_DOWNLOAD_TASK_NAME, __IS_DEV__
-from .ui import draw_download_previews, draw_downloads_path
+from .helpers.ui import draw_download_previews, draw_downloads_path
 from bpy.types import AddonPreferences, UILayout, Menu
 from bpy.props import StringProperty
 

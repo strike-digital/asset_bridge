@@ -5,10 +5,10 @@ from typing import Dict, Type
 from bpy.types import Material, NodeGroup
 
 from mathutils import Vector as V
-from ..ui import dpifac
+from ..helpers.ui import dpifac
 
 import bpy
-from ..constants import DIRS, FILES, NODE_GROUPS
+from ..constants import DIRS, FILES, NODE_GROUPS, NODE_NAMES
 from ..api import asset_lists
 from .asset_types import AssetList
 from ..vendor import requests
@@ -173,7 +173,7 @@ def import_material(
     """import the provided PBR texture files as a material and return it
 
     Args:
-        texture_files (Dict[str, Path]): A dictionary of file paths to the supported texture files: [diffuse, ao, roughness, metalness, normal, displacement]
+        texture_files (Dict[str, Path]): A dictionary of file paths to the supported texture files: [diffuse, ao, roughness, metalness, normal, displacement, opacity]
         name (str): The name of the imported material
         link_method (str, optional): The link method to use. Defaults to "APPEND_REUSE".
 
@@ -221,11 +221,12 @@ def import_material(
         # Ambient occlusion
         if ao_file := texture_files.get("ao"):
             ao_mix_node = nodes.new("ShaderNodeMix")
+            ao_mix_node.label = "AO Mix"
+            ao_mix_node.name = NODE_NAMES.ao_mix
             ao_mix_node.data_type = "RGBA"
             ao_mix_node.blend_type = "MULTIPLY"
             links.new(diff_node.outputs[0], ao_mix_node.inputs[6])
             links.new(ao_mix_node.outputs[2], bsdf_node.inputs["Base Color"])
-
             ao_image_node = new_image(ao_file, 7, "Ambient Occlusion", to_node=ao_mix_node, non_color=True)
 
     if metal_file := texture_files.get("metalness"):
@@ -234,20 +235,26 @@ def import_material(
     if rough_file := texture_files.get("roughness"):
         new_image(rough_file, "Roughness", "Roughness", non_color=True)
 
+    if opacity_file := texture_files.get("opacity"):
+        new_image(opacity_file, "Alpha", "Opacity", non_color=True)
+
     if nor_file := texture_files.get("normal"):
         nor_node = nodes.new("ShaderNodeNormalMap")
+        nor_node.name = NODE_NAMES.normal_map
         new_image(nor_file, "Color", "Normal", to_node=nor_node, non_color=True)
         links.new(nor_node.outputs[0], bsdf_node.inputs["Normal"])
 
     if disp_file := texture_files.get("displacement"):
         disp_node = nodes.new("ShaderNodeDisplacement")
+        disp_node.name = NODE_NAMES.displacement
         new_image(disp_file, "Height", "Displacement", to_node=disp_node)
         link = links.new(disp_node.outputs[0], out_node.inputs["Displacement"])
         link.is_muted = mute_displacement
 
     # Add mapping and set locations
     mapping_node = nodes.new("ShaderNodeMapping")
-    mapping_node.name = mapping_node.label = "Mapping"
+    mapping_node.name = NODE_NAMES.mapping
+    mapping_node.label = "Mapping"
     half_height = (300 * (len(image_nodes) - 1) / 2)
     for i, node in enumerate(image_nodes):
         x = bsdf_node.location.x - (node.width + 200) * dpifac()
@@ -260,8 +267,11 @@ def import_material(
     node_group = append_node_group(FILES.resources_blend, NODE_GROUPS.anti_tiling, link_method=link_method)
     anti_tiling_node = nodes.new("ShaderNodeGroup")
     anti_tiling_node.node_tree = node_group
-    links.new(anti_tiling_node.outputs[0], mapping_node.inputs[0])
     anti_tiling_node.location = mapping_node.location - V((anti_tiling_node.width + 40, 0))
+    anti_tiling_node.name = NODE_GROUPS.anti_tiling
+    anti_tiling_node.label = "Anti tiling"
+    anti_tiling_node.mute = True
+    links.new(anti_tiling_node.outputs[0], mapping_node.inputs[0])
 
     # Add texture coordinates
     coords_node = nodes.new("ShaderNodeTexCoord")
@@ -283,6 +293,7 @@ def import_material(
         # Maybe calculate the average displace value and use it as the midlevel
         mat.cycles.displacement_method = "DISPLACEMENT"
         disp_node.location = bsdf_node.location + V((bsdf_node.width - disp_node.width, -680))
+
     return mat
 
 

@@ -40,7 +40,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
     quality = get_asset_quality(bpy.context)
     reload = bpy.context.window_manager.asset_bridge.reload_asset
     # Hdris
-    if (world := scene.world) and world.asset_bridge.is_asset_bridge:
+    if (world := scene.world) and world.asset_bridge.is_dummy:
         name = world.asset_bridge.idname
         bpy.data.worlds.remove(world)
         print("World!", name)
@@ -56,7 +56,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
     # Materials
     for obj in scene.objects:
         for slot in obj.material_slots:
-            if (mat := slot.material) and mat.asset_bridge.is_asset_bridge:
+            if (mat := slot.material) and mat.asset_bridge.is_dummy:
                 name = mat.asset_bridge.idname
                 bpy.data.materials.remove(mat)
                 print("Material!", name)
@@ -75,7 +75,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 )
 
     # Models
-    objs = [o for o in scene.objects if o.asset_bridge.is_asset_bridge]
+    objs = [o for o in scene.objects if o.asset_bridge.is_dummy]
     for obj in objs:
         name = obj.asset_bridge.idname
         bpy.data.objects.remove(obj)
@@ -100,19 +100,19 @@ def undo_post(scene, _):
     This prevents that by checking for any asset bridge empty and removing it
     before there is an update to the depsgraph"""
     # Hdris
-    if (world := scene.world) and world.asset_bridge.is_asset_bridge:
+    if (world := scene.world) and world.asset_bridge.is_dummy:
         bpy.data.worlds.remove(world)
 
     # Materials
     for obj in scene.objects:
         for slot in obj.material_slots:
-            if (mat := slot.material) and mat.asset_bridge.is_asset_bridge:
+            if (mat := slot.material) and mat.asset_bridge.is_dummy:
                 bpy.data.materials.remove(mat)
 
     # Models
     obj_remove = []
     for obj in scene.objects:
-        if obj.asset_bridge.is_asset_bridge:
+        if obj.asset_bridge.is_dummy:
             obj_remove.append(obj)
 
     for obj in obj_remove:

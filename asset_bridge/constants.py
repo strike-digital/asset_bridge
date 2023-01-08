@@ -16,7 +16,17 @@ class NodeGroups():
     anti_tiling = "AB-anti_tiling"
 
 
+class NodeNames():
+
+    anti_tiling = "AB-anti_tiling"
+    mapping = "AB-mapping"
+    ao_mix = "AB-ao_mix"
+    normal_map = "AB-normal_map"
+    displacement = "AB-displacement"
+
+
 NODE_GROUPS = NodeGroups()
+NODE_NAMES = NodeNames()
 
 
 # I know this isn't really a constant, but hey, sue me.

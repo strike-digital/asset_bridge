@@ -11,7 +11,7 @@ import bpy
 
 from ..btypes import BOperator
 from ..api import get_asset_lists
-from ..settings import get_ab_settings
+from ..settings import get_ab_settings, get_asset_settings
 from ..helpers.main_thread import force_ui_update, run_in_main_thread
 from ..helpers.drawing import get_active_window_region, point_under_mouse
 from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
@@ -148,13 +148,21 @@ class AB_OT_import_asset(Operator):
                 try:
                     imported = asset.import_asset(context)
 
+                    def update_settings(data_block):
+                        settings = get_asset_settings(data_block)
+                        settings.is_asset_bridge = True
+                        settings.idname = asset_list_item.idname
+
                     if isinstance(imported, Material):
+                        update_settings(imported)
                         if material_slot:
                             material_slot.material = imported
                     elif isinstance(imported, Object):
+                        update_settings(imported)
                         imported.location += location
                     elif isinstance(imported, Collection):
                         for obj in imported.objects:
+                            update_settings(obj)
                             obj.location += location
                 except Exception as e:
                     report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")

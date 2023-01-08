@@ -74,6 +74,7 @@ class ACG_Asset(Asset):
                 "NormalGL": "normal",
                 "Roughness": "roughness",
                 "Metalness": "metalness",
+                "Opacity": "opacity",
             }
             texture_files = {}
 

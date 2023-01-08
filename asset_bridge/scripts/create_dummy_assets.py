@@ -10,7 +10,7 @@ from bpy.types import Material, Object, World
 addon_utils.enable(Path(__file__).parents[1].name)
 from asset_bridge.api import get_asset_lists
 from asset_bridge.constants import DIRS
-from asset_bridge.settings import AssetBridgeIDSettings
+from asset_bridge.settings import get_asset_settings
 from asset_bridge.catalog import AssetCatalogFile
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
 These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
@@ -64,10 +64,6 @@ catalog.write()
 type_to_data = {World: bpy.data.worlds, Object: bpy.data.objects, Material: bpy.data.materials}
 
 
-def get_asset_data(asset) -> AssetBridgeIDSettings:
-    return asset.asset_bridge
-
-
 progress = 0
 progress_update_interval = .01
 last_update = 0
@@ -80,8 +76,8 @@ for i, asset_item in enumerate(asset_list.values()):
     asset: Object = type_to_data[asset_item.bl_type].new(asset_item.label, **params)
 
     # Set asset bridge attributes
-    data = get_asset_data(asset)
-    data.is_asset_bridge = True
+    data = get_asset_settings(asset)
+    data.is_dummy = True
     data.idname = asset_item.idname
 
     # Set blender asset attributes
