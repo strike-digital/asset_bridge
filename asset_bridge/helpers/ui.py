@@ -105,14 +105,20 @@ def draw_downloads_path(layout: UILayout, context: Context):
     return message
 
 
-def draw_inline_prop(layout: UILayout, data, prop_name: str, label: str, prop_label: str, factor: float=0):
-    """Draw a property with the label on the left"""
+def draw_inline_column(layout: UILayout, label: str, factor: float = 0):
+    """Create a split, draw a label on one side, and then return the other side"""
     split = layout.split(factor=factor or .3)
     row = split.row(align=True)
     if not label.endswith(":"):
         label += ":"
     row.label(text=label)
     col = split.column(align=True)
+    return col
+
+
+def draw_inline_prop(layout: UILayout, data, prop_name: str, col_label: str, prop_label: str, factor: float = 0):
+    """Draw a property with the label on the left"""
+    col = draw_inline_column(layout, col_label, factor)
     col.prop(data, prop_name, text=prop_label)
     return col
 

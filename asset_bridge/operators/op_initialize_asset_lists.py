@@ -6,7 +6,7 @@ from bpy.types import Operator
 from ..btypes import BOperator
 
 
-@BOperator("asset_bridge", label="Get asset lists.")
+@BOperator("asset_bridge", label="Get asset lists.", undo=True, register=True)
 class AB_OT_initialize_asset_lists(Operator):
     """Re initialize all asset lists with data from the internet rather than from the cache"""
 

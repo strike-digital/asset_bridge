@@ -82,8 +82,7 @@ class AB_OT_create_dummy_assets(Operator):
 
             # Handle a time out if the process continues for more than 100 seconds. I really hope no ones computer is
             # Slow enough to run into this naturally, but oh well.
-            # TODO: Make this a sensible number
-            if perf_counter() - start > 20:
+            if perf_counter() - start > 100:
                 completed = True
                 for name, process in processes.items():
                     process.kill()

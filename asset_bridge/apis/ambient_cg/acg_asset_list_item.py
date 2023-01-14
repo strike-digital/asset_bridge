@@ -68,7 +68,7 @@ class ACG_AssetListItem(AssetListItem):
                     pass
 
             if self.type in {HDRI, MATERIAL}:
-                qual = parts[0].split("K")[0]
+                qual = parts[0].split("K")[0].split("k")[0]
                 try:
                     value += int(qual)
                 except ValueError as e:

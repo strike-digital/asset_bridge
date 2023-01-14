@@ -88,11 +88,13 @@ class PH_AssetListItem(AssetListItem):
             data["tags"],
         ))
         self.metadata.append(
-            AssetMetadataItem("Support",
-                              "Patreon",
-                              "wm.url_open",
-                              operator_kwargs={"url": "https://www.patreon.com/polyhaven/overview"},
-                              label_icon="FUND"))
+            AssetMetadataItem(
+                "Support",
+                "Patreon",
+                "wm.url_open",
+                operator_kwargs={"url": "https://www.patreon.com/polyhaven/overview"},
+                label_icon="FUND",
+            ))
         # TODO: Maybe load the preview here
 
     @property

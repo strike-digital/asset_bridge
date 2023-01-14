@@ -72,8 +72,10 @@ class ACG_Asset(Asset):
                 "AmbientOcclusion": "ao",
                 "Displacement": "displacement",
                 "NormalGL": "normal",
+                "Normal": "normal",
                 "Roughness": "roughness",
                 "Metalness": "metalness",
+                "Metallness": "metalness",
                 "Opacity": "opacity",
             }
             texture_files = {}

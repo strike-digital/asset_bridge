@@ -1,7 +1,10 @@
+# from __future__ import annotations
 from typing import TYPE_CHECKING, OrderedDict
 
+from .constants import NODE_NAMES
+
 from .api import get_asset_lists
-from bpy.types import ID, PropertyGroup
+from bpy.types import ID, Context, Material, PropertyGroup
 from bpy.props import EnumProperty, StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
 from time import perf_counter, time_ns
 import bpy
@@ -61,9 +64,39 @@ class AssetTask(PropertyGroup):
 add_progress(AssetTask, "progress_prop")
 
 
+def new_show_prop(name: str, default=True):
+    return BoolProperty(name=name, description=f"Show {name} settings", default=default)
+
+
+class AssetBridgeShowUISettings(PropertyGroup):
+    """Properties for showing and hiding parts of the UI"""
+    __reg_order__ = 0
+
+    mat: new_show_prop("Material")
+
+    mat_general: new_show_prop("General")
+
+    mat_mapping: new_show_prop("Mapping")
+
+    mat_tiling: new_show_prop("Anti-Tiling")
+
+    mat_displacement: new_show_prop("Displacement")
+
+
 class AssetBridgeSettings(PropertyGroup):
     __reg_order__ = 1
 
+    ui_show: PointerProperty(
+        type=AssetBridgeShowUISettings,
+        description="Properties for showing and hiding parts of the UI",
+    )
+    if TYPE_CHECKING:
+        ui_show: AssetBridgeShowUISettings
+
+    # TASKS
+    # Tasks are a system for showing the progress of asset bridge processes dynamically in the UI
+    # Each task has drawable properties that can be updated by other processes
+    # and will be automatically updated in the UI
     tasks: CollectionProperty(type=AssetTask)
     if TYPE_CHECKING:
         tasks: OrderedDict[str, AssetTask]
@@ -144,6 +177,27 @@ class AssetBridgeIDSettings(PropertyGroup):
     is_asset_bridge: BoolProperty()
 
 
+class AssetBridgeMaterialSettings(AssetBridgeIDSettings, PropertyGroup):
+
+    def enable_displacement_update(self, context: Context):
+        self.id_data: Material
+        node = self.id_data.node_tree.nodes.get(NODE_NAMES.displacement)
+        if not node:
+            return
+
+        if links := node.outputs[0].links:
+            link = links[0]
+            link.is_muted = not self.enable_displacement
+            node.mute = not self.enable_displacement
+
+    enable_displacement: BoolProperty(
+        name="Enable material displacement",
+        description="Enable displacement for this material in Cycles",
+        default=False,
+        update=enable_displacement_update,
+    )
+
+
 def get_ab_settings(context: bpy.types.Context) -> AssetBridgeSettings:
     """Get the global asset bridge settings, registered to `context.window_manager.asset_bridge`"""
     return context.window_manager.asset_bridge
@@ -159,7 +213,7 @@ def register():
 
     bpy.types.Object.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
     bpy.types.World.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
-    bpy.types.Material.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
+    bpy.types.Material.asset_bridge = PointerProperty(type=AssetBridgeMaterialSettings)
 
 
 def unregister():

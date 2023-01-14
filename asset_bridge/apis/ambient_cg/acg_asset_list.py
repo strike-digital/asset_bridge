@@ -43,11 +43,13 @@ class ACG_AssetList(AssetList):
         ]
 
         base_url = "https://ambientcg.com/api/v2/full_json"
-        url = f"{base_url}?limit=100&include={','.join(params)}"
+        url = f"{base_url}?include={','.join(params)}"
 
         # Get total number of assets
-        initial_url = f"{base_url}?limit=0"
-        total = requests.get(initial_url).json()["numberOfResults"]
+        initial_url = f"{base_url}?limit=5000"
+        result = requests.get(initial_url).json()
+        total = result["numberOfResults"]
+        page_size = total["searchQuery"]["limit"]
 
         quality_data = {}
         threads: list[Thread] = []
@@ -74,14 +76,14 @@ class ACG_AssetList(AssetList):
 
         def get_asset_data(offset):
             """Send a request to get the info for 100 assets with the given offset (in number of assets)"""
-            page_url = f"{url}&offset={offset}"
+            page_url = f"{url}&offset={offset}&limit={page_size}"
             retval = requests.get(page_url).json()
             assets = {a["assetId"]: a for a in retval["foundAssets"]}
             all_data.update(assets)
 
         # Iterate through the pages and start a new thread with the request
-        for offset in range(roundup(total, 100) // 100):
-            thread = Thread(target=get_asset_data, args=[offset * 100])
+        for offset in range(roundup(total, page_size) // page_size):
+            thread = Thread(target=get_asset_data, args=[offset * page_size])
             thread.start()
             threads.append(thread)
 

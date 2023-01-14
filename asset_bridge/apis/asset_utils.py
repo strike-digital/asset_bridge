@@ -18,11 +18,13 @@ from pathlib import Path
 HDRI = "hdri"
 MATERIAL = "material"
 MODEL = "model"
-"""Contains useful common functions to be used by the various apis"""
+
+"""Contains useful common functions to be used by the various asset lists"""
 
 
 def register_asset_list(new_list: Type[AssetList]):
-    """"""
+    """Register an asset list to be used by the addon"""
+    start = perf_counter()
     asset_lists[new_list.name] = new_list
     # Get the cached asset list data if it exists
     list_file = DIRS.asset_lists / (new_list.name + ".json")
@@ -38,7 +40,6 @@ def register_asset_list(new_list: Type[AssetList]):
         # no cached data found, wait for user to initialize the asset list.
         return
 
-    start = perf_counter()
     asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
     print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
     return
@@ -263,15 +264,22 @@ def import_material(
         links.new(mapping_node.outputs[0], node.inputs[0])
     mapping_node.location = (node.location.x - mapping_node.width - 80, bsdf_node.location.y)
 
+    # Add scale node
+    scale_node = nodes.new("ShaderNodeVectorMath")
+    scale_node.name = NODE_NAMES.scale
+    scale_node.operation = "SCALE"
+    links.new(scale_node.outputs[0], mapping_node.inputs[0])
+    scale_node.location = mapping_node.location - V((scale_node.width + 40, 0))
+
     # Set up anti tiling node group
     node_group = append_node_group(FILES.resources_blend, NODE_GROUPS.anti_tiling, link_method=link_method)
     anti_tiling_node = nodes.new("ShaderNodeGroup")
     anti_tiling_node.node_tree = node_group
-    anti_tiling_node.location = mapping_node.location - V((anti_tiling_node.width + 40, 0))
+    anti_tiling_node.location = scale_node.location - V((anti_tiling_node.width + 40, 0))
     anti_tiling_node.name = NODE_GROUPS.anti_tiling
     anti_tiling_node.label = "Anti tiling"
     anti_tiling_node.mute = True
-    links.new(anti_tiling_node.outputs[0], mapping_node.inputs[0])
+    links.new(anti_tiling_node.outputs[0], scale_node.inputs[0])
 
     # Add texture coordinates
     coords_node = nodes.new("ShaderNodeTexCoord")
