@@ -34,16 +34,22 @@ def link_method(area):
     return area.spaces.active.params.import_type
 
 
+prev_materials = {}
+prev_world = None
+
+
 @handlers.persistent
 def depsgraph_update_pre_handler(scene: Scene, _):
     """Check if an asset has been dragged from the asset browser"""
     quality = get_asset_quality(bpy.context)
     reload = bpy.context.window_manager.asset_bridge.reload_asset
+
     # Hdris
+    global prev_world
     if (world := scene.world) and world.asset_bridge.is_dummy:
         name = world.asset_bridge.idname
         bpy.data.worlds.remove(world)
-        print("World!", name)
+        # print("World!", name)
         bpy.ops.asset_bridge.import_asset(
             "INVOKE_DEFAULT",
             asset_name=name,
@@ -52,14 +58,18 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             reload=reload,
             at_mouse=True,
         )
+        scene.world = prev_world
+
+    prev_world = scene.world or prev_world
 
     # Materials
+    global prev_materials
     for obj in scene.objects:
-        for slot in obj.material_slots:
+        for i, slot in enumerate(obj.material_slots):
             if (mat := slot.material) and mat.asset_bridge.is_dummy:
                 name = mat.asset_bridge.idname
                 bpy.data.materials.remove(mat)
-                print("Material!", name)
+                # print("Material!", name)
                 # We can't pass a material slot directly, so set it as a class attribute.
                 # This is very hacky, and there's almost certainly a good reason not to do it,
                 # But I haven't found it yet ¯\_(ツ)_/¯
@@ -73,13 +83,30 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                     link_method=link_method(get_browser_area(name)),
                     reload=reload,
                 )
+                try:
+                    slot.material = prev_materials[obj.name][i]
+                except (IndexError, KeyError) as e:
+                    print(e)
+                    continue
+
+    for obj in bpy.data.objects:
+        mats = [slot.material for slot in obj.material_slots]
+        for i, mat in enumerate(mats):
+            prev_mats = prev_materials.get(obj.name)
+            if not prev_mats or len(prev_mats) != len(mats):
+                continue
+
+            if not mat:
+                mats[i] = prev_mats[i]
+
+        prev_materials[obj.name] = mats
 
     # Models
     objs = [o for o in scene.objects if o.asset_bridge.is_dummy]
     for obj in objs:
         name = obj.asset_bridge.idname
         bpy.data.objects.remove(obj)
-        print("Object!", name)
+        # print("Object!", name)
         bpy.ops.asset_bridge.import_asset(
             "INVOKE_DEFAULT",
             asset_name=name,
@@ -88,8 +115,6 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             asset_quality=quality,
             reload=reload,
         )
-
-        continue
 
 
 @handlers.persistent

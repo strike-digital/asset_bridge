@@ -1,6 +1,7 @@
+from .op_report_message import report_message
 from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
 from ..settings import get_ab_settings
-from ..helpers.math import vec_lerp
+from ..helpers.math import Rectangle, vec_lerp
 import bpy
 from bpy.props import FloatVectorProperty, StringProperty
 from bpy.types import Operator
@@ -22,7 +23,7 @@ class AB_OT_draw_import_progress(Operator):
 
     task_name: StringProperty()
 
-    location: FloatVectorProperty()
+    location: FloatVectorProperty(description="The position to draw the progress in 3D space")
 
     def invoke(self, context, event):
         global handlers
@@ -31,29 +32,44 @@ class AB_OT_draw_import_progress(Operator):
         self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         self.image_shader = gpu.shader.from_builtin('2D_IMAGE')
         ab = get_ab_settings(context)
+        self.task = ab.tasks[self.task_name]
         handlers.append(
             bpy.types.SpaceView3D.draw_handler_add(
                 self.draw_callback_px,
-                (context, ab, V(self.location), ab.tasks[self.task_name]),
+                (context, ab, V(self.location), self.task),
                 "WINDOW",
                 # "POST_VIEW",
                 "POST_PIXEL",
             ))
+        self.cancel_box = Rectangle()
         self.handler = handlers[-1]
         self.image = bpy.data.images.load(str(ab.selected_asset.preview_file))
         self.image.name = self.task_name
         self.aspect = self.image.size[0] / self.image.size[1]
         self.texture = gpu.texture.from_image(self.image)
-        # context.area.tag_redraw()
+        self.region = context.region
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
 
     def modal(self, context, event):
         if self.done:
+            context.window.cursor_modal_restore()
             return {"FINISHED"}
 
-        # if event.type in {"RIGHTMOUSE", "ESC"} and not event.shift:
-        #     return self.cancelled()
+        # Handle pressing the cancel button
+        mouse_pos = V((event.mouse_x, event.mouse_y)) - V((self.region.x, self.region.y))
+
+        over_cancel = False
+        if self.region:
+            if self.cancel_box.isinside(mouse_pos):
+                over_cancel = True
+                context.window.cursor_modal_set("HAND")
+            else:
+                context.window.cursor_modal_restore()
+
+        if over_cancel and event.type == "LEFTMOUSE" and event.value == "PRESS":
+            self.task.progress.cancel()
+            report_message("Download cancelled", severity="WARNING")
 
         return {"PASS_THROUGH"}
 
@@ -72,6 +88,8 @@ class AB_OT_draw_import_progress(Operator):
     def draw_callback_px(self, context, ab, location, task):
         if not task.progress_prop_active:
             self.finish()
+
+        self.region = context.region
 
         coords = (
             (0, 0),
@@ -136,12 +154,43 @@ class AB_OT_draw_import_progress(Operator):
         image_coords = tuple(V(c) * size + image_offset for c in coords)
 
         # Loading bar
-        size.y = bar_height
-        size.x *= fac
-        bar_coords = tuple(V(c) * size + offset for c in coords)
+        bar_size = size.copy()
+        bar_size.y = bar_height
+        bar_size.x *= fac
+        # shorten to make space for cancel box
+        bar_size.x *= (size.x - bar_height) / max(size.x, .000001)
+        bar_coords = tuple(V(c) * bar_size + offset for c in coords)
 
-        gpu.state.blend_set("ALPHA")
+        # Cancel box
+        c_min = V((size.x - bar_height, 0))
+        c_max = V((size.x, bar_height))
+        self.cancel_box = Rectangle(c_min + offset, c_max + offset)
+
+        # Add dividing line
+        line_coords += [c_min.copy() + offset, V((c_min.x, c_max.y)) + offset]
+        line_indeces += [[6, 7]]
+
+        # Add the X button
+        cancel_coords = []
+        cancel_size = .7
+        min_offset = c_min + V([bar_height / 2] * 2)
+        max_offset = c_max - V([bar_height / 2] * 2)
+        c_min = (c_min - min_offset) * cancel_size + min_offset
+        c_max = (c_max - max_offset) * cancel_size + max_offset
+
+        cancel_coords += [c_min, c_max, (c_min.x, c_max.y), (c_max.x, c_min.y)]
+        cancel_coords = [V(c) + offset for c in cancel_coords]
+
+        # Background
+        background_coords = line_coords[:4]
         sh = self.shader
+        gpu.state.blend_set("ALPHA")
+        batch = batch_for_shader(sh, 'TRIS', {"pos": background_coords}, indices=indices)
+        sh.bind()
+        color = (*[.1] * 3, .7)
+        sh.uniform_float("color", color)
+        batch.draw(sh)
+
         # Image
         batch = batch_for_shader(self.image_shader, 'TRIS', {"pos": image_coords, "texCoord": coords}, indices=indices)
         self.image_shader.uniform_sampler("image", self.texture)
@@ -167,6 +216,13 @@ class AB_OT_draw_import_progress(Operator):
         # Arrow
         batch = batch_for_shader(sh, 'TRIS', {"pos": arrow_coords})
         sh.bind()
+        sh.uniform_float("color", line_colour)
+        batch.draw(sh)
+
+        # Cancel button
+        batch = batch_for_shader(sh, 'LINES', {"pos": cancel_coords})
+        sh.bind()
+        line_colour = (1, 0, 0, .9)
         sh.uniform_float("color", line_colour)
         batch.draw(sh)
 

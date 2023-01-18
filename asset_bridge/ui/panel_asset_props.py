@@ -1,6 +1,6 @@
 from ..settings import get_ab_settings, get_asset_settings
 from ..helpers.ui import draw_inline_column, draw_inline_prop, draw_node_group_inputs, wrap_text
-from ..constants import NODE_NAMES
+from ..constants import NODE_GROUPS, NODES
 from ..btypes import BPanel
 from bpy.types import Material, Node, Object, Panel, UILayout
 
@@ -13,8 +13,6 @@ class AssetPropsPanel(Panel):
         layout = self.layout
         obj: Object = context.object
         show_props = get_ab_settings(context).ui_show
-
-        # show_props.
 
         def draw_section_header(
             layout: UILayout,
@@ -43,29 +41,96 @@ class AssetPropsPanel(Panel):
                 icon = icon or "NONE"
                 row.label(text=name, icon=icon)
 
+        def draw_hdri_props():
+            world = context.scene.world
+            if not world:
+                return False
+
+            nodes = {
+                "coords": world.node_tree.nodes.get(NODE_GROUPS.hdri_coords),
+                "color": world.node_tree.nodes.get(NODE_GROUPS.hdri_color),
+            }
+
+            if not any(nodes.values()):
+                return False
+
+            column = layout.column(align=True)
+            draw_section_header(
+                column,
+                "HDRI Settings",
+                show_props,
+                "hdri",
+                icon="WORLD",
+                right_padding=4,
+            )
+            if not show_props.hdri:
+                return True
+            column = column.box().column(align=False)
+
+            if node := nodes["color"]:
+                col = column.column(align=True)
+                draw_section_header(col, "Color", show_props, "hdri_color")
+                if show_props.hdri_color:
+                    box = col.box().column(align=True)
+                    draw_node_group_inputs(node, box, context, False)
+
+            if node := nodes["coords"]:
+                col = column.column(align=True)
+                draw_section_header(col, "Warping", show_props, "hdri_coords")
+                if show_props.hdri_coords:
+                    box = col.box().column(align=True)
+                    draw_node_group_inputs(node, box, context, False)
+
         def draw_material_props():
-            nodes = {"tiling": None, "mapping": None, "normal": None}
             if not obj:
                 return False
 
-            for slot in obj.material_slots:
-                mat: Material = slot.material
-                if not mat:
-                    continue
+            def get_material_nodes(all_nodes: list[Node]):
+                nodes = {"tiling": None, "mapping": None, "normal": None, "scale": None, "displacement": None}
+                nodes["tiling"] = all_nodes.get(NODES.anti_tiling)
+                nodes["mapping"] = all_nodes.get(NODES.mapping)
+                nodes["normal"] = all_nodes.get(NODES.normal_map)
+                nodes["scale"] = all_nodes.get(NODES.scale)
+                nodes["displacement"] = all_nodes.get(NODES.displacement)
+                return nodes
 
-                all_nodes = mat.node_tree.nodes
-                nodes["tiling"] = all_nodes.get(NODE_NAMES.anti_tiling)
-                nodes["mapping"] = all_nodes.get(NODE_NAMES.mapping)
-                nodes["normal"] = all_nodes.get(NODE_NAMES.normal_map)
-                nodes["scale"] = all_nodes.get(NODE_NAMES.scale)
-                nodes["displacement"] = all_nodes.get(NODE_NAMES.displacement)
+            slot = obj.material_slots[obj.active_material_index]
+            slots = [slot for slot in obj.material_slots if slot.material]
+            mat: Material = slot.material
+            if mat:
+                nodes = get_material_nodes(mat.node_tree.nodes)
 
-            if any(nodes.values()):
-                column = layout.column(align=True)
-                draw_section_header(column, "Material Settings", show_props, "mat", icon="MATERIAL", right_padding=4)
-                if not show_props.mat:
-                    return True
-                column = column.box().column(align=False)
+            for slot in slots:
+                if any(get_material_nodes(slot.material.node_tree.nodes).values()):
+                    column = layout.column(align=True)
+                    draw_section_header(
+                        column,
+                        "Material Settings",
+                        show_props,
+                        "mat",
+                        icon="MATERIAL",
+                        right_padding=4,
+                    )
+                    if not show_props.mat:
+                        return True
+                    column = column.box().column(align=False)
+                    break
+            else:
+                return False
+
+            if len([slot for slot in obj.material_slots if slot.material]) > 1:
+                column.template_list(
+                    "MATERIAL_UL_matslots",
+                    "",
+                    obj,
+                    "material_slots",
+                    obj,
+                    "active_material_index",
+                    rows=1,
+                )
+
+            if not any(nodes.values()):
+                return True
 
             if any([nodes["normal"], nodes["scale"]]):
                 col = column.column(align=True)
@@ -83,7 +148,6 @@ class AssetPropsPanel(Panel):
                         box.separator()
 
             if mapping_node := nodes["mapping"]:
-                column.separator(factor=.5)
                 col = column.column(align=True)
                 draw_section_header(col, "Mapping", show_props, "mat_mapping")
                 if show_props.mat_mapping:
@@ -106,7 +170,6 @@ class AssetPropsPanel(Panel):
                     col.separator()
 
             if tiling_node := nodes["tiling"]:
-                column.separator(factor=.5)
                 col = column.column(align=True)
                 draw_section_header(col, "Anti-Tiling", show_props, "mat_tiling")
                 if show_props.mat_tiling:
@@ -125,11 +188,10 @@ class AssetPropsPanel(Panel):
 
                         draw_node_group_inputs(tiling_node, box, context, in_boxes=False)
 
-            if disp_node := nodes["displacement"]:
-                column.separator(factor=.5)
+            if (disp_node := nodes["displacement"]) and context.scene.render.engine == "CYCLES":
                 col = column.column(align=True)
                 draw_section_header(col, "Displacement", show_props, "mat_displacement")
-                if disp_node.outputs[0].links:
+                if show_props.mat_displacement and disp_node.outputs[0].links:
                     box = col.box().column(align=True)
                     settings = get_asset_settings(mat)
                     box.prop(
@@ -146,9 +208,7 @@ class AssetPropsPanel(Panel):
 
             return any(nodes.values())
 
-        # def draw_hdri_props():
-
-        drawn = draw_material_props()
+        drawn = any((draw_hdri_props(), draw_material_props()))
 
         if not drawn:
             box = layout.box().column(align=True)

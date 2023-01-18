@@ -101,6 +101,7 @@ class AB_OT_import_asset(Operator):
         # Download the asset in a separate thread to avoid locking the interface,
         # and then import the asset in the main thread again to avoid errors.
         def download_and_import_asset():
+            cancelled = False
 
             if not asset_list_item.is_downloaded(quality) or ab.reload_asset:
                 max_size = asset.get_download_size(quality)
@@ -123,6 +124,8 @@ class AB_OT_import_asset(Operator):
 
                 def check_progress():
                     """Check to total file size of the downloading files, and update the progress accordingly"""
+                    if not task:
+                        return None
                     if task.progress:
                         orig_progress = task.progress.progress
                         if (size := get_dir_size(asset.download_dir)) != orig_progress:
@@ -141,10 +144,13 @@ class AB_OT_import_asset(Operator):
                         severity="ERROR",
                         main_thread=True,
                     )
+                cancelled = task.progress.cancelled if task.progress else False
                 force_ui_update(area_types="VIEW_3D")
                 task.finish()
 
             def import_asset():
+                if cancelled:
+                    return
                 try:
                     imported = asset.import_asset(context)
 
@@ -165,6 +171,7 @@ class AB_OT_import_asset(Operator):
                             update_settings(obj)
                             obj.location += location
                 except Exception as e:
+                    # This is needed so that the errors are shown to the user.
                     report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
 
             # This is modifying blender data, so needs to be run in the main thread

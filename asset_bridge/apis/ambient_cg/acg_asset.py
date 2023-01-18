@@ -76,13 +76,20 @@ class ACG_Asset(Asset):
                 "Roughness": "roughness",
                 "Metalness": "metalness",
                 "Metallness": "metalness",
+                "Emission": "emission",
                 "Opacity": "opacity",
             }
             texture_files = {}
 
             for file in files:
                 texture_type = file.stem.split("_")[-1]
-                texture_files[texture_types[texture_type]] = file
+                try:
+                    texture_files[texture_types[texture_type]] = file
+                except KeyError:
+                    # As a fallback, use as a diffuse texture if none is provided
+                    if not texture_files.get("diffuse"):
+                        texture_files["diffuse"] = file
+                    print(f"Asset Bridge: File has an unknown texture type '{texture_type}'")
 
             mat = import_material(texture_files=texture_files, name=self.name, link_method=self.link_method)
             return mat

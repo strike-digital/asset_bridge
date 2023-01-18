@@ -1,7 +1,7 @@
 # from __future__ import annotations
 from typing import TYPE_CHECKING, OrderedDict
 
-from .constants import NODE_NAMES
+from .constants import NODES
 
 from .api import get_asset_lists
 from bpy.types import ID, Context, Material, PropertyGroup
@@ -72,6 +72,14 @@ class AssetBridgeShowUISettings(PropertyGroup):
     """Properties for showing and hiding parts of the UI"""
     __reg_order__ = 0
 
+    # HDRI
+    hdri: new_show_prop("HDRI")
+
+    hdri_coords: new_show_prop("Coordinates")
+
+    hdri_color: new_show_prop("Color")
+
+    # Material
     mat: new_show_prop("Material")
 
     mat_general: new_show_prop("General")
@@ -181,7 +189,7 @@ class AssetBridgeMaterialSettings(AssetBridgeIDSettings, PropertyGroup):
 
     def enable_displacement_update(self, context: Context):
         self.id_data: Material
-        node = self.id_data.node_tree.nodes.get(NODE_NAMES.displacement)
+        node = self.id_data.node_tree.nodes.get(NODES.displacement)
         if not node:
             return
 

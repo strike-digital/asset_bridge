@@ -14,6 +14,8 @@ PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"
 class NodeGroups():
 
     anti_tiling = "AB-anti_tiling"
+    hdri_coords = "AB-hdri_coords"
+    hdri_color = "AB-hdri_color"
 
 
 class NodeNames():
@@ -27,7 +29,7 @@ class NodeNames():
 
 
 NODE_GROUPS = NodeGroups()
-NODE_NAMES = NodeNames()
+NODES = NodeNames()
 
 
 # I know this isn't really a constant, but hey, sue me.

@@ -2,13 +2,13 @@ import json
 import math
 from time import perf_counter
 from typing import Dict, Type
-from bpy.types import Material, NodeGroup
+from bpy.types import Material, Node, NodeGroup, Object
 
 from mathutils import Vector as V
 from ..helpers.ui import dpifac
 
 import bpy
-from ..constants import DIRS, FILES, NODE_GROUPS, NODE_NAMES
+from ..constants import DIRS, FILES, NODE_GROUPS, NODES
 from ..api import asset_lists
 from .asset_types import AssetList
 from ..vendor import requests
@@ -18,7 +18,6 @@ from pathlib import Path
 HDRI = "hdri"
 MATERIAL = "material"
 MODEL = "model"
-
 """Contains useful common functions to be used by the various asset lists"""
 
 
@@ -119,7 +118,7 @@ def dimensions_to_string(dimensions: list[float] | str) -> str:
     return string
 
 
-def append_node_group(blend_file: Path, node_group_name: str, link_method: str = "APPEND_REUSE") -> NodeGroup:
+def get_node_group(blend_file: Path, node_group_name: str, link_method: str = "APPEND_REUSE") -> NodeGroup:
     """Append a node group to the current blend file.
 
     Args:
@@ -151,17 +150,39 @@ def import_hdri(image_file, name, link_method="APPEND_REUSE"):
     world = bpy.data.worlds.new(name)
     world.use_nodes = True
     nodes = world.node_tree.nodes
+    links = world.node_tree.links
 
     # Add nodes
     background_node = nodes["Background"]
+    nodes.remove(background_node)
     output_node = nodes["World Output"]
+
+    coords_node = nodes.new("ShaderNodeGroup")
+    coords_node_group = get_node_group(FILES.resources_blend, NODE_GROUPS.hdri_coords)
+    coords_node.node_tree = coords_node_group
+    coords_node.name = NODE_GROUPS.hdri_coords
+
     env_node = nodes.new("ShaderNodeTexEnvironment")
     env_node.image = image
+    links.new(coords_node.outputs[0], env_node.inputs[0])
+    # links.new(env_node.outputs[0], background_node.inputs[0])
+    # links.new(background_node.outputs[0], output_node.inputs[0])
 
-    # Link nodes
-    links = world.node_tree.links
-    links.new(env_node.outputs[0], background_node.inputs[0])
-    links.new(background_node.outputs[0], output_node.inputs[0])
+    color_node = nodes.new("ShaderNodeGroup")
+    color_node_group = get_node_group(FILES.resources_blend, NODE_GROUPS.hdri_color)
+    color_node.node_tree = color_node_group
+    color_node.name = NODE_GROUPS.hdri_color
+    links.new(env_node.outputs[0], color_node.inputs[0])
+    links.new(color_node.outputs[0], output_node.inputs[0])
+
+    def set_node_pos(node: Node, prev_pos: V):
+        node.location = prev_pos - V((node.width + 20, 0))
+        if node.inputs[0].links:
+            next_node = node.inputs[0].links[0].from_node
+            set_node_pos(next_node, node.location)
+
+    set_node_pos(output_node, V((0, 0)))
+
     return world
 
 
@@ -198,6 +219,7 @@ def import_material(
     out_node = nodes["Material Output"]
     image_nodes = []
     disp_node = None
+    diff_node = None
     nor_node = None
     ao_mix_node = None
 
@@ -223,7 +245,7 @@ def import_material(
         if ao_file := texture_files.get("ao"):
             ao_mix_node = nodes.new("ShaderNodeMix")
             ao_mix_node.label = "AO Mix"
-            ao_mix_node.name = NODE_NAMES.ao_mix
+            ao_mix_node.name = NODES.ao_mix
             ao_mix_node.data_type = "RGBA"
             ao_mix_node.blend_type = "MULTIPLY"
             links.new(diff_node.outputs[0], ao_mix_node.inputs[6])
@@ -236,25 +258,30 @@ def import_material(
     if rough_file := texture_files.get("roughness"):
         new_image(rough_file, "Roughness", "Roughness", non_color=True)
 
+    if emission_file := texture_files.get("emission"):
+        new_image(emission_file, "Emmission Strength", "Emission", non_color=True)
+        if diff_node:
+            links.new(diff_node.outputs[0], bsdf_node.inputs["Emission"])
+
     if opacity_file := texture_files.get("opacity"):
         new_image(opacity_file, "Alpha", "Opacity", non_color=True)
 
     if nor_file := texture_files.get("normal"):
         nor_node = nodes.new("ShaderNodeNormalMap")
-        nor_node.name = NODE_NAMES.normal_map
+        nor_node.name = NODES.normal_map
         new_image(nor_file, "Color", "Normal", to_node=nor_node, non_color=True)
         links.new(nor_node.outputs[0], bsdf_node.inputs["Normal"])
 
     if disp_file := texture_files.get("displacement"):
         disp_node = nodes.new("ShaderNodeDisplacement")
-        disp_node.name = NODE_NAMES.displacement
+        disp_node.name = NODES.displacement
         new_image(disp_file, "Height", "Displacement", to_node=disp_node)
         link = links.new(disp_node.outputs[0], out_node.inputs["Displacement"])
         link.is_muted = mute_displacement
 
     # Add mapping and set locations
     mapping_node = nodes.new("ShaderNodeMapping")
-    mapping_node.name = NODE_NAMES.mapping
+    mapping_node.name = NODES.mapping
     mapping_node.label = "Mapping"
     half_height = (300 * (len(image_nodes) - 1) / 2)
     for i, node in enumerate(image_nodes):
@@ -266,13 +293,13 @@ def import_material(
 
     # Add scale node
     scale_node = nodes.new("ShaderNodeVectorMath")
-    scale_node.name = NODE_NAMES.scale
+    scale_node.name = NODES.scale
     scale_node.operation = "SCALE"
     links.new(scale_node.outputs[0], mapping_node.inputs[0])
     scale_node.location = mapping_node.location - V((scale_node.width + 40, 0))
 
     # Set up anti tiling node group
-    node_group = append_node_group(FILES.resources_blend, NODE_GROUPS.anti_tiling, link_method=link_method)
+    node_group = get_node_group(FILES.resources_blend, NODE_GROUPS.anti_tiling, link_method=link_method)
     anti_tiling_node = nodes.new("ShaderNodeGroup")
     anti_tiling_node.node_tree = node_group
     anti_tiling_node.location = scale_node.location - V((anti_tiling_node.width + 40, 0))
@@ -357,6 +384,16 @@ def import_model(context, blend_file, name, link_method="APPEND_REUSE"):
         retval = collection
 
     context.view_layer.objects.active = final_obj
+
+    # Give the nodes the correct names so that they can be edited in the N-panel.
+    for obj in collection.objects:
+        obj: Object
+        for slot in obj.material_slots:
+            if mat := slot.material:
+                for node in mat.node_tree.nodes:
+                    if node.bl_idname == "ShaderNodeNormalMap":
+                        node.name = NODES.normal_map
+
     # Blender is weird, and without pushing an undo step
     # linking the object to the active collection will cause a crash.
     bpy.ops.ed.undo_push()
