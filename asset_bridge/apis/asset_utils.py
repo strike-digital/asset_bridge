@@ -293,7 +293,6 @@ def import_material(
 
     # Add scale node
     scale_node = nodes.new("ShaderNodeVectorMath")
-    scale_node.name = NODES.scale
     scale_node.operation = "SCALE"
     links.new(scale_node.outputs[0], mapping_node.inputs[0])
     scale_node.location = mapping_node.location - V((scale_node.width + 40, 0))
@@ -308,16 +307,38 @@ def import_material(
     anti_tiling_node.mute = True
     links.new(anti_tiling_node.outputs[0], scale_node.inputs[0])
 
+    # Add displacement scaling nodes
+    if disp_node:
+        value_node = nodes.new("ShaderNodeValue")
+        value_node.outputs[0].default_value = 1
+        value_node.name = NODES.scale
+        value_node.label = "Scale"
+        value_node.location = anti_tiling_node.location + (V((0, -330)))
+
+        links.new(value_node.outputs[0], scale_node.inputs[3])
+
+        math_node = nodes.new("ShaderNodeMath")
+        math_node.name = NODES.displacement_strength
+        math_node.label = "Displacement Strength"
+        math_node.inputs[0].default_value = 1
+        math_node.operation = "DIVIDE"
+        image_node = image_nodes[-1]
+        x_offset = image_node.width - math_node.width
+        math_node.location = image_node.location + (V((x_offset, -300)))
+
+        links.new(value_node.outputs[0], math_node.inputs[1])
+        links.new(math_node.outputs[0], disp_node.inputs[2])
+
     # Add texture coordinates
     coords_node = nodes.new("ShaderNodeTexCoord")
     coords_node.name = coords_node.label = "Coords"
     links.new(coords_node.outputs["UV"], anti_tiling_node.inputs[0])
     coords_node.location = anti_tiling_node.location - V((coords_node.width + 40, 0))
 
+    # set position of optional nodes
     if ao_mix_node:
         ao_mix_node.location = ao_image_node.location + V((ao_image_node.width + 40, 0))
 
-    # Add normal and displacement nodes
     if nor_node:
         nor_image_node = nodes["Normal"]
         nor_node.location = nor_image_node.location + V((nor_image_node.width + 40, 0))
@@ -334,7 +355,7 @@ def import_material(
 
 def import_model(context, blend_file, name, link_method="APPEND_REUSE"):
     """Import a collection from the given blend file with the given name"""
-    # TODO: imlement the append_reuse link method for objects
+    # TODO: implement the append_reuse link method for objects
     link = link_method == "LINK"
 
     collection = None

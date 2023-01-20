@@ -189,14 +189,18 @@ class AssetBridgeMaterialSettings(AssetBridgeIDSettings, PropertyGroup):
 
     def enable_displacement_update(self, context: Context):
         self.id_data: Material
-        node = self.id_data.node_tree.nodes.get(NODES.displacement)
-        if not node:
+        nodes = self.id_data.node_tree.nodes
+        for node in nodes:
+            if node.type == "OUTPUT_MATERIAL":
+                break
+        else:
             return
 
-        if links := node.outputs[0].links:
+        if links := node.inputs["Displacement"].links:
             link = links[0]
             link.is_muted = not self.enable_displacement
-            node.mute = not self.enable_displacement
+            link.from_node.mute = not self.enable_displacement
+            # node.mute = not self.enable_displacement
 
     enable_displacement: BoolProperty(
         name="Enable material displacement",

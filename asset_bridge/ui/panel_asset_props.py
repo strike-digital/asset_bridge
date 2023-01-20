@@ -82,7 +82,7 @@ class AssetPropsPanel(Panel):
                     draw_node_group_inputs(node, box, context, False)
 
         def draw_material_props():
-            if not obj:
+            if not obj and len(obj.material_slots) > 0:
                 return False
 
             def get_material_nodes(all_nodes: list[Node]):
@@ -92,6 +92,7 @@ class AssetPropsPanel(Panel):
                 nodes["normal"] = all_nodes.get(NODES.normal_map)
                 nodes["scale"] = all_nodes.get(NODES.scale)
                 nodes["displacement"] = all_nodes.get(NODES.displacement)
+                nodes["displacement_scale"] = all_nodes.get(NODES.displacement_strength)
                 return nodes
 
             slot = obj.material_slots[obj.active_material_index]
@@ -138,7 +139,7 @@ class AssetPropsPanel(Panel):
                 if show_props.mat_general:
                     box = col.box().column(align=True)
                     if scale_node := nodes["scale"]:
-                        socket = scale_node.inputs[3]
+                        socket = scale_node.outputs[0]
                         draw_inline_prop(box, socket, "default_value", "Scale", "")
                         box.separator()
 
@@ -204,7 +205,10 @@ class AssetPropsPanel(Panel):
                         box.separator()
                         box = box.column(align=True)
                         draw_inline_prop(box, disp_node.inputs["Midlevel"], "default_value", "Midlevel", "")
-                        draw_inline_prop(box, disp_node.inputs["Scale"], "default_value", "Scale", "")
+                        if disp_scale_node := nodes["displacement_scale"]:
+                            draw_inline_prop(box, disp_scale_node.inputs[0], "default_value", "Scale", "")
+
+                        # draw_inline_prop(box, disp_node.inputs["Scale"], "default_value", "Scale", "")
 
             return any(nodes.values())
 

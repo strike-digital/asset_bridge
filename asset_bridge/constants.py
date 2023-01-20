@@ -25,6 +25,7 @@ class NodeNames():
     ao_mix = "AB-ao_mix"
     normal_map = "AB-normal_map"
     displacement = "AB-displacement"
+    displacement_strength = "AB-displacement_strength"
     scale = "AB-scale"
 
 
