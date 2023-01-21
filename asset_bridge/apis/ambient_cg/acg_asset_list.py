@@ -48,7 +48,7 @@ class ACG_AssetList(AssetList):
         initial_url = f"{base_url}?limit=5000"
         result = requests.get(initial_url).json()
         total = result["numberOfResults"]
-        page_size = total["searchQuery"]["limit"]
+        page_size = result["searchQuery"]["limit"]
 
         quality_data = {}
         threads: list[Thread] = []
@@ -66,7 +66,7 @@ class ACG_AssetList(AssetList):
                     levels = quality_data.get(row[0], {})
                     levels[row[1]] = {"size": int(row[3]), "file_type": row[2]}
                     quality_data[row[0]] = levels
-        
+
         thread = Thread(target=get_csv_data)
         thread.start()
         threads.append(thread)
@@ -79,6 +79,8 @@ class ACG_AssetList(AssetList):
             retval = requests.get(page_url).json()
             assets = {a["assetId"]: a for a in retval["foundAssets"]}
             all_data.update(assets)
+            # if name == "3DBread005":
+            #     continue
 
         # Iterate through the pages and start a new thread with the request
         for offset in range(roundup(total, page_size) // page_size):
@@ -91,6 +93,11 @@ class ACG_AssetList(AssetList):
             thread.join()
 
         for name, data in quality_data.items():
+            for level in data.keys():
+                if level in {"HQ", "SQ", "LQ"}:
+                    print(name)
+
+        for name, data in quality_data.items():
             all_data[name]["quality_levels"] = data
 
         return all_data
@@ -101,8 +108,6 @@ class ACG_AssetList(AssetList):
         # TODO: support more asset types (Terrain, Decals, Images, Atlasses etc.)
         for name, asset_info in data.items():
             if asset_info["dataType"] in {"Material", "HDRI", "3DModel"}:
-                if name == "3DRock001":
-                    continue
                 item = ACG_AssetListItem(name, asset_info)
                 self.assets[item.idname] = item
 

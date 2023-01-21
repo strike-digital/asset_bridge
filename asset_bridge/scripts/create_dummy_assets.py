@@ -89,6 +89,7 @@ for i, asset_item in enumerate(asset_list.values()):
     tags = set(asset_item.tags)
     if asset_item.type not in tags:
         asset.asset_data.tags.new(asset_item.type)
+    asset.asset_data.tags.new(data.idname)
 
     # Load previews (This is the slowest part, not sure how to speed it up)
     with bpy.context.temp_override(id=asset):

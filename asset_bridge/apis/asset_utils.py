@@ -24,6 +24,7 @@ MODEL = "model"
 
 def register_asset_list(new_list: Type[AssetList]):
     """Register an asset list to be used by the addon"""
+
     def reg_in_thread():
         start = perf_counter()
         asset_lists[new_list.name] = new_list
@@ -46,8 +47,11 @@ def register_asset_list(new_list: Type[AssetList]):
         print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
 
     # Load the asset list in another thread to prevent locking the UI and slowing down blender loading.
-    thread = Thread(target=reg_in_thread)
-    thread.start()
+    # Turns out this can cause crashes. Would be good to fix in the future.
+    # thread = Thread(target=reg_in_thread)
+    # thread.start()
+
+    reg_in_thread()
     return
 
 

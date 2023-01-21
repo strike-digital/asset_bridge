@@ -122,7 +122,7 @@ class ABAddonPreferences(AddonPreferences):
 
             # Draw info showing the number of previews to download, only if it is not the first time download
             if new_assets_available and task_steps != len(all_assets) and not first_time:
-                needed_previews = set(a.label for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
+                needed_previews = set(a.idname for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
                 layout.label(text=self.format_download_label(needed_previews))
 
             # Draw the button/progress bar
