@@ -14,7 +14,6 @@ class ACG_AssetList(AssetList):
 
     name = "ambient_cg"
     label = "Ambient CG"
-    acronym = "acg"
     assets: OrderedDict[str, ACG_AssetListItem] = OrderedDict()
 
     url = "https://ambientcg.com/"
@@ -105,7 +104,6 @@ class ACG_AssetList(AssetList):
                 if name == "3DRock001":
                     continue
                 item = ACG_AssetListItem(name, asset_info)
-                item.idname = self.get_idname(name)
                 self.assets[item.idname] = item
 
 

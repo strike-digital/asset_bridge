@@ -1,5 +1,6 @@
 import json
 import math
+from threading import Thread
 from time import perf_counter
 from typing import Dict, Type
 from bpy.types import Material, Node, NodeGroup, Object
@@ -23,43 +24,31 @@ MODEL = "model"
 
 def register_asset_list(new_list: Type[AssetList]):
     """Register an asset list to be used by the addon"""
-    start = perf_counter()
-    asset_lists[new_list.name] = new_list
-    # Get the cached asset list data if it exists
-    list_file = DIRS.asset_lists / (new_list.name + ".json")
-    asset_list_data = {}
-    if list_file.exists():
-        with open(list_file, "r") as f:
-            try:
-                asset_list_data = json.load(f)
-            except json.JSONDecodeError:
-                pass
+    def reg_in_thread():
+        start = perf_counter()
+        asset_lists[new_list.name] = new_list
+        # Get the cached asset list data if it exists
+        list_file = DIRS.asset_lists / (new_list.name + ".json")
+        asset_list_data = {}
+        if list_file.exists():
+            with open(list_file, "r") as f:
+                try:
+                    asset_list_data = json.load(f)
+                except json.JSONDecodeError:
+                    pass
 
-    if not asset_list_data:
-        # no cached data found, wait for user to initialize the asset list.
-        return
+        if not asset_list_data:
+            # no cached data found, wait for user to initialize the asset list.
+            return
 
-    asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
-    print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
+        asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
+        # TODO: remove this for the release
+        print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
+
+    # Load the asset list in another thread to prevent locking the UI and slowing down blender loading.
+    thread = Thread(target=reg_in_thread)
+    thread.start()
     return
-
-    # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name
-    for name, other_list in asset_lists.items():
-        if name == new_list.name:
-            continue
-
-        if duplicates := other_list.assets.keys() & new_list.assets.keys():
-            for duplicate in duplicates:
-                asset = new_list[duplicate]
-                del new_list[duplicate]
-                new_list[f"{duplicate}_1"] = asset
-                asset.idname = f"{duplicate}_1"
-
-    # Initialize
-    new_list = new_list(asset_list_data)
-    asset_lists[new_list.name] = new_list
-    for item in new_list.assets.values():
-        item.asset_list = new_list
 
 
 def file_name_from_url(url: str) -> str:

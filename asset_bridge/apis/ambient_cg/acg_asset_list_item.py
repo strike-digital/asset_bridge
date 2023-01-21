@@ -9,6 +9,7 @@ from ..asset_types import AssetListItem, AssetMetadataItem as Metadata
 class ACG_AssetListItem(AssetListItem):
 
     asset_type = ACG_Asset
+    acronym = "acg"
     authors = ["Lennart Demes"]
 
     def __init__(self, name: str, data: dict):
@@ -18,7 +19,8 @@ class ACG_AssetListItem(AssetListItem):
 
         # Necessary data
         self.name = name
-        self.idname = name
+        if self.idname == "acg_3DBread005":
+            print("Found!")
         data_type = data["dataType"]
         self.type = asset_types[data_type]
         self.bl_type = bl_types[data_type]

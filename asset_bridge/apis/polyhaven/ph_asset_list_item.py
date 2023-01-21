@@ -1,4 +1,3 @@
-import bpy
 from datetime import datetime
 from threading import Thread
 from bpy.types import Material, Object, World
@@ -6,7 +5,6 @@ from bpy.types import Material, Object, World
 from .ph_asset import PH_Asset
 from ..asset_utils import HDRI, MATERIAL, MODEL, dimensions_to_string, download_file
 from ..asset_types import AssetListItem, AssetMetadataItem
-from ...settings import get_ab_settings
 from ...helpers.main_thread import force_ui_update
 from ...helpers.library import human_readable_file_size
 from ...constants import DIRS
@@ -14,15 +12,16 @@ from ...constants import DIRS
 
 class PH_AssetListItem(AssetListItem):
 
+    acronym = "ph"
+    asset_type = PH_Asset
+
     def __init__(self, name: str, data: dict):
-        self.asset_type = PH_Asset
         self.asset: PH_Asset = None
 
         asset_types = [HDRI, MATERIAL, MODEL]
         bl_types = [World, Material, Object]
         self.name = name
         self.label = data["name"]
-        self.idname = name
         self.type = asset_types[data["type"]]
         self.bl_type = bl_types[data["type"]]
         self.authors = list(data["authors"].keys()) or [""]
@@ -113,7 +112,6 @@ class PH_AssetListItem(AssetListItem):
                 thread = Thread(target=load_asset)
                 thread.start()
                 self.loading_asset = True
-            ab = get_ab_settings(bpy.context)
             return [("1k", "1k (00MB)", "1k")]
 
         items = []

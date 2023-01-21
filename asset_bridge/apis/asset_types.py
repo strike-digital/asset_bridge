@@ -79,6 +79,7 @@ class AssetListItem(ABC):
     asset_type: Type[Asset]  # The api asset class
     asset_list: AssetList  # The asset list that this list item is contained within
 
+    acronym: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
     idname: str  # The unique Asset Bridge identifier of this asset
     name: str  # The api name of the asset
     label: str  # The name visible in the UI
@@ -94,6 +95,10 @@ class AssetListItem(ABC):
     preview: int = -1
     tags: list[str] = []
     metadata: list[AssetMetadataItem] = []  # Info to be drawn in the metadata table
+
+    @property
+    def idname(self):
+        return f"{self.acronym}_{self.name}"
 
     @property
     def downloads_dir(self):
@@ -148,7 +153,6 @@ class AssetList(ABC):
 
     name: str
     label: str
-    acronym: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
     assets: OrderedDict[str, AssetListItem]
     url: str
     description: str
@@ -170,9 +174,6 @@ class AssetList(ABC):
 
     def items(self) -> set[tuple[str, AssetListItem]]:
         return self.assets.items()
-
-    def get_idname(self, asset_name):
-        return f"{self.acronym}_{asset_name}"
 
     @staticmethod
     @abstractmethod

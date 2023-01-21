@@ -80,7 +80,7 @@ class AB_OT_import_asset(Operator):
                 coord = self.mouse_pos_window - V((region.x, region.y))
                 # TODO: Try and fix this
                 if not region or any(c < 0 for c in coord):
-                    message = "Cannot import assets when another blender window is active"
+                    message = "Cannot import assets when the preferences window is active. Blender is weird like that"
                     report_message(message, "ERROR")
                     return {"CANCELLED"}
 
@@ -89,7 +89,17 @@ class AB_OT_import_asset(Operator):
             location = V(self.location)
 
         ab = get_ab_settings(context)
-        asset_list_item = get_asset_lists().all_assets[self.asset_name]
+        all_assets = get_asset_lists().all_assets
+        asset_list_item = all_assets.get(self.asset_name)
+
+        # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
+        if not asset_list_item:
+            report_message(
+                f"Could not find asset {self.asset_name} in the asset list (Number of assets: {len(all_assets)})",
+                "ERROR",
+            )
+            return {"CANCELLED"}
+
         asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
         files = asset.get_files()
 

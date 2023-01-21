@@ -10,7 +10,6 @@ class PH_AssetList(AssetList):
 
     name = "poly_haven"
     label = "Poly Haven"
-    acronym = "ph"
     assets: OrderedDict[str, PH_AssetListItem] = OrderedDict()
 
     url = "http://polyhaven.com"
@@ -26,7 +25,6 @@ class PH_AssetList(AssetList):
         self.assets = OrderedDict()
         for name, asset_info in data.items():
             item = PH_AssetListItem(name, asset_info)
-            item.idname = self.get_idname(name)
             self.assets[item.idname] = item
 
 
