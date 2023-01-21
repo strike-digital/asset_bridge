@@ -1,7 +1,7 @@
 from ..helpers.ui import wrap_text
 from ..settings import get_ab_settings
 from bpy_extras.asset_utils import AssetBrowserPanel
-from ..constants import ASSET_LIB_NAME
+from ..constants import ASSET_LIB_NAME, DIRS
 from bpy.types import Panel
 from ..btypes import BPanel
 
@@ -40,7 +40,13 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         box = col.box()
         bigrow = box.row(align=True)
         row = bigrow.row(align=True)
-        row.label(text="", icon="CHECKMARK" if is_downloaded else "IMPORT")
+        if is_downloaded:
+            op = row.operator("asset_bridge.open_folder", text="", icon="CHECKMARK", emboss=False)
+            op.file_path = str(asset.downloads_dir)
+        else:
+            op = row.operator("asset_bridge.open_folder", text="", icon="IMPORT", emboss=False)
+            op.file_path = str(DIRS.assets)
+
         row = bigrow.row(align=True)
         row.alignment = "CENTER"
         text = "   " + asset.label if is_downloaded else asset.label + "    "

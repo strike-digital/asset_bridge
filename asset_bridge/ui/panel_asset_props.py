@@ -82,7 +82,7 @@ class AssetPropsPanel(Panel):
                     draw_node_group_inputs(node, box, context, False)
 
         def draw_material_props():
-            if not obj and len(obj.material_slots) > 0:
+            if not obj or len(obj.material_slots) == 0:
                 return False
 
             def get_material_nodes(all_nodes: list[Node]):

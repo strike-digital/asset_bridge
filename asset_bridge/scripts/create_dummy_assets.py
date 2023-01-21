@@ -61,8 +61,7 @@ for path in intermediate_paths:
 catalog.write()
 
 # Convert between bpy.types and bpy.data
-type_to_data = {World: bpy.data.worlds, Object: bpy.data.objects, Material: bpy.data.materials}
-
+types_to_data: dict = {World: bpy.data.worlds, Object: bpy.data.objects, Material: bpy.data.materials}
 
 progress = 0
 progress_update_interval = .01
@@ -73,7 +72,7 @@ for i, asset_item in enumerate(asset_list.values()):
     params = {}
     if asset_item.bl_type == Object:
         params["object_data"] = None
-    asset: Object = type_to_data[asset_item.bl_type].new(asset_item.label, **params)
+    asset = types_to_data[asset_item.bl_type].new(asset_item.label, **params)
 
     # Set asset bridge attributes
     data = get_asset_settings(asset)
