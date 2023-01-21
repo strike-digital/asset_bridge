@@ -1,3 +1,4 @@
+import inspect
 import re
 from ...helpers.library import human_readable_file_size
 from bpy.types import Material, Object, World
@@ -19,8 +20,6 @@ class ACG_AssetListItem(AssetListItem):
 
         # Necessary data
         self.name = name
-        if self.idname == "acg_3DBread005":
-            print("Found!")
         data_type = data["dataType"]
         self.type = asset_types[data_type]
         self.bl_type = bl_types[data_type]
@@ -119,6 +118,15 @@ class ACG_AssetListItem(AssetListItem):
                 label_icon="FUND",
             ),
         )  # yapf: disable
+
+    def poll(self):
+        if any(q in {"HQ", "SQ", "LQ"} for q in self.quality_data):
+            return inspect.cleandoc("""
+            This model has an unsupported format. This will be fixed by Ambient CG in the future,
+            but currently this model cannot be imported. If you want it to be fixed faster,
+            consider donating to their Patreon so that they have the resources to continue :).
+            """)
+        return ""
 
     def download_preview(self):
         url = f"https://cdn3.struffelproductions.com/file/ambientCG/media/sphere/128-PNG/{self.name}_PREVIEW.png"

@@ -100,6 +100,10 @@ class AB_OT_import_asset(Operator):
             )
             return {"CANCELLED"}
 
+        elif message := asset_list_item.poll():
+            report_message(message, "ERROR")
+            return {"CANCELLED"}
+
         asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
         files = asset.get_files()
 

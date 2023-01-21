@@ -91,6 +91,7 @@ class AB_OT_create_dummy_assets(Operator):
 
             if completed:
 
+                # Combine the separate catalogs
                 catalog = AssetCatalogFile(DIRS.dummy_assets)
                 catalog.reset()
                 for name in processes:
@@ -101,6 +102,12 @@ class AB_OT_create_dummy_assets(Operator):
                     other_catalog = AssetCatalogFile(DIRS.dummy_assets, f"{name}.cats.txt")
                     catalog.merge(other_catalog)
                 catalog.write()
+
+                # Reset the progress files
+                for name in processes:
+                    file = DIRS.dummy_assets / f"{name}_progress.txt"
+                    with open(file, "w") as f:
+                        f.write("0")
 
                 # Handle any errors
                 errors = False
@@ -119,10 +126,6 @@ class AB_OT_create_dummy_assets(Operator):
                 task.finish()
                 force_ui_update(area_types={"PREFERENCES"})
                 return
-
-            # File hasn't been created yet
-            if not FILES.lib_progress.exists():
-                return update_interval
 
             # Update progress
             total = 0

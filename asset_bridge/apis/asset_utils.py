@@ -1,6 +1,5 @@
 import json
 import math
-from threading import Thread
 from time import perf_counter
 from typing import Dict, Type
 from bpy.types import Material, Node, NodeGroup, Object

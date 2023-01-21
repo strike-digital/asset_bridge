@@ -122,6 +122,11 @@ class AssetListItem(ABC):
     def progress_file(self):
         return DIRS.dummy_assets / f"{self.name}"
 
+    def poll(self):
+        """Whether this asset can be imported currently.
+        Return an empty string if it can, and an error to show if it can't."""
+        return ""
+
     @abstractmethod
     def download_preview(self) -> str:
         """Download a preview for this asset.

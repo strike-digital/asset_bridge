@@ -79,8 +79,6 @@ class ACG_AssetList(AssetList):
             retval = requests.get(page_url).json()
             assets = {a["assetId"]: a for a in retval["foundAssets"]}
             all_data.update(assets)
-            # if name == "3DBread005":
-            #     continue
 
         # Iterate through the pages and start a new thread with the request
         for offset in range(roundup(total, page_size) // page_size):
@@ -91,11 +89,6 @@ class ACG_AssetList(AssetList):
         # Wait till all threads have finished
         for thread in threads:
             thread.join()
-
-        for name, data in quality_data.items():
-            for level in data.keys():
-                if level in {"HQ", "SQ", "LQ"}:
-                    print(name)
 
         for name, data in quality_data.items():
             all_data[name]["quality_levels"] = data

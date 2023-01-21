@@ -33,6 +33,15 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         if not asset:
             return
 
+        if message := asset.poll():
+            box = layout.box()
+            box.separator()
+            box.alert = True
+            box.scale_y = .45
+            wrap_text(context, message, box, centered=True)
+            box.separator()
+            return
+
         is_downloaded = asset.is_downloaded(ab.asset_quality)
 
         # Toprow
