@@ -32,11 +32,10 @@ class AB_OT_draw_import_progress(Operator):
         self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         self.image_shader = gpu.shader.from_builtin('2D_IMAGE')
         ab = get_ab_settings(context)
-        self.task = ab.tasks[self.task_name]
         handlers.append(
             bpy.types.SpaceView3D.draw_handler_add(
                 self.draw_callback_px,
-                (context, ab, V(self.location), self.task),
+                (context, V(self.location)),
                 "WINDOW",
                 # "POST_VIEW",
                 "POST_PIXEL",
@@ -50,6 +49,12 @@ class AB_OT_draw_import_progress(Operator):
         self.region = context.region
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
+
+    def get_task(self, context):
+        """It's best to get a new reference to the task each iteration, as if the tasks list is modified,
+        Blender will invalidate all current python references to tasks, which causes errors when importing
+        multiple assets at once"""
+        return get_ab_settings(context).tasks.get(self.task_name)
 
     def modal(self, context, event):
         if self.done:
@@ -68,7 +73,7 @@ class AB_OT_draw_import_progress(Operator):
                 context.window.cursor_modal_restore()
 
         if over_cancel and event.type == "LEFTMOUSE" and event.value == "PRESS":
-            self.task.progress.cancel()
+            self.get_task(context).progress.cancel()
             report_message("Download cancelled", severity="WARNING")
 
         return {"PASS_THROUGH"}
@@ -85,9 +90,12 @@ class AB_OT_draw_import_progress(Operator):
         self.finish()
         return {"CANCELLED"}
 
-    def draw_callback_px(self, context, ab, location, task):
-        if not task.progress_prop_active:
+    def draw_callback_px(self, context, location):
+        task = self.get_task(context)
+
+        if task is None:  # or not task.progress_prop_active:
             self.finish()
+            return
 
         self.region = context.region
 
@@ -114,7 +122,8 @@ class AB_OT_draw_import_progress(Operator):
         fac = task.progress_prop / 100
         offset = location_3d_to_region_2d(context.region, context.region.data, location)
         size = V([100] * 2)
-        size.x *= self.aspect
+        # orig_size_x = size.x
+        # size.x *= aspect
         line_width = 2
 
         # Custom shader version
@@ -149,9 +158,17 @@ class AB_OT_draw_import_progress(Operator):
         line_indeces += [[4, 5]]
 
         # Image
+        image_size = size.copy()
+        image_size.x *= self.aspect
+        if self.aspect > 1:
+            image_size *= 1 / self.aspect
+
         image_offset = offset.copy()
-        image_offset.y += bar_height
-        image_coords = tuple(V(c) * size + image_offset for c in coords)
+        image_offset.x += (size.x / 2) - (image_size.x / 2)
+        image_offset.y += bar_height + ((size.y / 2) - (image_size.y / 2))
+        image_offset.y
+
+        image_coords = tuple(V(c) * image_size + image_offset for c in coords)
 
         # Loading bar
         bar_size = size.copy()

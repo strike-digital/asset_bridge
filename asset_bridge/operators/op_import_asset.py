@@ -107,6 +107,7 @@ class AB_OT_import_asset(Operator):
                 max_size = asset.get_download_size(quality)
                 task = ab.new_task()
                 task.new_progress(max_size)
+                task_name = task.name
 
                 # Delete existing files
                 for file in files:
@@ -124,6 +125,9 @@ class AB_OT_import_asset(Operator):
 
                 def check_progress():
                     """Check to total file size of the downloading files, and update the progress accordingly"""
+                    # Blender moves stuff around a lot so it's best to get a new reference to the task each time.
+                    # Otherwise it causes errors when importing multiple assets at once.
+                    task = ab.tasks.get(task_name)
                     if not task:
                         return None
                     if task.progress:
@@ -144,9 +148,11 @@ class AB_OT_import_asset(Operator):
                         severity="ERROR",
                         main_thread=True,
                     )
+
+                task = ab.tasks[task_name]
                 cancelled = task.progress.cancelled if task.progress else False
                 force_ui_update(area_types="VIEW_3D")
-                task.finish()
+                run_in_main_thread(task.finish)
 
             def import_asset():
                 if cancelled:

@@ -1,8 +1,6 @@
 # from __future__ import annotations
 from typing import TYPE_CHECKING, OrderedDict
 
-from .constants import NODES
-
 from .api import get_asset_lists
 from bpy.types import ID, Context, Material, PropertyGroup
 from bpy.props import EnumProperty, StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
