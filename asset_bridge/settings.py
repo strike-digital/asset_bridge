@@ -179,6 +179,8 @@ class AssetBridgeIDSettings(PropertyGroup):
 
     idname: StringProperty()
 
+    quality_level: StringProperty()
+
     # Used to tell if a datablock has been imported by asset bridge
     is_asset_bridge: BoolProperty()
 

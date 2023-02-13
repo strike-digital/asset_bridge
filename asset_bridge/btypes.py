@@ -79,6 +79,7 @@ class BMenu():
             bl_description = panel_description
 
             wrap_text = wrap_text
+            layout: UILayout
 
             if not hasattr(cls, "draw"):
 
@@ -206,6 +207,9 @@ class BOperator():
         label (str): The name of the operator that is displayed in the UI.
         description (str): The description of the operator that is displayed in the UI.
         dynamic_description (bool): Whether to automatically allow bl_description to be altered from the UI.
+        custom_invoke (bool): Whether to automatically log each time an operator is invoked.
+        call_popup (bool): Whether to call a popup after the invoke function is run.
+        
         register (bool): Whether to display the operator in the info window and support the redo panel.
         undo (bool): Whether to push an undo step after the operator is executed.
         undo_grouped (bool): Whether to group multiple consecutive executions of the operator into one undo step.
@@ -233,7 +237,9 @@ class BOperator():
     label: str = ""
     description: str = ""
     dynamic_description: bool = True
-    invoke: bool = True
+    custom_invoke: bool = True
+    call_popup: bool = False
+
     register: bool = True
     undo: bool = False
     undo_grouped: bool = False
@@ -300,16 +306,28 @@ class BOperator():
             else:
                 bl_description = op_description
 
-            if self.invoke:
+            if not hasattr(self, "execute"):
+                def execute(self, context):
+                    return {"FINISHED"}
 
-                def invoke(_self, context, event):
+            if self.custom_invoke or self.call_popup:
+
+                def invoke(_self, context: Context, event):
                     """Here we can log whenever an operator using this decorator is invoked"""
                     if log:
                         print(f"Invoke: {idname}")
+
                     if hasattr(super(), "invoke"):
-                        return super().invoke(context, event)
-                    else:
-                        return _self.execute(context)
+                        retval = super().invoke(context, event)
+
+                    if self.call_popup:
+                        print("ho")
+                        # return context.window_manager.invoke_props_popup(_self, event)
+                        return context.window_manager.invoke_props_dialog(_self)
+
+                    if not hasattr(super(), "invoke"):
+                        retval = _self.execute(context)
+                    return retval
 
         Wrapped.__doc__ = op_description
         Wrapped.__name__ = cls.__name__

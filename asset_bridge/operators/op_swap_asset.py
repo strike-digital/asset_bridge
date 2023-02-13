@@ -8,9 +8,7 @@ class AB_OT_swap_asset(Operator):
 
     to_quality: StringProperty()
 
-    asset_type: StringProperty(description="The type of asset that should be swapped")
-
-    data_block_name: StringProperty(description="The name of the data block to be swapped (e.g. World, Object, etc.)")
+    asset_id: StringProperty(description="The identifier of the asset to be swapped")
 
     def execute(self, context):
         print("Swap")

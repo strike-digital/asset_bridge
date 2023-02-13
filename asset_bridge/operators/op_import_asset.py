@@ -179,13 +179,15 @@ class AB_OT_import_asset(Operator):
                         settings = get_asset_settings(data_block)
                         settings.is_asset_bridge = True
                         settings.idname = asset_list_item.idname
+                        settings.quality_level = quality
+
+                    if not isinstance(imported, Collection):
+                        update_settings(imported)
 
                     if isinstance(imported, Material):
-                        update_settings(imported)
                         if material_slot:
                             material_slot.material = imported
                     elif isinstance(imported, Object):
-                        update_settings(imported)
                         imported.location += location
                     elif isinstance(imported, Collection):
                         for obj in imported.objects:
