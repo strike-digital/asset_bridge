@@ -120,6 +120,7 @@ class ACG_AssetListItem(AssetListItem):
         )  # yapf: disable
 
     def poll(self):
+        # These are models with a weird format.
         if any(q in {"HQ", "SQ", "LQ"} for q in self.quality_data):
             return inspect.cleandoc("""
             This model has an unsupported format. This will be fixed by Ambient CG in the future,

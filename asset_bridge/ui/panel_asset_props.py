@@ -5,12 +5,46 @@ from ..btypes import BPanel
 from bpy.types import Material, Node, Object, Panel, UILayout
 
 
+class DummyLayout():
+    """An immitator of the blender UILayout class, used so that the draw function can be run as a poll function"""
+
+    def row(*args, **kwargs):
+        return DummyLayout()
+
+    def box(*args, **kwargs):
+        return DummyLayout()
+
+    def column(*args, **kwargs):
+        return DummyLayout()
+
+    def split(*args, **kwargs):
+        return DummyLayout()
+
+    def label(*args, **kwargs):
+        return DummyLayout()
+
+    def prop(*args, **kwargs):
+        return DummyLayout()
+
+
 class AssetPropsPanel(Panel):
     __no_reg__ = True
     bl_label = "Asset settings"
 
+    can_draw = False
+
+    @classmethod
+    def poll(cls, context):
+        cls.draw(cls, context)
+        return cls.can_draw
+
     def draw(self, context):
-        layout = self.layout
+        if hasattr(self, "layout"):
+            layout = self.layout
+            is_dummy = False
+        else:
+            layout = DummyLayout()
+            is_dummy = True
         obj: Object = context.object
         show_props = get_ab_settings(context).ui_show
 
@@ -40,6 +74,7 @@ class AssetPropsPanel(Panel):
                     row.alignment = "CENTER"
                 icon = icon or "NONE"
                 row.label(text=name, icon=icon)
+            return row
 
         def draw_hdri_props():
             world = context.scene.world
@@ -53,16 +88,23 @@ class AssetPropsPanel(Panel):
 
             if not any(nodes.values()):
                 return False
+            elif is_dummy:
+                return True
 
             column = layout.column(align=True)
-            draw_section_header(
+            row = draw_section_header(
                 column,
-                "HDRI Settings",
+                "     HDRI Settings",
                 show_props,
                 "hdri",
                 icon="WORLD",
                 right_padding=4,
             )
+
+            row = row.row()
+            row.menu("VIEW3D_MT_view", text="", icon="IMPORT")
+            # row.operator("asset_bridge.swap_asset", text="", icon="IMPORT", emboss=False)
+
             if not show_props.hdri:
                 return True
             column = column.box().column(align=False)
@@ -101,8 +143,8 @@ class AssetPropsPanel(Panel):
             if mat:
                 nodes = get_material_nodes(mat.node_tree.nodes)
 
-            for slot in slots:
-                if any(get_material_nodes(slot.material.node_tree.nodes).values()):
+            for s in slots:
+                if any(get_material_nodes(s.material.node_tree.nodes).values()):
                     column = layout.column(align=True)
                     draw_section_header(
                         column,
@@ -119,7 +161,10 @@ class AssetPropsPanel(Panel):
             else:
                 return False
 
-            if len([slot for slot in obj.material_slots if slot.material]) > 1:
+            if is_dummy:
+                return True
+
+            if len(obj.material_slots) > 1:
                 column.template_list(
                     "MATERIAL_UL_matslots",
                     "",
@@ -129,8 +174,12 @@ class AssetPropsPanel(Panel):
                     "active_material_index",
                     rows=1,
                 )
+                column.separator(factor=.1)
 
-            if not any(nodes.values()):
+            column.template_ID(slot, "material")
+            column.separator(factor=.1)
+
+            if not mat or not any(nodes.values()):
                 return True
 
             if any([nodes["normal"], nodes["scale"]]):
@@ -213,6 +262,10 @@ class AssetPropsPanel(Panel):
             return any(nodes.values())
 
         drawn = any((draw_hdri_props(), draw_material_props()))
+
+        self.can_draw = drawn
+        return
+        # return drawn
 
         if not drawn:
             box = layout.box().column(align=True)

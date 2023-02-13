@@ -30,10 +30,6 @@ def update_progress_file(value):
     # Write the new progress value
     with open(progress_file, "w") as f:
         f.write(str(value))
-        # f.flush()
-
-    # with open(progress_file, "r") as f:
-    #     print(f.read())
 
 
 update_progress_file(0)

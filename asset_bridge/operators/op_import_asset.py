@@ -80,7 +80,8 @@ class AB_OT_import_asset(Operator):
                 coord = self.mouse_pos_window - V((region.x, region.y))
                 # TODO: Try and fix this
                 if not region or any(c < 0 for c in coord):
-                    message = "Cannot import assets when the preferences window is active. Blender is weird like that"
+                    message = "Cannot import assets when the preferences window is active. \
+                        Blender is weird like that :(".replace("  ", "")
                     report_message(message, "ERROR")
                     return {"CANCELLED"}
 
