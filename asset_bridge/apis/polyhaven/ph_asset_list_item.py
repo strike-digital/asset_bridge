@@ -118,7 +118,7 @@ class PH_AssetListItem(AssetListItem):
         quality_data = list(self.asset.get_quality_data())
         quality_data.sort(key=lambda name: int(name.split("k")[0]))
         for name in quality_data:
-            # TODO: Fix this after removing the quality level arg from get_download_size
+            self.asset.quality_level = name
             size = human_readable_file_size(self.asset.get_download_size()).replace(" ", "")
             label = f"{name} ({size})"
             items.append((name, label, f"Load asset at {name} resolution"))

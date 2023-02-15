@@ -1,6 +1,8 @@
 import webbrowser
+
 from bpy.props import StringProperty
 from bpy.types import Operator
+
 from ..helpers.btypes import BOperator
 
 

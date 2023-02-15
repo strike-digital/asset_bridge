@@ -61,6 +61,7 @@ class AB_OT_import_asset(Operator):
 
     def execute(self, context):
 
+        # Find 3D coordinates of the point under the mouse cursor
         if self.at_mouse:
             # Get the position of the mouse in 3D space
             if context.region:
@@ -90,107 +91,6 @@ class AB_OT_import_asset(Operator):
 
         task_name = download_asset(context, asset, draw=True, draw_location=location)
 
-        # # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
-        # if not asset_list_item:
-        #     report_message(
-        #         f"Could not find asset {self.asset_name} in the asset list (Number of assets: {len(all_assets)})",
-        #         "ERROR",
-        #     )
-        #     return {"CANCELLED"}
-
-        # elif message := asset_list_item.poll():
-        #     report_message(message, "ERROR")
-        #     return {"CANCELLED"}
-
-        # files = asset.get_files()
-
-        # Download the asset in a separate thread to avoid locking the interface,
-        # and then import the asset in the main thread again to avoid errors.
-        # def download_and_import_asset():
-        #     cancelled = False
-
-            # if not asset_list_item.is_downloaded(quality) or ab.reload_asset:
-            #     max_size = asset.get_download_size(quality)
-            #     task = ab.new_task()
-            #     task.new_progress(max_size)
-            #     task_name = task.name
-
-            #     # Delete existing files
-            #     for file in files:
-            #         os.remove(file)
-
-            #     # Run the draw operator
-            #     run_in_main_thread(
-            #         bpy.ops.asset_bridge.draw_import_progress,
-            #         args=["INVOKE_DEFAULT"],
-            #         kwargs={
-            #             "task_name": task.name,
-            #             "location": location
-            #         },
-            #     )
-
-            #     def check_progress():
-            #         """Check to total file size of the downloading files, and update the progress accordingly"""
-            #         # Blender moves stuff around a lot so it's best to get a new reference to the task each time.
-            #         # Otherwise it causes errors when importing multiple assets at once.
-            #         task = ab.tasks.get(task_name)
-            #         if not task:
-            #             return None
-            #         if task.progress:
-            #             orig_progress = task.progress.progress
-            #             if (size := get_dir_size(asset.download_dir)) != orig_progress:
-            #                 task.progress.progress = size
-            #                 force_ui_update(area_types="VIEW_3D")
-            #             return .01
-            #         return None
-
-            #     # Download the asset
-            #     bpy.app.timers.register(check_progress)
-            #     try:
-            #         asset.download_asset()
-            #     except Exception as e:
-            #         report_message(
-            #             f"Error downloading asset {asset.idname}:\n{format_traceback(e)}",
-            #             severity="ERROR",
-            #             main_thread=True,
-            #         )
-
-            #     task = ab.tasks[task_name]
-            #     cancelled = task.progress.cancelled if task.progress else False
-            #     force_ui_update(area_types="VIEW_3D")
-            #     run_in_main_thread(task.finish)
-
-            # # This is modifying blender data, so needs to be run in the main thread
-            # run_in_main_thread(import_asset)
-
-        # def import_assert():
-        #     try:
-        #         imported = asset.import_asset(context)
-
-        #         def update_settings(data_block):
-        #             settings = get_asset_settings(data_block)
-        #             settings.is_asset_bridge = True
-        #             settings.idname = asset_list_item.idname
-        #             settings.quality_level = quality
-
-        #         if not isinstance(imported, Collection):
-        #             update_settings(imported)
-
-        #         if isinstance(imported, Material):
-        #             if material_slot:
-        #                 material_slot.material = imported
-        #         elif isinstance(imported, Object):
-        #             imported.location += location
-        #         elif isinstance(imported, Collection):
-        #             for obj in imported.objects:
-        #                 update_settings(obj)
-        #                 obj.location += location
-        #     except Exception as e:
-        #         # This is needed so that the errors are shown to the user.
-        #         report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
-
-        #     return {"FINISHED"}
-
         def check_download():
             if ab.tasks[task_name].cancelled:
                 return
@@ -200,10 +100,4 @@ class AB_OT_import_asset(Operator):
             return .1
 
         bpy.app.timers.register(check_download, first_interval=.1)
-
-        # thread = Thread(target=download_and_import_asset)
-        # thread.start()
-
-        # Blender is weird, and without executing this in a timer, all imported objects will be
-        # scaled to zero after execution. God knows why.
         return {"FINISHED"}

@@ -1,18 +1,17 @@
 import os
 from threading import Thread
 
-from .process import format_traceback
-from .library import get_dir_size
-
 import bpy
-
-from .main_thread import force_ui_update, run_in_main_thread
-from ..operators.op_report_message import report_message
-from ..api import get_asset_lists
-from ..apis.asset_types import Asset
 from bpy.types import Collection, Context, Material, MaterialSlot, Object
 from mathutils import Vector as V
+
+from ..api import get_asset_lists
+from ..apis.asset_types import Asset
+from ..operators.op_report_message import report_message
 from ..settings import get_ab_settings, get_asset_settings
+from .library import get_dir_size
+from .main_thread import force_ui_update, run_in_main_thread
+from .process import format_traceback
 
 
 def download_asset(
