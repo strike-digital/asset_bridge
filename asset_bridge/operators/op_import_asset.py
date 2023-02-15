@@ -1,13 +1,16 @@
-import bpy
-from ..helpers.assets import download_asset, import_asset
-from .op_report_message import report_message
-from ..helpers.btypes import BOperator
-from ..api import get_asset_lists
-from ..settings import get_ab_settings
-from ..helpers.drawing import get_active_window_region, point_under_mouse
-from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
+from bpy.props import (
+    BoolProperty,
+    EnumProperty,
+    StringProperty,
+    FloatVectorProperty
+)
 from bpy.types import Operator
 from mathutils import Vector as V
+
+from ..api import get_asset_lists
+from ..helpers.assets import download_and_import_asset
+from ..helpers.btypes import BOperator
+from ..helpers.drawing import point_under_mouse
 
 
 @BOperator("asset_bridge")
@@ -63,41 +66,17 @@ class AB_OT_import_asset(Operator):
 
         # Find 3D coordinates of the point under the mouse cursor
         if self.at_mouse:
-            # Get the position of the mouse in 3D space
-            if context.region:
-                region = context.region
-                coord = self.mouse_pos_region
-            else:
-                region = get_active_window_region(self.mouse_pos_window, fallback_area_type="VIEW_3D")
-                coord = self.mouse_pos_window - V((region.x, region.y))
-                # TODO: Try and fix this
-                if not region or any(c < 0 for c in coord):
-                    message = "Cannot import assets when the preferences window is active. \
-                        Blender is weird like that :(".replace("  ", "")
-                    report_message(message, "ERROR")
-                    return {"CANCELLED"}
-
-            location = point_under_mouse(context, region, coord)
+            location = point_under_mouse(context, self.mouse_pos_region, self.mouse_pos_window)
+            if location is None:
+                # Couldn't find the location. The error is handled inside the function
+                return {"CANCELLED"}
         else:
             location = V(self.location)
 
-        ab = get_ab_settings(context)
-        all_assets = get_asset_lists().all_assets
-        asset_list_item = all_assets.get(self.asset_name)
-        # These need to variables rather than instance attributes so that they
-        # can be accesed in another thread after the operator has finished.
-        material_slot = self.material_slot
+        asset_list_item = get_asset_lists().all_assets.get(self.asset_name)
         asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
 
-        task_name = download_asset(context, asset, draw=True, draw_location=location)
-
-        def check_download():
-            if ab.tasks[task_name].cancelled:
-                return
-            elif ab.tasks[task_name].finished:
-                import_asset(context, asset, location, material_slot)
-                return
-            return .1
-
-        bpy.app.timers.register(check_download, first_interval=.1)
+        # This is needed to prevent errors
+        material_slot = self.material_slot
+        download_and_import_asset(context, asset, material_slot, draw=True, location=location)
         return {"FINISHED"}

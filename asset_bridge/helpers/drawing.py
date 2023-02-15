@@ -1,7 +1,12 @@
 import bpy
-from bpy.types import Context, Region
-from bpy_extras.view3d_utils import region_2d_to_origin_3d, region_2d_to_vector_3d
+from bpy.types import Region, Context
 from mathutils import Vector as V
+from bpy_extras.view3d_utils import (
+    region_2d_to_origin_3d,
+    region_2d_to_vector_3d
+)
+
+from ..operators.op_report_message import report_message
 
 
 def mouse_in_window_bounds(mouse_pos, window):
@@ -41,7 +46,7 @@ def get_active_window_region(mouse_pos, fallback_area_type=""):
     return None
 
 
-def point_under_mouse(context: Context, region: Region, mouse_pos_region: V):
+def point_under_mouse(context: Context, mouse_pos_region: V, mouse_pos_window: V, region: Region = None):
     """Return the point in 3D space under the mouse position
 
     Args:
@@ -51,6 +56,19 @@ def point_under_mouse(context: Context, region: Region, mouse_pos_region: V):
     Returns:
         Vector: The location of the point under the mouse
     """
+    if not region:
+        if context.region:
+            region = context.region
+        else:
+            region = get_active_window_region(mouse_pos_window, fallback_area_type="VIEW_3D")
+            mouse_pos_region = mouse_pos_window - V((region.x, region.y))
+            # TODO: Try and fix this
+            if not region or any(c < 0 for c in mouse_pos_region):
+                message = "Cannot import assets when the preferences window is active. \
+                    Blender is weird like that :(".replace("  ", "")
+                report_message(message, "ERROR")
+                return None
+
     depsgraph = context.evaluated_depsgraph_get()
     r3d = region.data
 

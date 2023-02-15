@@ -1,15 +1,17 @@
-from .op_report_message import report_message
-from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
+import bpy
+import gpu
+from bpy.props import StringProperty, FloatVectorProperty
+from bpy.types import Operator
+from mathutils import Color
+from mathutils import Vector as V
+from gpu_extras.batch import batch_for_shader
+from bpy_extras.view3d_utils import location_3d_to_region_2d
+
 from ..settings import get_ab_settings
 from ..helpers.math import Rectangle, vec_lerp
-import bpy
-from bpy.props import FloatVectorProperty, StringProperty
-from bpy.types import Operator
-from bpy_extras.view3d_utils import location_3d_to_region_2d
-import gpu
-from gpu_extras.batch import batch_for_shader
-from mathutils import Color, Vector as V
 from ..helpers.btypes import BOperator
+from .op_report_message import report_message
+from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
 
 handlers = []
 
@@ -73,7 +75,7 @@ class AB_OT_draw_import_progress(Operator):
                 context.window.cursor_modal_restore()
 
         if over_cancel and event.type == "LEFTMOUSE" and event.value == "PRESS":
-            self.get_task(context).progress.cancel()
+            self.get_task(context).cancel()
             report_message("Download cancelled", severity="WARNING")
 
         return {"PASS_THROUGH"}

@@ -1,5 +1,6 @@
 from bpy.props import StringProperty
 from bpy.types import Operator
+
 from ..helpers.btypes import BOperator
 
 
@@ -11,5 +12,7 @@ class AB_OT_swap_asset(Operator):
     asset_id: StringProperty(description="The identifier of the asset to be swapped")
 
     def execute(self, context):
+        print(self.to_quality, self.asset_id)
         print("Swap")
+        print(context.region.type)
         return {"FINISHED"}

@@ -1,8 +1,10 @@
-from dataclasses import dataclass
 from typing import Literal
-from bpy.types import Operator, Panel, Menu, Context, UILayout
-from bpy.props import StringProperty
+from dataclasses import dataclass
+
 import blf
+from bpy.props import StringProperty
+from bpy.types import Menu, Panel, Context, Operator, UILayout
+
 """A module containing helpers to make defining blender types easier (panels, operators etc.)"""
 
 
@@ -321,12 +323,9 @@ class BOperator():
                         retval = super().invoke(context, event)
 
                     if self.call_popup:
-                        print("ho")
-                        # return context.window_manager.invoke_props_popup(_self, event)
                         return context.window_manager.invoke_props_dialog(_self)
 
                     if not hasattr(super(), "invoke"):
-                        print("Exec")
                         retval = _self.execute(context)
                     return retval
 

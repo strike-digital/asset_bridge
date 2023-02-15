@@ -1,24 +1,27 @@
 import os
+from time import sleep
+from typing import Callable
 from threading import Thread
 
 import bpy
-from bpy.types import Collection, Context, Material, MaterialSlot, Object
+from bpy.types import Object, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
-from ..apis.asset_types import Asset
-from ..operators.op_report_message import report_message
-from ..settings import get_ab_settings, get_asset_settings
 from .library import get_dir_size
-from .main_thread import force_ui_update, run_in_main_thread
 from .process import format_traceback
+from ..settings import get_ab_settings, get_asset_settings
+from .main_thread import force_ui_update, run_in_main_thread
+from ..apis.asset_types import Asset
+from ..apis.asset_utils import HDRI
+from ..operators.op_report_message import report_message
 
 
 def download_asset(
         context: Context,
         asset: Asset,
         draw: bool = True,
-        draw_location: V = V((0, 0)),
+        location: V = V(),
 ) -> str:
     """Download a given asset in the background while managing errors, and drawing the progress in the UI.
     It returns the name of the task that tracks the progress of the download. The reason it only returns the name
@@ -29,7 +32,7 @@ def download_asset(
         context (Context): The blender context
         asset (Asset): An asset bridge asset instance
         draw (bool, optional): Draw the progress of the download in the UI. Defaults to True.
-        draw_location (V, optional): The region relative 2D coordinates to draw the progress at. Defaults to V((0, 0)).
+        draw_location (V, optional): The 3D coordinates to draw the progress widget at. Defaults to V().
 
     Returns:
         str: The name of the download task.
@@ -66,15 +69,34 @@ def download_asset(
     task.new_progress(max_size)
     task_name = task.name
 
-    # Delete existing files
-    for file in asset.get_files():
-        os.remove(file)
-
     if draw:
         # Run the draw operator
-        bpy.ops.asset_bridge.draw_import_progress("INVOKE_DEFAULT", task_name=task.name, location=draw_location)
+        bpy.ops.asset_bridge.draw_import_progress("INVOKE_DEFAULT", task_name=task.name, location=location)
 
     def download():
+
+        # Delete existing files
+        if asset.list_item.type == HDRI:
+            # We need to sleep here in to allow the blender UI to reload the hdri file if it is in cycles rendered view.
+            # Otherwise the file is deleted first, and cycles loads in as a pink texture, until it is reloaded.
+            # This might need to be longer on lower end hardware, but it's a pretty niche bug,
+            # that doesn't have a serious impact.
+            sleep(.05)
+            i = 0
+            while True and i < 10:
+                for file in asset.get_files():
+                    try:
+                        os.remove(file)
+                    except PermissionError:
+                        sleep(.05)
+                        break
+                else:
+                    break
+                i += 1
+        else:
+            # For the other asset types, it's not necessary
+            for file in asset.get_files():
+                os.remove(file)
 
         def check_progress():
             """Check to total file size of the downloading files, and update the progress accordingly"""
@@ -140,3 +162,31 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
     except Exception as e:
         # This is needed so that the errors are shown to the user.
         report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
+
+
+def download_and_import_asset(
+        context: Context,
+        asset: Asset,
+        material_slot: MaterialSlot = None,
+        draw: bool = True,
+        location: V = V(),
+        on_completion: Callable = None,
+        on_cancel: Callable = None,
+):
+
+    ab = get_ab_settings(context)
+    task_name = download_asset(context, asset, draw, location)
+
+    def check_download():
+        if ab.tasks[task_name].cancelled:
+            if on_cancel:
+                on_cancel()
+            return
+        elif ab.tasks[task_name].finished:
+            import_asset(context, asset, location, material_slot)
+            if on_completion:
+                on_completion()
+            return
+        return .1
+
+    bpy.app.timers.register(check_download, first_interval=.1)

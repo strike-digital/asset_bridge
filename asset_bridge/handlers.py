@@ -1,9 +1,10 @@
 # from asset_bridge.operators import AB_OT_import_asset
-from .operators.op_import_asset import AB_OT_import_asset
 import bpy
 from bpy.app import handlers
 from bpy.types import Scene
+
 from .settings import get_ab_settings
+from .operators.op_import_asset import AB_OT_import_asset
 
 
 def get_asset_quality(context):
@@ -58,6 +59,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             reload=reload,
             at_mouse=True,
         )
+        print(prev_world)
         scene.world = prev_world
 
     prev_world = scene.world or prev_world
