@@ -1,5 +1,5 @@
 from bpy.types import Operator
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge")

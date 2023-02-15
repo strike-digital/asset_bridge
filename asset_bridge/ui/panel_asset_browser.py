@@ -1,9 +1,9 @@
-from ..helpers.ui import wrap_text
+from .ui_helpers import wrap_text
 from ..settings import get_ab_settings
 from bpy_extras.asset_utils import AssetBrowserPanel
 from ..constants import ASSET_LIB_NAME, DIRS
 from bpy.types import Panel
-from ..btypes import BPanel
+from ..helpers.btypes import BPanel
 
 
 @BPanel(space_type="FILE_BROWSER", region_type="TOOLS", label="Asset Bridge")

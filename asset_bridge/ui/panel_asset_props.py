@@ -1,8 +1,8 @@
 from .menu_swap_asset import AB_MT_swap_hdri_asset
 from ..settings import get_ab_settings, get_asset_settings
-from ..helpers.ui import draw_inline_column, draw_inline_prop, draw_node_group_inputs, wrap_text
+from .ui_helpers import draw_inline_column, draw_inline_prop, draw_node_group_inputs, wrap_text
 from ..constants import NODE_GROUPS, NODES
-from ..btypes import BPanel
+from ..helpers.btypes import BPanel
 from bpy.types import Material, Node, Object, Panel, UILayout
 
 

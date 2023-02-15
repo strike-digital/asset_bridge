@@ -1,5 +1,5 @@
 from ..settings import AssetTask, get_ab_settings
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 from bpy.types import Operator
 from bpy.props import StringProperty
 

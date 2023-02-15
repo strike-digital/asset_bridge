@@ -10,6 +10,7 @@ ASSET_LIB_NAME = "Asset Bridge"
 PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"
 
 
+# I'm now realising that these should probably be enums, but I don't care enough to change it.
 # The names of useful node groups
 class NodeGroups():
 
@@ -74,11 +75,14 @@ class Files():
 DIRS = Dirs()
 FILES = Files()
 
-# We need to initially load the path from the cached file, as we don't have access to the addon preferences at register
-with open(FILES.prefs, "r") as f:
-    try:
-        data = json.load(f)
-    except json.JSONDecodeError:
-        data = {"lib_path": ""}
+if FILES.prefs.exists():
+    # We need to initially load the path from the cached file, as we don't have access to the addon preferences at register
+    with open(FILES.prefs, "r") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            data = {"lib_path": ""}
 
-    DIRS.update(lib_path=data["lib_path"])
+        DIRS.update(lib_path=data["lib_path"])
+else:
+    DIRS.update(lib_path="")

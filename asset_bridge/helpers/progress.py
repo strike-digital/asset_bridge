@@ -2,6 +2,7 @@ from .main_thread import update_prop, force_ui_update
 
 
 class Progress:
+    """Used to keep track of the progress of a task, usually downloading an asset."""
 
     data = None
     propname = ""

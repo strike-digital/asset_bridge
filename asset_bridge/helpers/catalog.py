@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import Dict
 from uuid import uuid4
 
+"""A module for working with blender_assets.cats.txt files, and the asset catalogs that they contain"""
+
+
 CATALOG_HEADER = """\
 # This is an Asset Catalog Definition file for Blender.
 #

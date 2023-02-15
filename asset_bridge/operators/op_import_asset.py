@@ -9,7 +9,7 @@ from .op_report_message import report_message
 
 import bpy
 
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 from ..api import get_asset_lists
 from ..settings import get_ab_settings, get_asset_settings
 from ..helpers.main_thread import force_ui_update, run_in_main_thread

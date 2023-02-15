@@ -3,8 +3,8 @@ from pathlib import Path
 from ..operators.op_initialize_asset_lists import AB_OT_initialize_asset_lists
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
-from .prefs import get_prefs
-from .library import is_lib_path_invalid
+from ..helpers.prefs import get_prefs
+from ..helpers.library import is_lib_path_invalid
 from ..operators.op_cancel_task import AB_OT_cancel_task
 from ..operators.op_download_previews import AB_OT_download_previews
 from ..constants import PREVIEW_DOWNLOAD_TASK_NAME

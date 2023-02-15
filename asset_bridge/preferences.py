@@ -9,11 +9,11 @@ from .helpers.library import ensure_bl_asset_library_exists, is_lib_path_invalid
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
 from .operators.op_download_previews import AB_OT_download_previews
-from .btypes import BMenu
+from .helpers.btypes import BMenu
 from .api import get_asset_lists
 from .settings import get_ab_settings
 from .constants import ASSET_LIB_VERSION, DIRS, FILES, PREVIEW_DOWNLOAD_TASK_NAME, __IS_DEV__
-from .helpers.ui import draw_download_previews, draw_downloads_path
+from .ui.ui_helpers import draw_download_previews, draw_downloads_path
 from bpy.types import AddonPreferences, UILayout, Menu
 from bpy.props import StringProperty
 

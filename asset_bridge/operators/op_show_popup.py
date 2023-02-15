@@ -1,7 +1,7 @@
 from bpy.utils import register_class, unregister_class
-from ..helpers.ui import wrap_text
+from ..ui.ui_helpers import wrap_text
 from ..helpers.main_thread import run_in_main_thread
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 from bpy.types import Operator
 from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 import bpy

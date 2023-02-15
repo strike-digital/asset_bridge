@@ -11,7 +11,7 @@ addon_utils.enable(Path(__file__).parents[1].name)
 from asset_bridge.api import get_asset_lists
 from asset_bridge.constants import DIRS
 from asset_bridge.settings import get_asset_settings
-from asset_bridge.catalog import AssetCatalogFile
+from asset_bridge.helpers.catalog import AssetCatalogFile
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
 These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
 

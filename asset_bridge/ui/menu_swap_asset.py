@@ -2,7 +2,7 @@ from ..operators.op_swap_asset import AB_OT_swap_asset
 from ..api import get_asset_lists
 from ..settings import get_asset_settings
 from bpy.types import Menu
-from ..btypes import BMenu
+from ..helpers.btypes import BMenu
 
 
 @BMenu("Swap HDRI quality")

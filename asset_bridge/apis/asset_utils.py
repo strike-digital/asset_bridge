@@ -5,7 +5,7 @@ from typing import Dict, Type
 from bpy.types import Material, Node, NodeGroup, Object
 
 from mathutils import Vector as V
-from ..helpers.ui import dpifac
+from ..ui.ui_helpers import dpifac
 
 import bpy
 from ..constants import DIRS, FILES, NODE_GROUPS, NODES

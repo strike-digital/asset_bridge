@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import StringProperty
 from bpy.types import Operator
-from ...btypes import BOperator
+from ...helpers.btypes import BOperator
 from ...vendor import requests
 
 

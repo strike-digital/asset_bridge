@@ -9,7 +9,7 @@ from bpy_extras.view3d_utils import location_3d_to_region_2d
 import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Color, Vector as V
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 
 handlers = []
 

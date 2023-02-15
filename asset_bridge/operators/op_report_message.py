@@ -1,6 +1,6 @@
 from ..helpers.main_thread import run_in_main_thread
 import bpy
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 from bpy.types import Operator
 from bpy.props import StringProperty
 

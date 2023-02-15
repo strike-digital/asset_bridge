@@ -9,10 +9,10 @@ from ..settings import get_ab_settings
 from ..helpers.library import ensure_bl_asset_library_exists
 from .op_report_message import report_message
 import bpy
-from ..catalog import AssetCatalogFile
+from ..helpers.catalog import AssetCatalogFile
 from ..constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME, Files
 from ..helpers.process import new_blender_process
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 from ..api import get_asset_lists
 from bpy.types import Operator
 

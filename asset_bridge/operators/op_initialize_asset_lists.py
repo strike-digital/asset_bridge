@@ -3,7 +3,7 @@ import bpy
 from ..api import get_asset_lists
 from bpy.props import BoolProperty
 from bpy.types import Operator
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge", label="Get asset lists.", undo=True, register=True)

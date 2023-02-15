@@ -2,7 +2,7 @@ from bpy.props import BoolProperty
 from .op_report_message import report_message
 from ..api import get_asset_lists
 from bpy.types import Operator
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge", label="Check for new assets")

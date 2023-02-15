@@ -13,7 +13,7 @@ from ..apis.asset_types import AssetListItem
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME
-from ..btypes import BOperator
+from ..helpers.btypes import BOperator
 from bpy.types import Operator
 from bpy.props import BoolProperty, IntProperty
 
