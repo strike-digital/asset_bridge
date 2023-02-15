@@ -7,6 +7,7 @@ from mathutils import Vector as V
 from gpu_extras.batch import batch_for_shader
 from bpy_extras.view3d_utils import location_3d_to_region_2d
 
+from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..helpers.math import Rectangle, vec_lerp
 from ..helpers.btypes import BOperator
@@ -27,6 +28,8 @@ class AB_OT_draw_import_progress(Operator):
 
     location: FloatVectorProperty(description="The position to draw the progress in 3D space")
 
+    asset_id: StringProperty()
+
     def invoke(self, context, event):
         global handlers
 
@@ -44,7 +47,8 @@ class AB_OT_draw_import_progress(Operator):
             ))
         self.cancel_box = Rectangle()
         self.handler = handlers[-1]
-        self.image = bpy.data.images.load(str(ab.selected_asset.preview_file))
+        asset_list_item = get_asset_lists().all_assets[self.asset_id]
+        self.image = bpy.data.images.load(str(asset_list_item.preview_file))
         self.image.name = self.task_name
         self.aspect = self.image.size[0] / self.image.size[1]
         self.texture = gpu.texture.from_image(self.image)

@@ -1,10 +1,10 @@
 import os
-from time import sleep
+from time import sleep, time_ns
 from typing import Callable
 from threading import Thread
 
 import bpy
-from bpy.types import Object, Context, Material, Collection, MaterialSlot
+from bpy.types import ID, Object, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
@@ -71,7 +71,12 @@ def download_asset(
 
     if draw:
         # Run the draw operator
-        bpy.ops.asset_bridge.draw_import_progress("INVOKE_DEFAULT", task_name=task.name, location=location)
+        bpy.ops.asset_bridge.draw_import_progress(
+            "INVOKE_DEFAULT",
+            task_name=task.name,
+            location=location,
+            asset_id=asset_list_item.idname,
+        )
 
     def download():
 
@@ -138,14 +143,17 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
     """Import an asset while handling errors, and properties necessary for Asset Bridge to work properly.
     This modifies blend data, so it needs to be run in the main thread."""
     asset_list_item = asset.list_item
+    imported = None
     try:
         imported = asset.import_asset(context)
+        identifier = time_ns()
 
         def update_settings(data_block):
             settings = get_asset_settings(data_block)
             settings.is_asset_bridge = True
             settings.idname = asset_list_item.idname
             settings.quality_level = asset.quality_level
+            settings.identifier = identifier
 
         if not isinstance(imported, Collection):
             update_settings(imported)
@@ -162,6 +170,7 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
     except Exception as e:
         # This is needed so that the errors are shown to the user.
         report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
+    return imported
 
 
 def download_and_import_asset(
@@ -170,9 +179,22 @@ def download_and_import_asset(
         material_slot: MaterialSlot = None,
         draw: bool = True,
         location: V = V(),
-        on_completion: Callable = None,
+        on_completion: Callable[[ID], None] = None,
         on_cancel: Callable = None,
 ):
+    """Download and import an asset, taking care of errors, viewport progress etc.
+
+    Args:
+        context (Context): The context.
+        asset (Asset): The Asset Bridge asset instance to import.
+        material_slot (MaterialSlot, optional): if it is a material asset,
+            then this is the material slot to apply the imported material to. Defaults to None.
+        draw (bool, optional): Whether to draw the progress in the 3D viewport. Defaults to True.
+        location (V, optional): The 3D Vector of the location to draw the progress at. Defaults to V().
+        on_completion (Callable[[ID], None], optional): A function to call once the asset has been imported.
+            Takes the imported asset as an argument. Defaults to None.
+        on_cancel (Callable, optional): A function to call if something goes wrong during the import. Defaults to None.
+    """
 
     ab = get_ab_settings(context)
     task_name = download_asset(context, asset, draw, location)
@@ -183,9 +205,9 @@ def download_and_import_asset(
                 on_cancel()
             return
         elif ab.tasks[task_name].finished:
-            import_asset(context, asset, location, material_slot)
+            imported = import_asset(context, asset, location, material_slot)
             if on_completion:
-                on_completion()
+                on_completion(imported)
             return
         return .1
 

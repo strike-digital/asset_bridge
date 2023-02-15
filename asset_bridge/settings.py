@@ -1,12 +1,20 @@
 # from __future__ import annotations
+from time import time_ns, perf_counter
 from typing import TYPE_CHECKING, OrderedDict
 
-from .api import get_asset_lists
-from bpy.types import ID, Context, Material, PropertyGroup
-from bpy.props import EnumProperty, StringProperty, CollectionProperty, FloatProperty, BoolProperty, PointerProperty
-from time import perf_counter, time_ns
 import bpy
+from bpy.props import (
+    IntProperty,
+    BoolProperty,
+    EnumProperty,
+    FloatProperty,
+    StringProperty,
+    PointerProperty,
+    CollectionProperty
+)
+from bpy.types import ID, Context, Material, PropertyGroup
 
+from .api import get_asset_lists
 from .helpers.progress import Progress
 
 
@@ -200,6 +208,9 @@ class AssetBridgeIDSettings(PropertyGroup):
     idname: StringProperty()
 
     quality_level: StringProperty()
+
+    identifier: IntProperty(description="The identifier of this specific instance of the asset.\
+        Used to determine if there are multiple objects as part of one asset after it has been imported.")
 
     # Used to tell if a datablock has been imported by asset bridge
     is_asset_bridge: BoolProperty()

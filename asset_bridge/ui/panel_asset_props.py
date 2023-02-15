@@ -1,9 +1,19 @@
-from .menu_swap_asset import AB_MT_swap_hdri_asset
+from bpy.types import Node, Panel, Object, Material, UILayout
+
 from ..settings import get_ab_settings, get_asset_settings
-from .ui_helpers import draw_inline_column, draw_inline_prop, draw_node_group_inputs, wrap_text
-from ..constants import NODE_GROUPS, NODES
+from ..constants import NODES, NODE_GROUPS
+from .ui_helpers import (
+    wrap_text,
+    draw_inline_prop,
+    draw_inline_column,
+    draw_node_group_inputs
+)
 from ..helpers.btypes import BPanel
-from bpy.types import Material, Node, Object, Panel, UILayout
+from .menu_swap_asset import (
+    AB_MT_swap_hdri_asset,
+    AB_MT_swap_model_asset,
+    AB_MT_swap_material_asset
+)
 
 
 class DummyLayout():
@@ -25,6 +35,9 @@ class DummyLayout():
         return DummyLayout()
 
     def prop(*args, **kwargs):
+        return DummyLayout()
+
+    def menu(*args, **kwargs):
         return DummyLayout()
 
 
@@ -147,14 +160,20 @@ class AssetPropsPanel(Panel):
             for s in slots:
                 if any(get_material_nodes(s.material.node_tree.nodes).values()):
                     column = layout.column(align=True)
-                    draw_section_header(
+                    row = draw_section_header(
                         column,
-                        "Material Settings",
+                        "    Material Settings",
                         show_props,
                         "mat",
                         icon="MATERIAL",
                         right_padding=4,
                     )
+
+                    row = row.row(align=True)
+                    row.emboss = "PULLDOWN_MENU"
+                    row.menu(AB_MT_swap_material_asset.bl_idname, text="", icon="IMPORT")
+                    row.menu(AB_MT_swap_model_asset.bl_idname, text="", icon="IMPORT")
+
                     if not show_props.mat:
                         return True
                     column = column.box().column(align=False)

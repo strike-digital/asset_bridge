@@ -46,7 +46,7 @@ def get_active_window_region(mouse_pos, fallback_area_type=""):
     return None
 
 
-def point_under_mouse(context: Context, mouse_pos_region: V, mouse_pos_window: V, region: Region = None):
+def point_under_mouse(context: Context, mouse_pos_region: V, mouse_pos_window: V = None, region: Region = None):
     """Return the point in 3D space under the mouse position
 
     Args:
