@@ -306,7 +306,7 @@ class BOperator():
             else:
                 bl_description = op_description
 
-            if not hasattr(self, "execute"):
+            if not hasattr(cls, "execute"):
                 def execute(self, context):
                     return {"FINISHED"}
 
@@ -326,6 +326,7 @@ class BOperator():
                         return context.window_manager.invoke_props_dialog(_self)
 
                     if not hasattr(super(), "invoke"):
+                        print("Exec")
                         retval = _self.execute(context)
                     return retval
 

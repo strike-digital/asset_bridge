@@ -103,8 +103,8 @@ class AssetPropsPanel(Panel):
             )
 
             row = row.row()
+            row.emboss = "PULLDOWN_MENU"
             row.menu(AB_MT_swap_hdri_asset.bl_idname, text="", icon="IMPORT")
-            # row.operator("asset_bridge.swap_asset", text="", icon="IMPORT", emboss=False)
 
             if not show_props.hdri:
                 return True
