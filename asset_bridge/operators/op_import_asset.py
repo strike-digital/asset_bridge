@@ -1,18 +1,11 @@
-import os
 from threading import Thread
-
+from ..helpers.assets import download_asset
 from ..helpers.process import format_traceback
-
-from ..helpers.library import get_dir_size
-
 from .op_report_message import report_message
-
-import bpy
-
 from ..helpers.btypes import BOperator
 from ..api import get_asset_lists
-from ..settings import get_ab_settings, get_asset_settings
-from ..helpers.main_thread import force_ui_update, run_in_main_thread
+from ..settings import get_asset_settings
+from ..helpers.main_thread import run_in_main_thread
 from ..helpers.drawing import get_active_window_region, point_under_mouse
 from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
 from bpy.types import Collection, Material, Object, Operator
@@ -89,85 +82,87 @@ class AB_OT_import_asset(Operator):
         else:
             location = V(self.location)
 
-        ab = get_ab_settings(context)
+        # ab = get_ab_settings(context)
         all_assets = get_asset_lists().all_assets
         asset_list_item = all_assets.get(self.asset_name)
-
-        # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
-        if not asset_list_item:
-            report_message(
-                f"Could not find asset {self.asset_name} in the asset list (Number of assets: {len(all_assets)})",
-                "ERROR",
-            )
-            return {"CANCELLED"}
-
-        elif message := asset_list_item.poll():
-            report_message(message, "ERROR")
-            return {"CANCELLED"}
-
-        asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
-        files = asset.get_files()
-
         # These need to variables rather than instance attributes so that they
         # can be accesed in another thread after the operator has finished.
         material_slot = self.material_slot
         quality = self.asset_quality
+        asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
+
+        task_name = download_asset(context, asset, quality, self.link_method)
+
+
+        # # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
+        # if not asset_list_item:
+        #     report_message(
+        #         f"Could not find asset {self.asset_name} in the asset list (Number of assets: {len(all_assets)})",
+        #         "ERROR",
+        #     )
+        #     return {"CANCELLED"}
+
+        # elif message := asset_list_item.poll():
+        #     report_message(message, "ERROR")
+        #     return {"CANCELLED"}
+
+        # files = asset.get_files()
 
         # Download the asset in a separate thread to avoid locking the interface,
         # and then import the asset in the main thread again to avoid errors.
         def download_and_import_asset():
             cancelled = False
 
-            if not asset_list_item.is_downloaded(quality) or ab.reload_asset:
-                max_size = asset.get_download_size(quality)
-                task = ab.new_task()
-                task.new_progress(max_size)
-                task_name = task.name
+            # if not asset_list_item.is_downloaded(quality) or ab.reload_asset:
+            #     max_size = asset.get_download_size(quality)
+            #     task = ab.new_task()
+            #     task.new_progress(max_size)
+            #     task_name = task.name
 
-                # Delete existing files
-                for file in files:
-                    os.remove(file)
+            #     # Delete existing files
+            #     for file in files:
+            #         os.remove(file)
 
-                # Run the draw operator
-                run_in_main_thread(
-                    bpy.ops.asset_bridge.draw_import_progress,
-                    args=["INVOKE_DEFAULT"],
-                    kwargs={
-                        "task_name": task.name,
-                        "location": location
-                    },
-                )
+            #     # Run the draw operator
+            #     run_in_main_thread(
+            #         bpy.ops.asset_bridge.draw_import_progress,
+            #         args=["INVOKE_DEFAULT"],
+            #         kwargs={
+            #             "task_name": task.name,
+            #             "location": location
+            #         },
+            #     )
 
-                def check_progress():
-                    """Check to total file size of the downloading files, and update the progress accordingly"""
-                    # Blender moves stuff around a lot so it's best to get a new reference to the task each time.
-                    # Otherwise it causes errors when importing multiple assets at once.
-                    task = ab.tasks.get(task_name)
-                    if not task:
-                        return None
-                    if task.progress:
-                        orig_progress = task.progress.progress
-                        if (size := get_dir_size(asset.download_dir)) != orig_progress:
-                            task.progress.progress = size
-                            force_ui_update(area_types="VIEW_3D")
-                        return .01
-                    return None
+            #     def check_progress():
+            #         """Check to total file size of the downloading files, and update the progress accordingly"""
+            #         # Blender moves stuff around a lot so it's best to get a new reference to the task each time.
+            #         # Otherwise it causes errors when importing multiple assets at once.
+            #         task = ab.tasks.get(task_name)
+            #         if not task:
+            #             return None
+            #         if task.progress:
+            #             orig_progress = task.progress.progress
+            #             if (size := get_dir_size(asset.download_dir)) != orig_progress:
+            #                 task.progress.progress = size
+            #                 force_ui_update(area_types="VIEW_3D")
+            #             return .01
+            #         return None
 
-                # Download the asset
-                bpy.app.timers.register(check_progress)
-                try:
-                    asset.download_asset()
-                except Exception as e:
-                    report_message(
-                        f"Error downloading asset {asset.idname}:\n{format_traceback(e)}",
-                        severity="ERROR",
-                        main_thread=True,
-                    )
+            #     # Download the asset
+            #     bpy.app.timers.register(check_progress)
+            #     try:
+            #         asset.download_asset()
+            #     except Exception as e:
+            #         report_message(
+            #             f"Error downloading asset {asset.idname}:\n{format_traceback(e)}",
+            #             severity="ERROR",
+            #             main_thread=True,
+            #         )
 
-                task = ab.tasks[task_name]
-                cancelled = task.progress.cancelled if task.progress else False
-                force_ui_update(area_types="VIEW_3D")
-                run_in_main_thread(task.finish)
+            #     task = ab.tasks[task_name]
+            #     cancelled = task.progress.cancelled if task.progress else False
+            #     force_ui_update(area_types="VIEW_3D")
+            #     run_in_main_thread(task.finish)
 
             def import_asset():
                 if cancelled:

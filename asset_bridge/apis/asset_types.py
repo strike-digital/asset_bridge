@@ -234,3 +234,6 @@ class Asset(ABC):
         for (dirpath, dirnames, filenames) in os.walk(self.download_dir):
             files += [Path(dirpath) / file for file in filenames]
         return files
+
+    def is_downloaded(self) -> bool:
+        return self.list_item.is_downloaded(self.quality_level)

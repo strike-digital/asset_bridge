@@ -9,23 +9,22 @@ import bpy
 from .main_thread import force_ui_update, run_in_main_thread
 from ..operators.op_report_message import report_message
 from ..api import get_asset_lists
-from ..apis.asset_types import AssetListItem
+from ..apis.asset_types import Asset
 from bpy.types import Context
 from mathutils import Vector as V
 from ..settings import get_ab_settings
 
 
-def dowload_asset(
-    context: Context,
-    asset_list_item: AssetListItem,
-    quality_level: str,
-    link_method: str,
-    draw: bool = True,
-    location: V = V(),
+def download_asset(
+        context: Context,
+        asset: Asset,
+        draw: bool = True,
+        location: V = V(),
 ) -> str:
 
     ab = get_ab_settings(context)
     all_assets = get_asset_lists().all_assets
+    asset_list_item = asset.list_item
 
     # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
     if not asset_list_item:
@@ -43,22 +42,20 @@ def dowload_asset(
         task.cancel()
         return task.name
 
-    elif asset_list_item.is_downloaded(quality_level) and not ab.reload_asset:
+    elif asset.is_downloaded() and not ab.reload_asset:
         task = ab.new_task()
         task.finish()
         return task.name
 
-    asset = asset_list_item.to_asset(quality_level, link_method)
-    files = asset.get_files()
-
     ab = get_ab_settings(context)
+    asset
     max_size = asset.get_download_size(quality_level)
     task = ab.new_task()
     task.new_progress(max_size)
     task_name = task.name
 
     # Delete existing files
-    for file in files:
+    for file in asset.get_files():
         os.remove(file)
 
     if draw:

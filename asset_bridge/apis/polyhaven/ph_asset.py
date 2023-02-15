@@ -25,8 +25,8 @@ class PH_Asset(Asset):
         self.idname = asset_list_item.idname
         self.type = asset_list_item.type
 
-        if quality_level:
-            self.quality_level = quality_level
+        self.quality_level = quality_level
+        # if quality_level:
         if link_method:
             self.link_method = link_method
 
@@ -55,8 +55,10 @@ class PH_Asset(Asset):
                 files.append(data["blend"])
             return files
 
-    def get_download_size(self, quality_level: str):
-        return sum([f["size"] for f in self.get_files_to_download(quality_level)])
+    def get_download_size(self):
+        # if self.quality_level:
+        # TODO: deal with this
+        return sum([f["size"] for f in self.get_files_to_download(self.quality_level)])
 
     def download_asset(self):
         if not self.quality_level:
