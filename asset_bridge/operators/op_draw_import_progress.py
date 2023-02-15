@@ -93,7 +93,7 @@ class AB_OT_draw_import_progress(Operator):
     def draw_callback_px(self, context, location):
         task = self.get_task(context)
 
-        if task is None or not task.progress or task.progress.cancelled:  # or not task.progress_prop_active:
+        if task is None or not task.progress or task.cancelled or task.finished:  # or not task.progress_prop_active:
             self.finish()
             return
 

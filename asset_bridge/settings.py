@@ -44,33 +44,39 @@ class AssetTask(PropertyGroup):
 
     cancelled: BoolProperty()
 
+    finished: BoolProperty()
+
     progress: Progress = property(
         lambda self: get_ab_settings(bpy.context).tasks_progress.get(self.name),
         lambda self, value: get_ab_settings(bpy.context).tasks_progress.update({self.name: value}),
     )
+
+    def remove(self):
+        tasks = get_ab_settings(bpy.context).tasks
+        idx = list(tasks.values()).index(tasks[self.name])
+        tasks.remove(idx)
 
     def cancel(self, remove: bool = True):
         """Cancel this task. This only marks the task a cancelled, and it is up to the script to interperet that.
         args:
             remove (bool): Whether to remove this task after cancelling."""
         self.cancelled = True
+        self.finished = True
         if self.progress:
             self.progress.cancel()
         if remove:
-            tasks = get_ab_settings(bpy.context).tasks
-            idx = list(tasks.values()).index(tasks[self.name])
-            tasks.remove(idx)
+            self.remove()
 
     def new_progress(self, max_steps):
         self.progress = Progress(max_steps, self, "progress_prop")
         return self.progress
 
-    def finish(self):
+    def finish(self, remove: bool = True):
         if self.progress:
             self.progress.end()
-        tasks = get_ab_settings(bpy.context).tasks
-        idx = list(tasks.values()).index(tasks[self.name])
-        tasks.remove(idx)
+        self.finished = True
+        if remove:
+            self.remove()
 
 
 add_progress(AssetTask, "progress_prop")

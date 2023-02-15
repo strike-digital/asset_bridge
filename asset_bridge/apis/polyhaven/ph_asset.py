@@ -109,7 +109,7 @@ class PH_Asset(Asset):
 
         if self.type == HDRI:
             image_file = files[0]
-            world = import_hdri(image_file, name=f"{self.idname}_{self.quality_level}", link_method=self.link_method)
+            world = import_hdri(image_file, name=self.import_name, link_method=self.link_method)
             context.scene.world = world
             return world
 
@@ -124,13 +124,10 @@ class PH_Asset(Asset):
                 if file:
                     texture_files[name] = file
 
-            mat = import_material(texture_files, f"{self.name}_{self.quality_level}", link_method=self.link_method)
+            mat = import_material(texture_files, self.import_name, link_method=self.link_method)
             return mat
 
         elif self.type == MODEL:
             blend_file = [f for f in files if str(f).endswith(".blend")][0]
-            imported = import_model(context, blend_file, name=self.name, link_method=self.link_method)
+            imported = import_model(context, blend_file, name=self.import_name, link_method=self.link_method)
             return imported
-
-    def download_and_import_asset(self):
-        return

@@ -29,8 +29,8 @@ class ACG_Asset(Asset):
 
         self.file_type = self.quality_data["file_type"]
 
-    def get_download_size(self, quality_level: str):
-        return self.all_quality_data[quality_level]["size"]
+    def get_download_size(self):
+        return self.all_quality_data[self.quality_level]["size"]
 
     def download_asset(self):
         file_name = f"{self.file_name}.{self.file_type}"
@@ -51,7 +51,7 @@ class ACG_Asset(Asset):
         if self.type == MODEL:
             process = new_blender_process(
                 script=Path(__file__).parent / "scripts" / "acg_setup_asset.py",
-                script_args=("--name", self.name, "--output_file", str(self.blend_file)),
+                script_args=("--name", self.import_name, "--output_file", str(self.blend_file)),
                 use_stdout=False,
             )
 
@@ -60,7 +60,7 @@ class ACG_Asset(Asset):
     def import_asset(self, context: Context):
 
         if self.type == HDRI:
-            world = import_hdri(self.get_files()[0], f"{self.name}_{self.quality_level}", self.link_method)
+            world = import_hdri(self.get_files()[0], self.import_name, self.link_method)
             context.scene.world = world
             return world
 
@@ -91,12 +91,9 @@ class ACG_Asset(Asset):
                         texture_files["diffuse"] = file
                     print(f"Asset Bridge: File has an unknown texture type '{texture_type}'")
 
-            mat = import_material(texture_files=texture_files, name=self.name, link_method=self.link_method)
+            mat = import_material(texture_files=texture_files, name=self.import_name, link_method=self.link_method)
             return mat
 
         elif self.type == MODEL:
-            obj = import_model(context, self.blend_file, self.name, self.link_method)
+            obj = import_model(context, self.blend_file, self.import_name, self.link_method)
             return obj
-
-    def download_and_import_asset(self):
-        return

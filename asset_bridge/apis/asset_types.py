@@ -135,7 +135,7 @@ class AssetListItem(ABC):
     def to_asset(
         self,
         quality_level: str,
-        link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"],
+        link_method: Literal["LINK", "APPEND", "APPEND_REUSE"],
     ) -> Asset:
         """Return an Asset type for downloading and importing of this asset"""
         asset = self.asset_type(self, quality_level, link_method)
@@ -196,24 +196,34 @@ class Asset(ABC):
 
     list_item: AssetListItem
     quality_level: str
-    link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"]
+    link_method: Literal["LINK", "APPEND", "APPEND_REUSE"]
 
     @property
-    def download_dir(self):
+    def download_dir(self) -> Path:
         """The directory that the asset files will be downloaded to"""
         return self.list_item.downloads_dir / self.quality_level
+
+    @property
+    def import_name(self) -> str:
+        """The name of the asset once it has been imported as a data block"""
+        return f"{self.list_item.idname}_{self.quality_level}"
+
+    @property
+    def is_downloaded(self) -> bool:
+        """Whether this asset has been downloaded"""
+        return self.list_item.is_downloaded(self.quality_level)
 
     @abstractmethod
     def __init__(
         self,
         asset_list_item: AssetListItem,
         quality_level: str,
-        link_method: Literal["LINK"] | Literal["APPEND"] | Literal["APPEND_REUSE"],
+        link_method: Literal["LINK", "APPEND", "APPEND_REUSE"],
     ):
         pass
 
     @abstractmethod
-    def get_download_size(self, quality_level):
+    def get_download_size(self):
         """Return the number of bytes that need to be downloaded"""
 
     @abstractmethod
@@ -224,16 +234,9 @@ class Asset(ABC):
     def import_asset(self, context: Context):
         pass
 
-    @abstractmethod
-    def download_and_import_asset(self, context: Context):
-        pass
-
     def get_files(self) -> list[Path]:
         "Get a list of downloaded files"
         files = []
         for (dirpath, dirnames, filenames) in os.walk(self.download_dir):
             files += [Path(dirpath) / file for file in filenames]
         return files
-
-    def is_downloaded(self) -> bool:
-        return self.list_item.is_downloaded(self.quality_level)

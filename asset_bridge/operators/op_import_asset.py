@@ -1,14 +1,12 @@
-from threading import Thread
-from ..helpers.assets import download_asset
-from ..helpers.process import format_traceback
+import bpy
+from ..helpers.assets import download_asset, import_asset
 from .op_report_message import report_message
 from ..helpers.btypes import BOperator
 from ..api import get_asset_lists
-from ..settings import get_asset_settings
-from ..helpers.main_thread import run_in_main_thread
+from ..settings import get_ab_settings
 from ..helpers.drawing import get_active_window_region, point_under_mouse
 from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, StringProperty
-from bpy.types import Collection, Material, Object, Operator
+from bpy.types import Operator
 from mathutils import Vector as V
 
 
@@ -82,17 +80,15 @@ class AB_OT_import_asset(Operator):
         else:
             location = V(self.location)
 
-        # ab = get_ab_settings(context)
+        ab = get_ab_settings(context)
         all_assets = get_asset_lists().all_assets
         asset_list_item = all_assets.get(self.asset_name)
         # These need to variables rather than instance attributes so that they
         # can be accesed in another thread after the operator has finished.
         material_slot = self.material_slot
-        quality = self.asset_quality
         asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
 
-        task_name = download_asset(context, asset, quality, self.link_method)
-
+        task_name = download_asset(context, asset, draw=True, draw_location=location)
 
         # # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
         # if not asset_list_item:
@@ -110,8 +106,8 @@ class AB_OT_import_asset(Operator):
 
         # Download the asset in a separate thread to avoid locking the interface,
         # and then import the asset in the main thread again to avoid errors.
-        def download_and_import_asset():
-            cancelled = False
+        # def download_and_import_asset():
+        #     cancelled = False
 
             # if not asset_list_item.is_downloaded(quality) or ab.reload_asset:
             #     max_size = asset.get_download_size(quality)
@@ -164,39 +160,49 @@ class AB_OT_import_asset(Operator):
             #     force_ui_update(area_types="VIEW_3D")
             #     run_in_main_thread(task.finish)
 
-            def import_asset():
-                if cancelled:
-                    return
-                try:
-                    imported = asset.import_asset(context)
+            # # This is modifying blender data, so needs to be run in the main thread
+            # run_in_main_thread(import_asset)
 
-                    def update_settings(data_block):
-                        settings = get_asset_settings(data_block)
-                        settings.is_asset_bridge = True
-                        settings.idname = asset_list_item.idname
-                        settings.quality_level = quality
+        # def import_assert():
+        #     try:
+        #         imported = asset.import_asset(context)
 
-                    if not isinstance(imported, Collection):
-                        update_settings(imported)
+        #         def update_settings(data_block):
+        #             settings = get_asset_settings(data_block)
+        #             settings.is_asset_bridge = True
+        #             settings.idname = asset_list_item.idname
+        #             settings.quality_level = quality
 
-                    if isinstance(imported, Material):
-                        if material_slot:
-                            material_slot.material = imported
-                    elif isinstance(imported, Object):
-                        imported.location += location
-                    elif isinstance(imported, Collection):
-                        for obj in imported.objects:
-                            update_settings(obj)
-                            obj.location += location
-                except Exception as e:
-                    # This is needed so that the errors are shown to the user.
-                    report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
+        #         if not isinstance(imported, Collection):
+        #             update_settings(imported)
 
-            # This is modifying blender data, so needs to be run in the main thread
-            run_in_main_thread(import_asset)
+        #         if isinstance(imported, Material):
+        #             if material_slot:
+        #                 material_slot.material = imported
+        #         elif isinstance(imported, Object):
+        #             imported.location += location
+        #         elif isinstance(imported, Collection):
+        #             for obj in imported.objects:
+        #                 update_settings(obj)
+        #                 obj.location += location
+        #     except Exception as e:
+        #         # This is needed so that the errors are shown to the user.
+        #         report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
 
-        thread = Thread(target=download_and_import_asset)
-        thread.start()
+        #     return {"FINISHED"}
+
+        def check_download():
+            if ab.tasks[task_name].cancelled:
+                return
+            elif ab.tasks[task_name].finished:
+                import_asset(context, asset, location, material_slot)
+                return
+            return .1
+
+        bpy.app.timers.register(check_download, first_interval=.1)
+
+        # thread = Thread(target=download_and_import_asset)
+        # thread.start()
 
         # Blender is weird, and without executing this in a timer, all imported objects will be
         # scaled to zero after execution. God knows why.
