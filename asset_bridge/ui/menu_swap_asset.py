@@ -1,7 +1,8 @@
+import bpy
 from bpy.types import ID, Menu, UILayout
 
 from ..api import get_asset_lists
-from ..settings import get_asset_settings
+from ..settings import get_ab_settings, get_asset_settings
 from ..helpers.btypes import BMenu
 from ..apis.asset_types import AssetListItem
 from ..operators.op_swap_asset import AB_OT_swap_asset
@@ -17,7 +18,7 @@ def draw_swap_op(layout: UILayout, asset_list_item: AssetListItem, qlevel_id: st
 
 def draw_asset_levels(data_block: ID, layout: UILayout, label: str = "Change quality level", icon="NONE"):
     row = layout.row(align=True)
-    row.alignment = "CENTER"
+    # row.alignment = "EXPAND"
     row.label(text=label, icon=icon)
 
     layout.separator()
@@ -29,6 +30,9 @@ def draw_asset_levels(data_block: ID, layout: UILayout, label: str = "Change qua
         if settings.quality_level == level_id:
             row.enabled = False
         draw_swap_op(row, asset, level_id, level_label)
+    layout.separator()
+    ab = get_ab_settings(bpy.context)
+    layout.prop(ab, "reload_asset", text="Redownload assets", icon="FILE_REFRESH")
 
 
 @BMenu("Swap HDRI quality")

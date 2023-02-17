@@ -1,14 +1,24 @@
+from typing import TYPE_CHECKING
 from pathlib import Path
 from threading import Thread
-from typing import TYPE_CHECKING
 
 from bpy.types import Context
 
-from ..asset_utils import HDRI, MATERIAL, MODEL, download_file, file_name_from_url, import_hdri, import_model, import_material
-from ..asset_types import Asset, AssetListItem as PH_AssetListItem
-from ...operators.op_report_message import report_message
-from ...helpers.process import new_blender_process
 from ...vendor import requests
+from ..asset_types import Asset
+from ..asset_types import AssetListItem as PH_AssetListItem
+from ..asset_utils import (
+    HDRI,
+    MODEL,
+    MATERIAL,
+    import_hdri,
+    import_model,
+    download_file,
+    import_material,
+    file_name_from_url
+)
+from ...helpers.process import new_blender_process
+from ...operators.op_report_message import report_message
 
 if TYPE_CHECKING:
     from .ph_asset_list_item import PH_AssetListItem  # noqa F811
@@ -90,9 +100,10 @@ class PH_Asset(Asset):
         if self.type == MODEL:
 
             blend_file = [f for f in self.get_files() if f.suffix == ".blend"][0]
+            print(self.idname)
             process = new_blender_process(
                 script=Path(__file__).parent / "scripts" / "ph_setup_asset.py",
-                script_args=("--name", self.name),
+                script_args=("--name", self.name, "--import_name", self.import_name),
                 file=blend_file,
                 use_stdout=True,
             )

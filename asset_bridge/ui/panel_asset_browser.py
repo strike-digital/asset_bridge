@@ -1,8 +1,9 @@
-from .ui_helpers import wrap_text
-from ..settings import get_ab_settings
-from bpy_extras.asset_utils import AssetBrowserPanel
-from ..constants import ASSET_LIB_NAME, DIRS
 from bpy.types import Panel
+from bpy_extras.asset_utils import AssetBrowserPanel
+
+from ..settings import get_ab_settings
+from ..constants import DIRS, ASSET_LIB_NAME
+from .ui_helpers import wrap_text
 from ..helpers.btypes import BPanel
 
 
@@ -50,7 +51,7 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         bigrow = box.row(align=True)
         row = bigrow.row(align=True)
         if is_downloaded:
-            op = row.operator("asset_bridge.open_folder", text="", icon="CHECKMARK", emboss=False)
+            op = row.operator("asset_bridge.open_folder", text="", icon="FILE_FOLDER", emboss=False)
             op.file_path = str(asset.downloads_dir)
         else:
             op = row.operator("asset_bridge.open_folder", text="", icon="IMPORT", emboss=False)

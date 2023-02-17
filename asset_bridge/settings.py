@@ -35,10 +35,10 @@ def add_progress(cls, name):
 _item_map = dict()
 
 
-def _make_item(id, name, descr):
-    lookup = f"{str(id)}\0{str(name)}\0{str(descr)}"
+def _make_item(id, name, descr, icon="", number=0):
+    lookup = f"{str(id)}\0{str(name)}\0{str(descr)}\0{str(icon)}\0{str(number)}"
     if lookup not in _item_map:
-        _item_map[lookup] = (id, name, descr)
+        _item_map[lookup] = (id, name, descr, icon, number)
     return _item_map[lookup]
 
 
@@ -167,12 +167,13 @@ class AssetBridgeSettings(PropertyGroup):
         return "NONE"
 
     def asset_quality_items(self, context):
-        asset = self.selected_asset
-        if asset:
+        asset_list_item = self.selected_asset
+        if asset_list_item:
             items = []
-            for level in asset.quality_levels:
+            for i, level in enumerate(asset_list_item.quality_levels):
                 # Avoid enum bug
-                items.append(_make_item(level[0], level[1], level[2]))
+                icon = "CHECKMARK" if asset_list_item.is_downloaded(level[0]) else "IMPORT"
+                items.append(_make_item(level[0], level[1], level[2], icon, i))
             return items
         return [("NONE", "None", "None")]
 
@@ -209,8 +210,11 @@ class AssetBridgeIDSettings(PropertyGroup):
 
     quality_level: StringProperty()
 
-    identifier: IntProperty(description="The identifier of this specific instance of the asset.\
+    uuid: StringProperty(description="The identifier of this specific instance of the asset.\
         Used to determine if there are multiple objects as part of one asset after it has been imported.")
+
+    index: IntProperty(description="The index of the imported asset,\
+        used for swapping quality levels for models, as they can consist of multiple objects")
 
     # Used to tell if a datablock has been imported by asset bridge
     is_asset_bridge: BoolProperty()
@@ -254,14 +258,15 @@ def get_asset_settings(data_block: ID) -> AssetBridgeIDSettings:
 def register():
     bpy.types.WindowManager.asset_bridge = PointerProperty(type=AssetBridgeSettings)
 
-    bpy.types.Object.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
-    bpy.types.World.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
+    bpy.types.ID.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
+    # bpy.types.Object.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
+    # bpy.types.World.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
     bpy.types.Material.asset_bridge = PointerProperty(type=AssetBridgeMaterialSettings)
 
 
 def unregister():
     del bpy.types.WindowManager.asset_bridge
 
-    del bpy.types.Object.asset_bridge
-    del bpy.types.World.asset_bridge
+    # del bpy.types.Object.asset_bridge
+    # del bpy.types.World.asset_bridge
     del bpy.types.Material.asset_bridge

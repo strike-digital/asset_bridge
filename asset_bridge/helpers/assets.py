@@ -1,10 +1,11 @@
 import os
-from time import sleep, time_ns
+from time import sleep
+from uuid import uuid1
 from typing import Callable
 from threading import Thread
 
 import bpy
-from bpy.types import ID, Object, Context, Material, Collection, MaterialSlot
+from bpy.types import ID, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
@@ -146,26 +147,24 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
     imported = None
     try:
         imported = asset.import_asset(context)
-        identifier = time_ns()
+        uuid = uuid1()
 
-        def update_settings(data_block):
+        def update_settings(data_block, index=0):
             settings = get_asset_settings(data_block)
             settings.is_asset_bridge = True
             settings.idname = asset_list_item.idname
             settings.quality_level = asset.quality_level
-            settings.identifier = identifier
+            settings.uuid = str(uuid)
+            settings.index = index
 
-        if not isinstance(imported, Collection):
-            update_settings(imported)
+        update_settings(imported)
 
         if isinstance(imported, Material):
             if material_slot:
                 material_slot.material = imported
-        elif isinstance(imported, Object):
-            imported.location += location
         elif isinstance(imported, Collection):
-            for obj in imported.objects:
-                update_settings(obj)
+            for i, obj in enumerate(imported.objects):
+                update_settings(obj, index=i)
                 obj.location += location
     except Exception as e:
         # This is needed so that the errors are shown to the user.
