@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import StringProperty
-from bpy.types import ID, Object, NodeTree, Operator
+from bpy.types import ID, Mesh, Curve, Object, NodeTree, Operator
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
@@ -64,13 +64,13 @@ class AB_OT_swap_asset(Operator):
         else:
             material_slot = None
 
-            def clean_up_material(material):
+            def clean_up_material(material, ignore_users=False):
                 for node in material.node_tree.nodes:
                     if not hasattr(node, "image") or not node.image:
                         continue
                     if node.image.users == 1:
                         bpy.data.images.remove(node.image)
-                if material.users == 0:
+                if material.users == 0 or ignore_users:
                     bpy.data.materials.remove(material)
 
         def on_completion(imported: ID):
@@ -100,7 +100,7 @@ class AB_OT_swap_asset(Operator):
             elif asset_list_item.type == MODEL:
                 # Find all of the objects that are part of the old asset, and remove all of their data.
                 done = set()
-                meshes_to_remove = []
+                to_remove = []
                 for obj in list(bpy.data.objects):
                     settings = get_asset_settings(obj)
                     if not settings.is_asset_bridge or (settings.uuid in done) or\
@@ -129,13 +129,21 @@ class AB_OT_swap_asset(Operator):
                     for asset_obj in asset_objs:
                         for slot in asset_obj.material_slots:
                             if slot.material and slot.material.use_nodes:
-                                clean_up_material(slot.material)
+                                clean_up_material(slot.material, ignore_users=True)
                         if asset_obj.data and asset_obj.data.users == 1:
-                            meshes_to_remove.append(asset_obj.data)
+                            to_remove.append(asset_obj.data)
+                        elif asset_obj.type == "EMPTY":
+                            to_remove.append(asset_obj)
 
                     done.add(settings.uuid)
-                for mesh in meshes_to_remove:
-                    bpy.data.meshes.remove(mesh)
+
+                for item in to_remove:
+                    if isinstance(item, Mesh):
+                        bpy.data.meshes.remove(item)
+                    elif isinstance(item, Curve):
+                        bpy.data.curves.remove(item)
+                    elif isinstance(item, Object):
+                        bpy.data.objects.remove(item)
 
                 for collection in list(bpy.data.collections):
                     settings = get_asset_settings(collection)
