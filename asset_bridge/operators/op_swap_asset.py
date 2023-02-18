@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import StringProperty
-from bpy.types import ID, Mesh, Curve, Object, NodeTree, Operator
+from bpy.types import Curve, ID, Mesh, NodeTree, Object, Operator
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
@@ -64,14 +64,14 @@ class AB_OT_swap_asset(Operator):
         else:
             material_slot = None
 
-            def clean_up_material(material, ignore_users=False):
-                for node in material.node_tree.nodes:
-                    if not hasattr(node, "image") or not node.image:
-                        continue
-                    if node.image.users == 1:
-                        bpy.data.images.remove(node.image)
-                if material.users == 0 or ignore_users:
-                    bpy.data.materials.remove(material)
+        def clean_up_material(material, ignore_users=False):
+            for node in material.node_tree.nodes:
+                if not hasattr(node, "image") or not node.image:
+                    continue
+                if node.image.users == 1:
+                    bpy.data.images.remove(node.image)
+            if material.users == 0 or ignore_users:
+                bpy.data.materials.remove(material)
 
         def on_completion(imported: ID):
             """Called whent the asset has been imported"""

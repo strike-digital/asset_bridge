@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
-from .helpers.prefs import get_prefs
+
 import bpy
+
+from .helpers.prefs import get_prefs
 
 # This should be changed during the build process in build.py
 __IS_DEV__ = True
@@ -24,6 +26,8 @@ class NodeNames():
     anti_tiling = "AB-anti_tiling"
     mapping = "AB-mapping"
     ao_mix = "AB-ao_mix"
+    hsv = "AB-hsv"
+    rough_gamma = "AB-rough_gamma"
     normal_map = "AB-normal_map"
     displacement = "AB-displacement"
     displacement_strength = "AB-displacement_strength"

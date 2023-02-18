@@ -110,6 +110,8 @@ class AssetBridgeShowUISettings(PropertyGroup):
 
     mat_general: new_show_prop("General")
 
+    mat_hsv: new_show_prop("Color")
+
     mat_mapping: new_show_prop("Mapping")
 
     mat_tiling: new_show_prop("Anti-Tiling")

@@ -1,19 +1,19 @@
+import os
 import json
 import math
-from time import perf_counter
-from typing import Dict, Type
-from bpy.types import Material, Node, NodeGroup, Object
-
-from mathutils import Vector as V
-from ..ui.ui_helpers import dpifac
+from time import time, perf_counter
+from typing import Dict, Type, Literal
+from pathlib import Path
 
 import bpy
-from ..constants import DIRS, FILES, NODE_GROUPS, NODES
+from bpy.types import Node, Object, Material, NodeGroup
+from mathutils import Vector as V
+
 from ..api import asset_lists
-from .asset_types import AssetList
 from ..vendor import requests
-import shutil
-from pathlib import Path
+from ..constants import DIRS, FILES, NODES, NODE_GROUPS
+from .asset_types import AssetList
+from ..ui.ui_helpers import dpifac
 
 HDRI = "hdri"
 MATERIAL = "material"
@@ -59,14 +59,15 @@ def file_name_from_url(url: str) -> str:
     return url.split('/')[-1].split("?")[0]
 
 
-def download_file(url: str, download_dir: Path, file_name: str = ""):
+def download_file(url: str, download_dir: Path, file_name: str = "", use_progress_file=True):
     """Download a file from the provided url to the given file path"""
     if not isinstance(download_dir, Path):
         download_dir = Path(download_dir)
 
     download_dir.mkdir(exist_ok=True, parents=True)
     file_name = file_name or file_name_from_url(url)
-    download_dir = download_dir / file_name
+    download_file = download_dir / file_name
+    progress_file = download_dir / f"{file_name}.progress.txt"
 
     result = requests.get(url, stream=True)
     if result.status_code != 200:
@@ -75,9 +76,23 @@ def download_file(url: str, download_dir: Path, file_name: str = ""):
             f.write(result.status_code)
         raise requests.ConnectionError()
 
-    with open(download_dir, 'wb') as f:
-        shutil.copyfileobj(result.raw, f)
-    return download_dir
+    total = 0
+    last_write = time()
+    with open(download_file, 'wb') as f:
+        for chunk in result.iter_content(chunk_size=8192):
+            size = f.write(chunk)
+            total += size
+            if progress_file and time() - last_write > .05:
+                with open(progress_file, "w") as pf:
+                    pf.write(str(total))
+                last_write = time()
+
+    if progress_file.exists():
+        os.remove(progress_file)
+
+    # with open(download_dir, 'wb') as f:
+    #     shutil.copyfileobj(result.raw, f)
+    return download_file
 
 
 def load_image(image_file, link_method, name=""):
@@ -167,6 +182,7 @@ def import_hdri(image_file, name, link_method="APPEND_REUSE"):
     links.new(env_node.outputs[0], color_node.inputs[0])
     links.new(color_node.outputs[0], output_node.inputs[0])
 
+    # Recursively set the position of all nodes in the tree
     def set_node_pos(node: Node, prev_pos: V):
         node.location = prev_pos - V((node.width + 20, 0))
         if node.inputs[0].links:
@@ -179,7 +195,7 @@ def import_hdri(image_file, name, link_method="APPEND_REUSE"):
 
 
 def import_material(
-    texture_files: Dict[str, Path],
+    texture_files: Dict[Literal["diffuse", "ao", "roughness", "metalness", "normal", "displacement", "opacity"], Path],
     name: str,
     link_method="APPEND_REUSE",
     mute_displacement=True,
@@ -187,7 +203,7 @@ def import_material(
     """import the provided PBR texture files as a material and return it
 
     Args:
-        texture_files (Dict[str, Path]): A dictionary of file paths to the supported texture files: [diffuse, ao, roughness, metalness, normal, displacement, opacity]
+        texture_files (Dict[str, Path]): A dictionary of file paths to the supported texture files (see type hint).
         name (str): The name of the imported material
         link_method (str, optional): The link method to use. Defaults to "APPEND_REUSE".
 
@@ -210,10 +226,7 @@ def import_material(
     bsdf_node = nodes["Principled BSDF"]
     out_node = nodes["Material Output"]
     image_nodes = []
-    disp_node = None
-    diff_node = None
-    nor_node = None
-    ao_mix_node = None
+    disp_node = diff_node = nor_node = rough_gamma_node = ao_mix_node = hsv_node = None
 
     def new_image(file, input_index, node_name="", to_node=None, non_color=False):
         """Add a new image node, and connect it to the given to_node if provided, or the bsdf node"""
@@ -244,11 +257,22 @@ def import_material(
             links.new(ao_mix_node.outputs[2], bsdf_node.inputs["Base Color"])
             ao_image_node = new_image(ao_file, 7, "Ambient Occlusion", to_node=ao_mix_node, non_color=True)
 
+        hsv_node = nodes.new("ShaderNodeHueSaturation")
+        hsv_node.name = NODES.hsv
+        links.new(diff_node.outputs[0], hsv_node.inputs["Color"])
+        links.new(hsv_node.outputs["Color"], ao_mix_node.inputs[6] if ao_mix_node else bsdf_node.inputs["Base Color"])
+
     if metal_file := texture_files.get("metalness"):
         new_image(metal_file, "Metallic", "Metalness", non_color=True)
 
     if rough_file := texture_files.get("roughness"):
-        new_image(rough_file, "Roughness", "Roughness", non_color=True)
+        rough_node = new_image(rough_file, "Roughness", "Roughness", non_color=True)
+
+        rough_gamma_node = nodes.new("ShaderNodeGamma")
+        rough_gamma_node.name = NODES.rough_gamma
+        rough_gamma_node.label = "Roughness"
+        links.new(rough_node.outputs[0], rough_gamma_node.inputs[0])
+        links.new(rough_gamma_node.outputs[0], bsdf_node.inputs["Roughness"])
 
     if emission_file := texture_files.get("emission"):
         new_image(emission_file, "Emmission Strength", "Emission", non_color=True)
@@ -277,7 +301,7 @@ def import_material(
     mapping_node.label = "Mapping"
     half_height = (300 * (len(image_nodes) - 1) / 2)
     for i, node in enumerate(image_nodes):
-        x = bsdf_node.location.x - (node.width + 200) * dpifac()
+        x = bsdf_node.location.x - (node.width + 180) * dpifac()
         y = bsdf_node.location.y - 300 * i + half_height - 200
         node.location = (x, y)
         links.new(mapping_node.outputs[0], node.inputs[0])
@@ -328,8 +352,14 @@ def import_material(
     coords_node.location = anti_tiling_node.location - V((coords_node.width + 40, 0))
 
     # set position of optional nodes
+    if hsv_node:
+        hsv_node.location = diff_node.location + V((diff_node.width + 40, -110))
+
     if ao_mix_node:
         ao_mix_node.location = ao_image_node.location + V((ao_image_node.width + 40, 0))
+
+    if rough_gamma_node:
+        rough_gamma_node.location = rough_node.location + V((rough_node.width + 40, 0))
 
     if nor_node:
         nor_image_node = nodes["Normal"]

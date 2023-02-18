@@ -2,18 +2,9 @@ from bpy.types import Node, Panel, Object, Material, UILayout
 
 from ..settings import get_ab_settings, get_asset_settings
 from ..constants import NODES, NODE_GROUPS
-from .ui_helpers import (
-    wrap_text,
-    draw_inline_prop,
-    draw_inline_column,
-    draw_node_group_inputs
-)
+from .ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_node_group_inputs)
 from ..helpers.btypes import BPanel
-from .menu_swap_asset import (
-    AB_MT_swap_hdri_asset,
-    AB_MT_swap_model_asset,
-    AB_MT_swap_material_asset
-)
+from .menu_swap_asset import (AB_MT_swap_hdri_asset, AB_MT_swap_model_asset, AB_MT_swap_material_asset)
 
 
 class DummyLayout():
@@ -142,13 +133,15 @@ class AssetPropsPanel(Panel):
                 return False
 
             def get_material_nodes(all_nodes: list[Node]):
-                nodes = {"tiling": None, "mapping": None, "normal": None, "scale": None, "displacement": None}
+                nodes = {}
                 nodes["tiling"] = all_nodes.get(NODES.anti_tiling)
                 nodes["mapping"] = all_nodes.get(NODES.mapping)
                 nodes["normal"] = all_nodes.get(NODES.normal_map)
                 nodes["scale"] = all_nodes.get(NODES.scale)
                 nodes["displacement"] = all_nodes.get(NODES.displacement)
                 nodes["displacement_scale"] = all_nodes.get(NODES.displacement_strength)
+                nodes["hsv"] = all_nodes.get(NODES.hsv)
+                nodes["rough_gamma"] = all_nodes.get(NODES.rough_gamma)
                 return nodes
 
             slot = obj.material_slots[obj.active_material_index]
@@ -216,6 +209,19 @@ class AssetPropsPanel(Panel):
                         socket = nor_node.inputs["Strength"]
                         draw_inline_prop(box, socket, "default_value", "Normal:", socket.name)
                         box.separator()
+
+                    if rough_gamma_node := nodes["rough_gamma"]:
+                        socket = rough_gamma_node.inputs[1]
+                        draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount")
+                        box.separator()
+
+            if hsv_node := nodes["hsv"]:
+                col = column.column(align=True)
+                draw_section_header(col, "Color", show_props, "mat_hsv")
+                if show_props.mat_hsv:
+                    box = draw_inline_column(col.box(), "HSV:")
+                    for socket in hsv_node.inputs[:-2]:
+                        box.prop(socket, "default_value", text=socket.name)
 
             if mapping_node := nodes["mapping"]:
                 col = column.column(align=True)

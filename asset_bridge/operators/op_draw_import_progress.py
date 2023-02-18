@@ -11,6 +11,7 @@ from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..helpers.math import Rectangle, vec_lerp
 from ..helpers.btypes import BOperator
+from ..helpers.drawing import get_active_window_region
 from .op_report_message import report_message
 from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
 
@@ -36,7 +37,6 @@ class AB_OT_draw_import_progress(Operator):
         self.done = False
         self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         self.image_shader = gpu.shader.from_builtin('2D_IMAGE')
-        ab = get_ab_settings(context)
         handlers.append(
             bpy.types.SpaceView3D.draw_handler_add(
                 self.draw_callback_px,
@@ -52,7 +52,7 @@ class AB_OT_draw_import_progress(Operator):
         self.image.name = self.task_name
         self.aspect = self.image.size[0] / self.image.size[1]
         self.texture = gpu.texture.from_image(self.image)
-        self.region = context.region
+        self.region = get_active_window_region(V((event.mouse_x, event.mouse_y)))
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
 
