@@ -93,7 +93,7 @@ class AssetPropsPanel(Panel):
 
             row = row.row()
             row.emboss = "PULLDOWN_MENU"
-            row.menu(AB_MT_swap_hdri_asset.bl_idname, text="", icon="IMPORT")
+            row.menu(AB_MT_swap_hdri_asset.bl_idname, text="", icon="FILE_REFRESH")
 
             if not show_props.hdri:
                 return True
@@ -149,8 +149,8 @@ class AssetPropsPanel(Panel):
 
                     row = row.row(align=True)
                     row.emboss = "PULLDOWN_MENU"
-                    row.menu(AB_MT_swap_material_asset.bl_idname, text="", icon="IMPORT")
-                    row.menu(AB_MT_swap_model_asset.bl_idname, text="", icon="IMPORT")
+                    row.menu(AB_MT_swap_material_asset.bl_idname, text="", icon="FILE_REFRESH")
+                    row.menu(AB_MT_swap_model_asset.bl_idname, text="", icon="FILE_REFRESH")
 
                     if not show_props.mat:
                         return True

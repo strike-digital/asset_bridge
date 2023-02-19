@@ -48,16 +48,8 @@ class ACG_AssetList(AssetList):
         initial_url = f"{base_url}?limit=5000"
         result = requests.get(initial_url).json()
         total = result["numberOfResults"]
-        # page_size = int(result["searchQuery"]["limit"])
-        page_size = result["searchQuery"]["limit"]
-        print(page_size)
-        print(page_size)
-        print(page_size)
-        print(page_size)
-        print(page_size)
-        print(page_size)
-        print(page_size)
-        print(page_size)
+        page_size = int(result["searchQuery"]["limit"])
+        # page_size = result["searchQuery"]["limit"]
 
         quality_data = {}
         threads: list[Thread] = []
