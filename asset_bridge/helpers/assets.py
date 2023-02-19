@@ -162,6 +162,8 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
         if isinstance(imported, Material):
             if material_slot:
                 material_slot.material = imported
+                obj = material_slot.id_data
+                obj.active_material_index = list(obj.material_slots).index(material_slot)
         elif isinstance(imported, Collection):
             for i, obj in enumerate(imported.objects):
                 update_settings(obj, index=i)
