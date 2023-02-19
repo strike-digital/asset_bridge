@@ -49,9 +49,12 @@ class Dirs():
 
     # We need the context to create these, so run them in a timer.
     def update(self, lib_path: Path = None):
+        if not lib_path:
+            return
         self.library = Path(lib_path) if lib_path is not None else Path(get_prefs(bpy.context).lib_path)
         self.assets = self.library / "assets"
         self.dummy_assets = self.library / "dummy_assets"
+        print("UPDate!!!!!!!")
         FILES.update()
 
         all_paths = [v for v in (self.__dict__).values() if isinstance(v, Path)]
@@ -72,7 +75,9 @@ class Files():
     def update(self, lib_path: Path = ""):
         lib = lib_path or DIRS.library
         self.lib_info = lib / "lib_info.json"
-        self.lib_progress = DIRS.dummy_assets / "progress.json"
+        # Sometimes this is initialized without the DIRS being updated, when changing the lib_path
+        if hasattr(DIRS, "dummy_assets"):
+            self.lib_progress = DIRS.dummy_assets / "progress.json"
         return self
 
 

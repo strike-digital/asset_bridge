@@ -1,10 +1,11 @@
-import requests
-import subprocess
-import argparse
-from zipfile import ZipFile
-from pathlib import Path
-import webbrowser
 import re
+import argparse
+import subprocess
+import webbrowser
+from pathlib import Path
+from zipfile import ZipFile
+
+import requests
 
 
 def update_init_file(init_file: Path, version: tuple):
@@ -52,6 +53,7 @@ def main():
     path = Path(__file__).parent
     files = [Path(f.decode("utf8")) for f in subprocess.check_output("git ls-files", shell=True).splitlines()]
     files = [f for f in files if "asset_bridge\\" in str(f)]
+    files += [Path(__file__).parent / "asset_bridge" / "previews"]
 
     # version
     if args.version:
@@ -69,7 +71,7 @@ def main():
     update_constants_file(constants_file, False)
 
     out_path = path / "builds" / f"asset_bridge_{file_version}.zip"
-    out_path.mkdir(exist_ok=True)
+    out_path.parent.mkdir(exist_ok=True, parents=True)
 
     with ZipFile(out_path, 'w') as z:
         for file in files:
@@ -77,6 +79,7 @@ def main():
     update_constants_file(constants_file, True)
 
     webbrowser.open(out_path.parent)
+    webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
 
 
 if __name__ == "__main__":

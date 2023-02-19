@@ -4,9 +4,11 @@
 *.exr
 *.png
 !**/icons/*
+!**/apis/**/*.png
 !images/*.png
 !images/*.jpg
 *.blend
+!**/resources/*.blend
 *.blend1
 *.pyc
 *.zip
