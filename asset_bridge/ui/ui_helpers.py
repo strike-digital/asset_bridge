@@ -45,7 +45,14 @@ def dpifac() -> float:
     return prefs.dpi * prefs.pixel_size / 72  # Why 72?
 
 
-def wrap_text(context: Context, text: str, layout: UILayout, centered: bool = False, width=0) -> list[str]:
+def wrap_text(
+    context: Context,
+    text: str,
+    layout: UILayout,
+    centered: bool = False,
+    width=0,
+    splitter=None,
+) -> list[str]:
     """Take a string and draw it over multiple lines so that it is never concatenated."""
     return_text = []
     row_text = ''
@@ -58,7 +65,11 @@ def wrap_text(context: Context, text: str, layout: UILayout, centered: bool = Fa
     dpi = 72 if system.ui_scale >= 1 else system.dpi
     blf.size(0, 11, dpi)
 
-    for word in text.split():
+    for word in text.split(splitter):
+        if word == "":
+            return_text.append(row_text)
+            row_text = ""
+            continue
         word = f' {word}'
         line_len, _ = blf.dimensions(0, row_text + word)
 
@@ -80,11 +91,13 @@ def wrap_text(context: Context, text: str, layout: UILayout, centered: bool = Fa
     return return_text
 
 
-def draw_prefs_section(layout: UILayout,
-                       title: str,
-                       show_data=None,
-                       show_prop: str = "",
-                       index_prop: str = "") -> UILayout:
+def draw_prefs_section(
+    layout: UILayout,
+    title: str,
+    show_data=None,
+    show_prop: str = "",
+    index_prop: str = "",
+) -> UILayout:
     """Draw a box with a title, and return it"""
     main_col = layout.column(align=True)
 
@@ -131,6 +144,36 @@ def draw_prefs_section(layout: UILayout,
     return col
 
 
+def draw_section_header(
+    layout: UILayout,
+    name: str,
+    hide_prop_data=None,
+    hide_prop_name=None,
+    centered: bool = True,
+    show_icon: bool = True,
+    icon: str = "",
+    right_padding: int = 6,
+):
+    """Draw a title in a box with a toggle"""
+    box = layout.box()
+    row = box.row(align=True)
+    if hide_prop_data:
+        if show_icon:
+            arrow_icon = "TRIA_RIGHT" if not getattr(hide_prop_data, hide_prop_name) else "TRIA_DOWN"
+            icon = icon or arrow_icon
+            name += " " * right_padding
+        else:
+            icon = "NONE"
+            row.active = not getattr(hide_prop_data, hide_prop_name)
+        row.prop(hide_prop_data, hide_prop_name, text=name, emboss=False, icon=icon)
+    else:
+        if centered:
+            row.alignment = "CENTER"
+        icon = icon or "NONE"
+        row.label(text=name, icon=icon)
+    return row
+
+
 def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool = True):
     """Draw the button and interface for downloading the asset previews"""
     if in_box:
@@ -161,6 +204,7 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
             op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or "Download previews")
             op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes\
                 depending on internet access."
+
             op.reload = reload
 
     return layout
@@ -221,4 +265,5 @@ def draw_node_group_inputs(node: Node, layout: UILayout, context: Context, in_bo
             continue
 
         socket.draw(context, box, socket.node, socket.name)
+        i += 1
         i += 1

@@ -17,6 +17,7 @@ from .constants import (
 )
 from .helpers.prefs import get_prefs
 from .ui.ui_helpers import (
+    wrap_text,
     draw_inline_prop,
     draw_prefs_section,
     draw_download_previews
@@ -27,6 +28,7 @@ from .helpers.library import (
     ensure_bl_asset_library_exists
 )
 from .ui.panel_asset_props import AB_PT_asset_props_viewport
+from .operators.op_show_info import INFO
 from .ui.panel_asset_browser import AB_PT_asset_browser
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
@@ -168,6 +170,19 @@ class ABAddonPreferences(AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+
+        box = layout.box().column(align=True)
+        box.label(text="Library path:")
+        row = box.row(align=True)
+        row.scale_y = 1.5
+        sub = row.row(align=True)
+        INFO.lib_path.draw(sub)
+        row.scale_x = 1.5
+        row.prop(self, "lib_path", text="")
+        if message := is_lib_path_invalid(self.lib_path):
+            box.alert = True
+            wrap_text(context, message, box)
+            return
 
         ab = get_ab_settings(context)
         lists_obj = get_asset_lists()

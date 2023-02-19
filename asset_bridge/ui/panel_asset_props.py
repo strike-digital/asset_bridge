@@ -1,4 +1,4 @@
-from bpy.types import Node, Panel, Object, Material, UILayout
+from bpy.types import Node, Panel, Object, Material
 
 from ..settings import get_ab_settings, get_asset_settings
 from ..constants import NODES, NODE_GROUPS
@@ -7,6 +7,7 @@ from .ui_helpers import (
     wrap_text,
     draw_inline_prop,
     draw_inline_column,
+    draw_section_header,
     draw_node_group_inputs
 )
 from ..helpers.btypes import BPanel
@@ -37,34 +38,6 @@ class AssetPropsPanel(Panel):
             is_dummy = True
         obj: Object = context.object
         show_props = get_ab_settings(context).ui_show
-
-        def draw_section_header(
-            layout: UILayout,
-            name: str,
-            hide_prop_data=None,
-            hide_prop_name=None,
-            centered: bool = True,
-            show_icon: bool = True,
-            icon: str = "",
-            right_padding: int = 6,
-        ):
-            box = layout.box()
-            row = box.row(align=True)
-            if hide_prop_data:
-                if show_icon:
-                    arrow_icon = "TRIA_RIGHT" if not getattr(hide_prop_data, hide_prop_name) else "TRIA_DOWN"
-                    icon = icon or arrow_icon
-                    name += " " * right_padding
-                else:
-                    icon = "NONE"
-                    row.active = not getattr(hide_prop_data, hide_prop_name)
-                row.prop(hide_prop_data, hide_prop_name, text=name, emboss=False, icon=icon)
-            else:
-                if centered:
-                    row.alignment = "CENTER"
-                icon = icon or "NONE"
-                row.label(text=name, icon=icon)
-            return row
 
         def draw_hdri_props():
             world = context.scene.world
