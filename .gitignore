@@ -7,6 +7,7 @@
 !**/apis/**/*.png
 !images/*.png
 !images/*.jpg
+
 *.blend
 !**/resources/*.blend
 *.blend1
@@ -14,6 +15,7 @@
 *.zip
 *.idea
 *.json
+!**/asset_lists/*.json
 /builds
 todo.md
 asset_list.json

@@ -53,7 +53,7 @@ def main():
     path = Path(__file__).parent
     files = [Path(f.decode("utf8")) for f in subprocess.check_output("git ls-files", shell=True).splitlines()]
     files = [f for f in files if "asset_bridge\\" in str(f)]
-    files += [Path(__file__).parent / "asset_bridge" / "previews"]
+    files += [(Path(__file__).parent / "asset_bridge" / "previews").relative_to(path)]
 
     # version
     if args.version:
@@ -79,7 +79,7 @@ def main():
     update_constants_file(constants_file, True)
 
     webbrowser.open(out_path.parent)
-    webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
+    # webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
 
 
 if __name__ == "__main__":

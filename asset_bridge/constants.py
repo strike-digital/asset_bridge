@@ -54,7 +54,6 @@ class Dirs():
         self.library = Path(lib_path) if lib_path is not None else Path(get_prefs(bpy.context).lib_path)
         self.assets = self.library / "assets"
         self.dummy_assets = self.library / "dummy_assets"
-        print("UPDate!!!!!!!")
         FILES.update()
 
         all_paths = [v for v in (self.__dict__).values() if isinstance(v, Path)]

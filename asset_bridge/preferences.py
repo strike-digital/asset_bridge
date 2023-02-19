@@ -90,7 +90,8 @@ class ABAddonPreferences(AddonPreferences):
 
         # Update referenecs
         self["_lib_path"] = str(new_path)
-        DIRS.update()
+        DIRS.update(new_path)
+        # print(DIRS.)
         ensure_bl_asset_library_exists()
 
         # write to the config file
