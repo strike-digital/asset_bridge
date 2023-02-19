@@ -2,34 +2,19 @@ from bpy.types import Node, Panel, Object, Material, UILayout
 
 from ..settings import get_ab_settings, get_asset_settings
 from ..constants import NODES, NODE_GROUPS
-from .ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_node_group_inputs)
+from .ui_helpers import (
+    DummyLayout,
+    wrap_text,
+    draw_inline_prop,
+    draw_inline_column,
+    draw_node_group_inputs
+)
 from ..helpers.btypes import BPanel
-from .menu_swap_asset import (AB_MT_swap_hdri_asset, AB_MT_swap_model_asset, AB_MT_swap_material_asset)
-
-
-class DummyLayout():
-    """An immitator of the blender UILayout class, used so that the draw function can be run as a poll function"""
-
-    def row(*args, **kwargs):
-        return DummyLayout()
-
-    def box(*args, **kwargs):
-        return DummyLayout()
-
-    def column(*args, **kwargs):
-        return DummyLayout()
-
-    def split(*args, **kwargs):
-        return DummyLayout()
-
-    def label(*args, **kwargs):
-        return DummyLayout()
-
-    def prop(*args, **kwargs):
-        return DummyLayout()
-
-    def menu(*args, **kwargs):
-        return DummyLayout()
+from .menu_swap_asset import (
+    AB_MT_swap_hdri_asset,
+    AB_MT_swap_model_asset,
+    AB_MT_swap_material_asset
+)
 
 
 class AssetPropsPanel(Panel):

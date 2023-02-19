@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from itertools import zip_longest
 import os
-from pathlib import Path
-from typing import Callable, Literal, OrderedDict, Type
 from abc import ABC, abstractmethod
+from typing import Type, Literal, Callable, OrderedDict
+from pathlib import Path
+from itertools import zip_longest
+from dataclasses import field, dataclass
+
+from bpy.types import ID, Context, UILayout
 
 from ..constants import DIRS
-from bpy.types import ID, Context, UILayout
 
 
 @dataclass
@@ -160,6 +161,7 @@ class AssetList(ABC):
     label: str
     assets: OrderedDict[str, AssetListItem]
     url: str
+    support_url: str
     description: str
 
     def __getitem__(self, key) -> AssetListItem:

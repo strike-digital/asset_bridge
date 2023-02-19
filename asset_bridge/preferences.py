@@ -1,21 +1,38 @@
-import json
 import os
+import json
 from pathlib import Path
 
-from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
+import bpy
+from bpy.props import BoolProperty, EnumProperty, StringProperty
+from bpy.types import Menu, UILayout, AddonPreferences
 
-from .helpers.library import ensure_bl_asset_library_exists, is_lib_path_invalid
-
+from .api import get_asset_lists
+from .settings import new_show_prop, get_ab_settings
+from .constants import (
+    DIRS,
+    FILES,
+    __IS_DEV__,
+    ASSET_LIB_VERSION,
+    PREVIEW_DOWNLOAD_TASK_NAME
+)
+from .helpers.prefs import get_prefs
+from .ui.ui_helpers import (
+    draw_inline_prop,
+    draw_prefs_section,
+    draw_download_previews
+)
+from .helpers.btypes import BMenu
+from .helpers.library import (
+    is_lib_path_invalid,
+    ensure_bl_asset_library_exists
+)
+from .ui.panel_asset_props import AB_PT_asset_props_viewport
+from .ui.panel_asset_browser import AB_PT_asset_browser
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
+from .operators.op_report_message import report_message
 from .operators.op_download_previews import AB_OT_download_previews
-from .helpers.btypes import BMenu
-from .api import get_asset_lists
-from .settings import get_ab_settings
-from .constants import ASSET_LIB_VERSION, DIRS, FILES, PREVIEW_DOWNLOAD_TASK_NAME, __IS_DEV__
-from .ui.ui_helpers import draw_download_previews, draw_downloads_path
-from bpy.types import AddonPreferences, UILayout, Menu
-from bpy.props import StringProperty
+from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
 
 
 class ABAddonPreferences(AddonPreferences):
@@ -90,6 +107,55 @@ class ABAddonPreferences(AddonPreferences):
         set=lib_path_set,
     )
 
+    def viewport_panel_category_update(self, context):
+        panel = AB_PT_asset_props_viewport
+        try:
+            bpy.utils.unregister_class(panel)
+        except RuntimeError as e:
+            report_message(severity="ERROR", message=e)
+            return
+        if self.viewport_panel_category:
+            panel.bl_region_type = "UI"
+            panel.bl_category = self.viewport_panel_category
+        else:
+            panel.bl_region_type = "WINDOW"
+            panel.bl_category = ""
+        bpy.utils.register_class(panel)
+
+    viewport_panel_category: StringProperty(
+        name="3D Viewport panel category",
+        description="The tab in the N-Panel to put the asset settings panel in (to disable it, set this to nothing: '')",
+        default="Asset Bridge",
+        update=viewport_panel_category_update,
+    )
+
+    def browser_panel_location_update(self, context):
+        browser_panel = AB_PT_asset_browser
+        bpy.utils.unregister_class(browser_panel)
+        browser_panel.bl_region_type = "TOOLS" if self.browser_panel_location == "LEFT" else "TOOL_PROPS"
+        bpy.utils.register_class(browser_panel)
+
+    browser_panel_location: EnumProperty(
+        items=[
+            ("LEFT", "Left hand side", "Draw the panel on the left hand side, underneath the category list"),
+            ("RIGHT", "Right hand side", "Draw the panel on the right hand side, underneath the asset info panel"),
+        ],
+        name="Asset Browser Panel Location",
+        default="LEFT",
+        update=browser_panel_location_update,
+    )
+
+    auto_pack_files: BoolProperty(
+        name="Automatically pack files",
+        description="Automatically packed imported images into the current file,\
+            meaning that if the source file is moved, they will still be accessible in the blend file.\
+            This will result in larger files though.".replace("  ", ""),
+        default=False,
+    )
+
+    show_general: new_show_prop("general")
+    show_websites: new_show_prop("websites")
+
     def format_download_label(self, needed_previews):
         needed_previews = list(needed_previews)
         assets_str = str(needed_previews[:3])[1:-1].replace("'", "").replace("_", " ")
@@ -102,10 +168,6 @@ class ABAddonPreferences(AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-
-        if draw_downloads_path(layout, context):
-            # if the downloads path isn't valid
-            return
 
         ab = get_ab_settings(context)
         lists_obj = get_asset_lists()
@@ -122,7 +184,8 @@ class ABAddonPreferences(AddonPreferences):
 
             # Draw info showing the number of previews to download, only if it is not the first time download
             if new_assets_available and task_steps != len(all_assets) and not first_time:
-                needed_previews = set(a.idname for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
+                needed_previews = set(
+                    a.idname for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
                 layout.label(text=self.format_download_label(needed_previews))
 
             # Draw the button/progress bar
@@ -140,12 +203,29 @@ class ABAddonPreferences(AddonPreferences):
         )
         op.bl_description = "Check for new assets, and if they exist, download their previews and update the library."
 
-        # draw_download_previews(row, in_box=False, text="Check for new assets", reload=False)
-        row.operator(
-            "wm.url_open",
-            icon="FUND",
-            text="Support Polyhaven",
-        ).url = "https://www.patreon.com/polyhaven/overview"
+        # row.operator(
+        #     "wm.url_open",
+        #     icon="FUND",
+        #     text="Support Polyhaven",
+        # ).url = "https://www.patreon.com/polyhaven/overview"
+
+        grid = layout.grid_flow(row_major=True, even_columns=True)
+        section = draw_prefs_section(grid, "General", self, "show_general")
+        fac = .5
+        draw_inline_prop(section, self, "auto_pack_files", "Auto pack files", "", factor=fac)
+        draw_inline_prop(section, self, "viewport_panel_category", "Viewport panel location", "", factor=fac)
+        draw_inline_prop(section, self, "browser_panel_location", "Browser panel location", "", factor=fac)
+
+        asset_lists = get_asset_lists()
+        section = draw_prefs_section(grid, "Asset websites", self, "show_websites").column(align=True)
+        section.scale_y = section.scale_x = 1.5
+        for list in asset_lists.values():
+            row = section.row(align=True)
+            op = row.operator("wm.url_open", text=list.label, icon="URL")
+            op.url = list.url
+
+            op = row.operator("wm.url_open", text="", icon="FUND")
+            op.url = list.support_url
 
 
 @BMenu()
@@ -167,3 +247,16 @@ class AB_MT_download_previews_menu(Menu):
         op = layout.operator(AB_OT_open_folder.bl_idname, text="Open previews folder", icon="FILE_FOLDER")
         op.bl_description = "Open the folder containing the preview files"
         op.file_path = str(DIRS.previews)
+
+
+def register():
+
+    # The panel locations need to be updated so that they don't just use the default value the next time the
+    # addon is loaded.
+    # Do this in a timer to have access to the context.
+    def on_load():
+        prefs = get_prefs(bpy.context)
+        prefs.browser_panel_location_update(bpy.context)
+        prefs.viewport_panel_category_update(bpy.context)
+
+    bpy.app.timers.register(on_load)

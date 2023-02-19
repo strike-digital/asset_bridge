@@ -1,13 +1,12 @@
-from collections import OrderedDict
 import csv
 from threading import Thread
+from collections import OrderedDict
 
-from ...helpers.math import roundup
-from ..asset_utils import register_asset_list
-
-from .acg_asset_list_item import ACG_AssetListItem
-from ..asset_types import AssetList
 from ...vendor import requests
+from ..asset_types import AssetList
+from ..asset_utils import register_asset_list
+from ...helpers.math import roundup
+from .acg_asset_list_item import ACG_AssetListItem
 
 
 class ACG_AssetList(AssetList):
@@ -17,6 +16,7 @@ class ACG_AssetList(AssetList):
     assets: OrderedDict[str, ACG_AssetListItem] = OrderedDict()
 
     url = "https://ambientcg.com/"
+    support_url = "https://www.patreon.com/ambientCG"
     description = """A massive repository of CC0 assets created by Lennart Demmes""".replace("\n    ", "")
 
     @staticmethod
@@ -48,7 +48,16 @@ class ACG_AssetList(AssetList):
         initial_url = f"{base_url}?limit=5000"
         result = requests.get(initial_url).json()
         total = result["numberOfResults"]
+        # page_size = int(result["searchQuery"]["limit"])
         page_size = result["searchQuery"]["limit"]
+        print(page_size)
+        print(page_size)
+        print(page_size)
+        print(page_size)
+        print(page_size)
+        print(page_size)
+        print(page_size)
+        print(page_size)
 
         quality_data = {}
         threads: list[Thread] = []

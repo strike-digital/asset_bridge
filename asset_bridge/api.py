@@ -1,13 +1,13 @@
-from collections import OrderedDict
-import json
 import os
+import json
 from threading import Thread
-
-from .helpers.math import clamp
+from collections import OrderedDict
 
 from .constants import DIRS
-
+from .helpers.math import clamp
+from .helpers.process import format_traceback
 from .apis.asset_types import AssetList, AssetListItem
+from .operators.op_report_message import report_message
 
 
 class AllAssetLists():
@@ -32,7 +32,15 @@ class AllAssetLists():
         asset_list = self.asset_lists[name]
 
         # Get new data from the internet, from the get_data function
-        asset_list_data = data or asset_list.get_data()
+        try:
+            asset_list_data = data or asset_list.get_data()
+        except Exception as e:
+            report_message(
+                severity="ERROR",
+                message=f"Could not inizialize asset list '{name}' due to error:\n{format_traceback(e)}",
+                main_thread=True,
+            )
+            return None
 
         # Initialize
         if self.is_initialized(asset_list.name):

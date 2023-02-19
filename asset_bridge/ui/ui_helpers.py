@@ -1,16 +1,42 @@
 from pathlib import Path
 
-from ..operators.op_initialize_asset_lists import AB_OT_initialize_asset_lists
+import blf
+import bpy
+from bpy.types import Node, Context, UILayout, NodeSocket
+
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
+from ..constants import PREVIEW_DOWNLOAD_TASK_NAME
 from ..helpers.prefs import get_prefs
 from ..helpers.library import is_lib_path_invalid
 from ..operators.op_cancel_task import AB_OT_cancel_task
 from ..operators.op_download_previews import AB_OT_download_previews
-from ..constants import PREVIEW_DOWNLOAD_TASK_NAME
-from bpy.types import Node, NodeSocket, UILayout, Context
-import bpy
-import blf
+from ..operators.op_initialize_asset_lists import AB_OT_initialize_asset_lists
+
+
+class DummyLayout():
+    """An immitator of the blender UILayout class, used so that the draw function can be run as a poll function"""
+
+    def row(*args, **kwargs):
+        return DummyLayout()
+
+    def box(*args, **kwargs):
+        return DummyLayout()
+
+    def column(*args, **kwargs):
+        return DummyLayout()
+
+    def split(*args, **kwargs):
+        return DummyLayout()
+
+    def label(*args, **kwargs):
+        return DummyLayout()
+
+    def prop(*args, **kwargs):
+        return DummyLayout()
+
+    def menu(*args, **kwargs):
+        return DummyLayout()
 
 
 def dpifac() -> float:
@@ -54,6 +80,57 @@ def wrap_text(context: Context, text: str, layout: UILayout, centered: bool = Fa
     return return_text
 
 
+def draw_prefs_section(layout: UILayout,
+                       title: str,
+                       show_data=None,
+                       show_prop: str = "",
+                       index_prop: str = "") -> UILayout:
+    """Draw a box with a title, and return it"""
+    main_col = layout.column(align=True)
+
+    box = main_col.box()
+    col = box.column(align=True)
+    col.scale_y = 0.85
+    row = col.row(align=True)
+
+    is_showing = True
+    if show_data:
+        if index_prop:
+            index = getattr(show_data, index_prop)
+            setattr(show_data, index_prop, index + 1)
+            is_showing = getattr(show_data, show_prop)[index]
+        else:
+            index = -1
+            is_showing = getattr(show_data, show_prop)
+        sub = row.row(align=True)
+        sub.prop(
+            show_data,
+            show_prop,
+            index=index,
+            text="",
+            icon="TRIA_DOWN" if is_showing else "TRIA_RIGHT",
+            emboss=False,
+        )
+        sub.scale_x = 1.2
+
+    sub = row.row(align=True)
+    sub.active = is_showing
+    sub.label(text=title)
+    sub.alignment = "CENTER"
+
+    if show_data:
+        # Use two separators to avoid making the box taller
+        sub.separator(factor=3)
+        sub.separator(factor=2)
+
+    if not is_showing:
+        return DummyLayout()
+
+    box = main_col.box()
+    col = box.column()
+    return col
+
+
 def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool = True):
     """Draw the button and interface for downloading the asset previews"""
     if in_box:
@@ -84,7 +161,6 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
             op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or "Download previews")
             op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes\
                 depending on internet access."
-
             op.reload = reload
 
     return layout

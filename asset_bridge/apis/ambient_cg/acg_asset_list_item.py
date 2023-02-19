@@ -1,10 +1,19 @@
-import inspect
 import re
-from ...helpers.library import human_readable_file_size
-from bpy.types import Material, Object, World
-from ..asset_utils import HDRI, MATERIAL, MODEL, dimensions_to_string, download_file
+import inspect
+
+from bpy.types import World, Object, Material
+
 from .acg_asset import ACG_Asset
-from ..asset_types import AssetListItem, AssetMetadataItem as Metadata
+from ..asset_types import AssetListItem
+from ..asset_types import AssetMetadataItem as Metadata
+from ..asset_utils import (
+    HDRI,
+    MODEL,
+    MATERIAL,
+    download_file,
+    dimensions_to_string
+)
+from ...helpers.library import human_readable_file_size
 
 
 class ACG_AssetListItem(AssetListItem):

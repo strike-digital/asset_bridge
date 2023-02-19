@@ -13,6 +13,7 @@ from ..api import asset_lists
 from ..vendor import requests
 from ..constants import DIRS, FILES, NODES, NODE_GROUPS
 from .asset_types import AssetList
+from ..helpers.prefs import get_prefs
 from ..ui.ui_helpers import dpifac
 
 HDRI = "hdri"
@@ -41,7 +42,9 @@ def register_asset_list(new_list: Type[AssetList]):
             # no cached data found, wait for user to initialize the asset list.
             return
 
-        asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
+        asset_list = asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
+        if asset_list is None:
+            return {"CANCELLED"}
         # TODO: remove this for the release
         print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
 
@@ -90,14 +93,14 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
     if progress_file.exists():
         os.remove(progress_file)
 
-    # with open(download_dir, 'wb') as f:
-    #     shutil.copyfileobj(result.raw, f)
     return download_file
 
 
 def load_image(image_file, link_method, name=""):
     """Load an image file according to the given link_method."""
     image = bpy.data.images.load(str(image_file), check_existing=link_method in {"LINK", "APPEND_REUSE"})
+    if get_prefs(bpy.context).auto_pack_files:
+        image.pack()
     if name:
         image.name = name
     return image
