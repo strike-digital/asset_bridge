@@ -1,4 +1,10 @@
 
+# Try beta 2.0 now
+The 2.0 version features a full rewrite of the addon and brings support for the asset browser, UI widgets, and support for assets from [abientcg.com](https://ambientcg.com/), bringing the total number of available assets to >2,700
+
+try it out here: https://github.com/strike-digital/asset_bridge/releases/tag/2.0.0
+<br>
+<hr> 
 <!-- <img src="images/asset_bridge_logo.png" width=150> -->
 <!-- width=150 -->
 <img src="images/asset_bridge_logo2.png"
@@ -7,6 +13,7 @@ style="display: block;
     margin-right: auto;
     width: 50%;">
 <!-- <br> -->
+
 # Download free assets in a few clicks
 Asset bridge is a blender addon to make downloading free assets from online sites easy. With it you can simply select the asset you want to import and click the "Download" button for it to be automatically downloaded and imported into your scene.
 

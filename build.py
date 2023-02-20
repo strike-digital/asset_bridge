@@ -53,7 +53,9 @@ def main():
     path = Path(__file__).parent
     files = [Path(f.decode("utf8")) for f in subprocess.check_output("git ls-files", shell=True).splitlines()]
     files = [f for f in files if "asset_bridge\\" in str(f)]
-    files += [(Path(__file__).parent / "asset_bridge" / "previews").relative_to(path)]
+    previews_dir = Path(__file__).parent / "asset_bridge" / "previews"
+    files += [(previews_dir).relative_to(path)]
+    # files += [f.relative_to(path) for f in previews_dir.iterdir()]
 
     # version
     if args.version:
@@ -75,7 +77,8 @@ def main():
 
     with ZipFile(out_path, 'w') as z:
         for file in files:
-            z.write(file, arcname=str(file).replace("asset_bridge", f"asset_bridge_{file_version}"))
+            z.write(file, arcname=str(file).replace("asset_bridge", "asset_bridge"))
+            # z.write(file, arcname=str(file).replace("asset_bridge", f"asset_bridge_{file_version}"))
     update_constants_file(constants_file, True)
 
     webbrowser.open(out_path.parent)
