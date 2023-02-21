@@ -175,8 +175,6 @@ def import_hdri(image_file, name, link_method="APPEND_REUSE"):
     env_node = nodes.new("ShaderNodeTexEnvironment")
     env_node.image = image
     links.new(coords_node.outputs[0], env_node.inputs[0])
-    # links.new(env_node.outputs[0], background_node.inputs[0])
-    # links.new(background_node.outputs[0], output_node.inputs[0])
 
     color_node = nodes.new("ShaderNodeGroup")
     color_node_group = get_node_group(FILES.resources_blend, NODE_GROUPS.hdri_color)

@@ -5,10 +5,11 @@ from typing import Callable
 from threading import Thread
 
 import bpy
-from bpy.types import ID, Context, Material, Collection, MaterialSlot
+from bpy.types import ID, World, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
+from .general import copy_bl_settings
 from .library import get_dir_size
 from .process import format_traceback
 from ..settings import get_ab_settings, get_asset_settings
@@ -145,6 +146,8 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
     This modifies blend data, so it needs to be run in the main thread."""
     asset_list_item = asset.list_item
     imported = None
+    if asset.list_item.type == HDRI:
+        from_world = context.scene.world
     try:
         imported = asset.import_asset(context)
         uuid = uuid1()
@@ -164,6 +167,10 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
                 material_slot.material = imported
                 obj = material_slot.id_data
                 obj.active_material_index = list(obj.material_slots).index(material_slot)
+        elif isinstance(imported, World):
+            if from_world:
+                copy_bl_settings(from_world.cycles, imported.cycles)
+                copy_bl_settings(from_world.cycles_visibility, imported.cycles_visibility)
         elif isinstance(imported, Collection):
             for i, obj in enumerate(imported.objects):
                 update_settings(obj, index=i)

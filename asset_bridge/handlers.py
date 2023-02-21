@@ -59,7 +59,6 @@ def depsgraph_update_pre_handler(scene: Scene, _):
             reload=reload,
             at_mouse=True,
         )
-        print(prev_world)
         scene.world = prev_world
 
     prev_world = scene.world or prev_world
