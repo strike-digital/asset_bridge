@@ -281,7 +281,10 @@ def import_material(
             links.new(diff_node.outputs[0], bsdf_node.inputs["Emission"])
 
     if opacity_file := texture_files.get("opacity"):
-        new_image(opacity_file, "Alpha", "Opacity", non_color=True)
+        opacity_node = new_image(opacity_file, "Alpha", "Opacity", non_color=True)
+        opacity_node.name = NODES.opacity
+        mat.blend_method = "CLIP"
+        mat.shadow_method = "CLIP"
 
     if nor_file := texture_files.get("normal"):
         nor_node = nodes.new("ShaderNodeNormalMap")

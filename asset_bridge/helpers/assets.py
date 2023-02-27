@@ -9,7 +9,7 @@ from bpy.types import ID, World, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
-from .general import copy_bl_settings
+from .general import copy_bl_properties
 from .library import get_dir_size
 from .process import format_traceback
 from ..settings import get_ab_settings, get_asset_settings
@@ -169,8 +169,8 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
                 obj.active_material_index = list(obj.material_slots).index(material_slot)
         elif isinstance(imported, World):
             if from_world:
-                copy_bl_settings(from_world.cycles, imported.cycles)
-                copy_bl_settings(from_world.cycles_visibility, imported.cycles_visibility)
+                copy_bl_properties(from_world.cycles, imported.cycles)
+                copy_bl_properties(from_world.cycles_visibility, imported.cycles_visibility)
         elif isinstance(imported, Collection):
             for i, obj in enumerate(imported.objects):
                 update_settings(obj, index=i)

@@ -1,7 +1,7 @@
 from bpy.types import Property, PropertyGroup
 
 
-def copy_bl_settings(from_data_block: PropertyGroup, to_data_block: PropertyGroup, print_errors=False):
+def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGroup, print_errors=False):
     """Copy all of the blender properties from one property group to another."""
     for prop in from_data_block.bl_rna.properties:
         if isinstance(prop, Property):

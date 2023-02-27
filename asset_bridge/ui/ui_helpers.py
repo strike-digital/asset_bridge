@@ -243,7 +243,14 @@ def draw_inline_prop(layout: UILayout, data, prop_name: str, col_label: str, pro
     return col
 
 
-def draw_node_group_inputs(node: Node, layout: UILayout, context: Context, in_boxes: bool = False):
+def draw_node_group_inputs(
+    node: Node,
+    layout: UILayout,
+    context: Context,
+    in_boxes: bool = False,
+    spacing: float = 1.,
+    factor: float = .3,
+):
     """Draw the inputs of a node group, according to specific naming conventions"""
     col = layout.column(align=True)
     i = 0
@@ -257,8 +264,8 @@ def draw_node_group_inputs(node: Node, layout: UILayout, context: Context, in_bo
                 new_group = new_group + ":"
             box = col.box().column(align=True) if in_boxes else col.column(align=True)
             if i > 0:
-                box.separator()
-            split = box.split(factor=.3)
+                box.separator(factor=spacing)
+            split = box.split(factor=factor)
             row = split.row(align=True)
             row.label(text=new_group)
             box = split.column(align=True)

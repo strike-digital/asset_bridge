@@ -38,8 +38,13 @@ class AssetPropsPanel(Panel):
             is_dummy = True
         obj: Object = context.object
         show_props = get_ab_settings(context).ui_show
+        FACTOR = .35
+        PROP_SPACING = .4
 
         def draw_hdri_props():
+            """
+            DRAW HDRI SETTINGS
+            """
             world = context.scene.world
             if not world:
                 return False
@@ -77,16 +82,19 @@ class AssetPropsPanel(Panel):
                 draw_section_header(col, "Color", show_props, "hdri_color")
                 if show_props.hdri_color:
                     box = col.box().column(align=True)
-                    draw_node_group_inputs(node, box, context, False)
+                    draw_node_group_inputs(node, box, context, False, spacing=PROP_SPACING, factor=FACTOR)
 
             if node := nodes["coords"]:
                 col = column.column(align=True)
                 draw_section_header(col, "Warping", show_props, "hdri_coords")
                 if show_props.hdri_coords:
                     box = col.box().column(align=True)
-                    draw_node_group_inputs(node, box, context, False)
+                    draw_node_group_inputs(node, box, context, False, spacing=PROP_SPACING, factor=FACTOR)
 
         def draw_material_props():
+            """
+            DRAW MATERIAL SETTINGS
+            """
             if not obj or len(obj.material_slots) == 0:
                 return False
 
@@ -100,6 +108,7 @@ class AssetPropsPanel(Panel):
                 nodes["displacement_scale"] = all_nodes.get(NODES.displacement_strength)
                 nodes["hsv"] = all_nodes.get(NODES.hsv)
                 nodes["rough_gamma"] = all_nodes.get(NODES.rough_gamma)
+                nodes["opacity"] = all_nodes.get(NODES.opacity)
                 return nodes
 
             slot = obj.material_slots[obj.active_material_index]
@@ -135,6 +144,7 @@ class AssetPropsPanel(Panel):
             if is_dummy:
                 return True
 
+            # MATERIAL SLOTS
             if len(obj.material_slots) > 1:
                 column.template_list(
                     "MATERIAL_UL_matslots",
@@ -153,56 +163,66 @@ class AssetPropsPanel(Panel):
             if not mat or not any(nodes.values()):
                 return True
 
-            if any([nodes["normal"], nodes["scale"]]):
+            # GENERAL
+            if any([nodes["normal"], nodes["scale"], nodes["opacity"]]):
                 col = column.column(align=True)
                 draw_section_header(col, "General", show_props, "mat_general")
                 if show_props.mat_general:
                     box = col.box().column(align=True)
+                    render_engine = context.scene.render.engine
+                    shading_type = context.space_data.shading.type
+                    if nodes["opacity"] and (render_engine == "BLENDER_EEVEE" or shading_type == "MATERIAL"):
+                        draw_inline_prop(box, mat, "blend_method", "Blend:", "", factor=FACTOR)
+                        draw_inline_prop(box, mat, "shadow_method", "Shadow", "", factor=FACTOR)
+                        box.separator(factor=PROP_SPACING)
                     if scale_node := nodes["scale"]:
                         socket = scale_node.outputs[0]
-                        draw_inline_prop(box, socket, "default_value", "Scale", "")
-                        box.separator()
+                        draw_inline_prop(box, socket, "default_value", "Scale", "Amount", factor=FACTOR)
+                        box.separator(factor=PROP_SPACING)
 
                     if nor_node := nodes["normal"]:
                         socket = nor_node.inputs["Strength"]
-                        draw_inline_prop(box, socket, "default_value", "Normal:", socket.name)
-                        box.separator()
+                        draw_inline_prop(box, socket, "default_value", "Normal:", socket.name, factor=FACTOR)
+                        box.separator(factor=PROP_SPACING)
 
                     if rough_gamma_node := nodes["rough_gamma"]:
                         socket = rough_gamma_node.inputs[1]
-                        draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount")
-                        box.separator()
+                        draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount", factor=FACTOR)
+                        box.separator(factor=PROP_SPACING)
 
+            # COLOR
             if hsv_node := nodes["hsv"]:
                 col = column.column(align=True)
                 draw_section_header(col, "Color", show_props, "mat_hsv")
                 if show_props.mat_hsv:
-                    box = draw_inline_column(col.box(), "HSV:")
+                    box = draw_inline_column(col.box(), "HSV:", factor=FACTOR)
                     for socket in hsv_node.inputs[:-2]:
                         box.prop(socket, "default_value", text=socket.name)
 
+            # MAPPING
             if mapping_node := nodes["mapping"]:
                 col = column.column(align=True)
                 draw_section_header(col, "Mapping", show_props, "mat_mapping")
                 if show_props.mat_mapping:
                     box = col.box().column(align=True)
-                    col = draw_inline_column(box, label="Location")
+                    col = draw_inline_column(box, label="Location", factor=FACTOR)
                     socket = mapping_node.inputs["Location"]
                     col.prop(socket, "default_value", text="X", index=0)
                     col.prop(socket, "default_value", text="Y", index=1)
-                    col.separator()
+                    col.separator(factor=PROP_SPACING)
 
-                    col = draw_inline_column(box, label="Rotation")
-                    socket = mapping_node.inputs["Rotation"]
-                    col.prop(socket, "default_value", text="Z", index=2)
-                    col.separator()
-
-                    col = draw_inline_column(box, label="Scale")
+                    col = draw_inline_column(box, label="Scale", factor=FACTOR)
                     socket = mapping_node.inputs["Scale"]
                     col.prop(socket, "default_value", text="X", index=0)
                     col.prop(socket, "default_value", text="Y", index=1)
-                    col.separator()
+                    col.separator(factor=PROP_SPACING)
 
+                    col = draw_inline_column(box, label="Rotation", factor=FACTOR)
+                    socket = mapping_node.inputs["Rotation"]
+                    col.prop(socket, "default_value", text="Z", index=2)
+                    col.separator(factor=PROP_SPACING)
+
+            # TILING
             if tiling_node := nodes["tiling"]:
                 col = column.column(align=True)
                 draw_section_header(col, "Anti-Tiling", show_props, "mat_tiling")
@@ -220,8 +240,14 @@ class AssetPropsPanel(Panel):
                         box.separator()
                         box = box.column(align=True)
 
-                        draw_node_group_inputs(tiling_node, box, context, in_boxes=False)
+                        draw_node_group_inputs(tiling_node,
+                                               box,
+                                               context,
+                                               in_boxes=False,
+                                               spacing=PROP_SPACING,
+                                               factor=FACTOR)
 
+            # DISPLACEMENT
             if (disp_node := nodes["displacement"]) and context.scene.render.engine == "CYCLES":
                 col = column.column(align=True)
                 draw_section_header(col, "Displacement", show_props, "mat_displacement")
@@ -237,11 +263,21 @@ class AssetPropsPanel(Panel):
                     if settings.enable_displacement:
                         box.separator()
                         box = box.column(align=True)
-                        draw_inline_prop(box, disp_node.inputs["Midlevel"], "default_value", "Midlevel", "")
+                        draw_inline_prop(box,
+                                         disp_node.inputs["Midlevel"],
+                                         "default_value",
+                                         "Midlevel",
+                                         "",
+                                         factor=FACTOR)
                         if disp_scale_node := nodes["displacement_scale"]:
-                            draw_inline_prop(box, disp_scale_node.inputs[0], "default_value", "Scale", "")
+                            draw_inline_prop(box,
+                                             disp_scale_node.inputs[0],
+                                             "default_value",
+                                             "Scale",
+                                             "",
+                                             factor=FACTOR)
 
-                        # draw_inline_prop(box, disp_node.inputs["Scale"], "default_value", "Scale", "")
+                        # draw_inline_prop(box, disp_node.inputs["Scale"], "default_value", "Scale", "", factor=FACTOR)
 
             return any(nodes.values())
 
