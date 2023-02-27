@@ -20,6 +20,5 @@ class AB_OT_cancel_task(Operator):
         if not task.progress:
             raise ValueError(f"Task '{self.name}' has no progress")
 
-        task.cancel()
-        task.finish()
+        task.cancel(remove=False)
         return {"FINISHED"}

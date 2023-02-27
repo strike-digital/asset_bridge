@@ -13,13 +13,16 @@ from .constants import (
     FILES,
     __IS_DEV__,
     ASSET_LIB_VERSION,
+    CHECK_NEW_ASSETS_TASK_NAME,
     PREVIEW_DOWNLOAD_TASK_NAME
 )
 from .helpers.prefs import get_prefs
 from .ui.ui_helpers import (
     wrap_text,
     draw_inline_prop,
+    draw_inline_column,
     draw_prefs_section,
+    draw_task_progress,
     draw_download_previews
 )
 from .helpers.btypes import BMenu
@@ -158,6 +161,7 @@ class ABAddonPreferences(AddonPreferences):
 
     show_general: new_show_prop("general")
     show_websites: new_show_prop("websites")
+    show_tasks: new_show_prop("tasks")
 
     def format_download_label(self, needed_previews):
         needed_previews = list(needed_previews)
@@ -211,13 +215,17 @@ class ABAddonPreferences(AddonPreferences):
         row = layout.box().row(align=True)
         row.scale_y = 1.5
 
-        op = row.operator_menu_hold(
-            AB_OT_check_for_new_assets.bl_idname,
-            icon="IMPORT",
-            text="Check for new assets",
-            menu=AB_MT_download_previews_menu.__name__,
-        )
-        op.bl_description = "Check for new assets, and if they exist, download their previews and update the library."
+        if (task := ab.tasks.get(CHECK_NEW_ASSETS_TASK_NAME)) and task.progress:
+            draw_task_progress(row, context, CHECK_NEW_ASSETS_TASK_NAME)
+            # row.prop(task, )
+        else:
+            op = row.operator_menu_hold(
+                AB_OT_check_for_new_assets.bl_idname,
+                icon="IMPORT",
+                text="Check for new assets",
+                menu=AB_MT_download_previews_menu.__name__,
+            )
+            op.bl_description = "Check for new assets, and if they exist, download their previews and update the library."
 
         # row.operator(
         #     "wm.url_open",
@@ -235,13 +243,25 @@ class ABAddonPreferences(AddonPreferences):
         asset_lists = get_asset_lists()
         section = draw_prefs_section(grid, "Asset websites", self, "show_websites").column(align=True)
         section.scale_y = section.scale_x = 1.5
-        for list in asset_lists.values():
+        for asset_list in asset_lists.values():
             row = section.row(align=True)
-            op = row.operator("wm.url_open", text=list.label, icon="URL")
-            op.url = list.url
+            op = row.operator("wm.url_open", text=asset_list.label, icon="URL")
+            op.url = asset_list.url
 
             op = row.operator("wm.url_open", text="", icon="FUND")
-            op.url = list.support_url
+            op.url = asset_list.support_url
+
+        if __IS_DEV__ and self.show_tasks and len(ab.tasks):
+            section = draw_prefs_section(grid, "Tasks", self, "show_tasks")
+            section.scale_y = .7
+            for task in ab.tasks:
+                col = draw_inline_column(section, task.name, factor=.5)
+                # col.scale_y =
+                col.label(text=f"Progress obj: {task.progress}")
+                col.label(text=f"Finished: {task.finished}")
+                col.label(text=f"Cancelled: {task.cancelled}")
+                section.separator()
+                # section.label()
 
 
 @BMenu()

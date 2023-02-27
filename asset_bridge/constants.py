@@ -10,6 +10,7 @@ __IS_DEV__ = True
 ASSET_LIB_VERSION = (1, 0, 0)
 ASSET_LIB_NAME = "Asset Bridge"
 PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"
+CHECK_NEW_ASSETS_TASK_NAME = "check_new_assets"
 
 
 # I'm now realising that these should probably be enums, but I don't care enough to change it.

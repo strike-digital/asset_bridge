@@ -50,7 +50,14 @@ class AssetTask(PropertyGroup):
 
     start_time: FloatProperty(default=0)
 
-    cancelled: BoolProperty()
+    def set_cancelled(self, value):
+        self["_cancelled"] = value
+
+    # cancelled: property(lambda self: self.progress.cancelled)
+    cancelled: BoolProperty(
+        get=lambda self: self.progress.cancelled if self.progress else self.get("_cancelled", False),
+        set=set_cancelled,
+    )
 
     finished: BoolProperty()
 
@@ -75,8 +82,14 @@ class AssetTask(PropertyGroup):
         if remove:
             self.remove()
 
-    def new_progress(self, max_steps):
+    def new_progress(self, max_steps: int) -> Progress:
         self.progress = Progress(max_steps, self, "progress_prop")
+        return self.progress
+
+    def update_progress(self, value: int, message: str = "") -> Progress:
+        self.progress.progress = value
+        if message:
+            self.progress.message = message
         return self.progress
 
     def finish(self, remove: bool = True):

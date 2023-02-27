@@ -38,6 +38,9 @@ class DummyLayout():
     def menu(*args, **kwargs):
         return DummyLayout()
 
+    def separator(*args, **kwargs):
+        return DummyLayout()
+
 
 def dpifac() -> float:
     """Taken from Node Wrangler"""
@@ -174,6 +177,21 @@ def draw_section_header(
     return row
 
 
+def draw_task_progress(layout: UILayout, context: Context, task_name: str, text="", draw_cancel=True):
+    """Draw a progress bar for a task that draws either the progress message or the given text,
+    and a cancel button, if that is enabled"""
+
+    ab = get_ab_settings(context)
+    row = layout.row(align=True)
+    task = ab.tasks[task_name]
+    row.prop(task, "ui_progress_prop", text=text or task.progress.message)
+    if draw_cancel:
+        row.scale_x = 1.25
+        op = row.operator(AB_OT_cancel_task.bl_idname, text="", icon="X")
+        op.name = task_name
+        op.bl_description = "Cancel task"
+
+
 def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool = True):
     """Draw the button and interface for downloading the asset previews"""
     if in_box:
@@ -184,13 +202,14 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
     ab = get_ab_settings(bpy.context)
 
     if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
-        row = layout.row(align=True)
-        task = ab.tasks[PREVIEW_DOWNLOAD_TASK_NAME]
-        row.prop(task, "ui_progress_prop", text=task.progress.message)
-        row.scale_x = 1.25
-        op = row.operator(AB_OT_cancel_task.bl_idname, text="", icon="X")
-        op.name = PREVIEW_DOWNLOAD_TASK_NAME
-        op.bl_description = "Cancel downloading previews"
+        draw_task_progress(layout, bpy.context, PREVIEW_DOWNLOAD_TASK_NAME)
+        # row = layout.row(align=True)
+        # task = ab.tasks[PREVIEW_DOWNLOAD_TASK_NAME]
+        # row.prop(task, "ui_progress_prop", text=task.progress.message)
+        # row.scale_x = 1.25
+        # op = row.operator(AB_OT_cancel_task.bl_idname, text="", icon="X")
+        # op.name = PREVIEW_DOWNLOAD_TASK_NAME
+        # op.bl_description = "Cancel downloading previews"
     else:
         # If not all of the asset lists have been downloaded
         if not lists_obj.all_initialized:

@@ -1,21 +1,21 @@
-from itertools import islice
 import os
-from random import choice
-from threading import Thread
 from time import perf_counter
-from ..helpers.main_thread import run_in_main_thread
+from random import choice
+from itertools import islice
+from threading import Thread
 
 import bpy
+from bpy.props import IntProperty, BoolProperty
+from bpy.types import Operator
 
-from .op_report_message import report_message
-
-from ..apis.asset_types import AssetListItem
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME
 from ..helpers.btypes import BOperator
-from bpy.types import Operator
-from bpy.props import BoolProperty, IntProperty
+from ..helpers.general import check_internet
+from ..apis.asset_types import AssetListItem
+from .op_report_message import report_message
+from ..helpers.main_thread import run_in_main_thread
 
 
 @BOperator("asset_bridge")
@@ -31,6 +31,11 @@ class AB_OT_download_previews(Operator):
     )
 
     def execute(self, context):
+
+        if not check_internet():
+            report_message("Cannot download the asset previews as there is no internet connection", severity="ERROR")
+            return {"CANCELLED"}
+
         ab = get_ab_settings(context)
 
         assets = get_asset_lists().all_assets
@@ -61,7 +66,10 @@ class AB_OT_download_previews(Operator):
                 """Download a single preview and increment the progress"""
                 if progress.cancelled:
                     return
-                asset.download_preview()
+                try:
+                    asset.download_preview()
+                except ConnectionError as e:
+                    report_message(severity="ERROR", message=f"Could not download the preview for {asset.idname}:\n{e}")
                 progress.increment()
                 names.remove(asset.idname)
 
@@ -82,6 +90,7 @@ class AB_OT_download_previews(Operator):
             # but in my testing it's just as fast as downloading the previews in chunks...
             # I don't know if that also works for lower end hardware though.
             # TODO: Test on the laptop.
+            target_threads = 300
             threads: list[Thread] = []
             for asset in assets.values():
                 thread = Thread(target=download_preview, args=[asset])

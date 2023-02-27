@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 from .constants import DIRS
 from .helpers.math import clamp
+from .helpers.general import check_internet
 from .helpers.process import format_traceback
 from .apis.asset_types import AssetList, AssetListItem
 from .operators.op_report_message import report_message
@@ -30,6 +31,24 @@ class AllAssetLists():
     def initialize_asset_list(self, name, data=None):
         """Takes an asset list and initialises it with new data from the internet"""
         asset_list = self.asset_lists[name]
+
+        is_internet = check_internet()
+        print(is_internet)
+        print(is_internet)
+        print(is_internet)
+        print(is_internet)
+        print(is_internet)
+        print(is_internet)
+        print(is_internet)
+        print(is_internet)
+        print(is_internet)
+        if not data and not check_internet():
+            report_message(
+                severity="ERROR",
+                message="Could not download asset list as there is no internet connection",
+                main_thread=True,
+            )
+            return None
 
         # Get new data from the internet, from the get_data function
         try:
@@ -75,8 +94,10 @@ class AllAssetLists():
 
         return asset_list
 
-    def initialize_all(self):
-        """Initialize all current asset lists"""
+    def initialize_all(self, blocking: bool = True) -> list[Thread]:
+        """Initialize all current asset lists
+        If blocking is True, wait for initialization to finish,
+        otherwise return the threads that are initializing each asset list"""
 
         # Initialize each one in a separate thread for performance.
         threads = []
@@ -84,10 +105,14 @@ class AllAssetLists():
         for asset_list in asset_lists:
             thread = Thread(target=self.initialize_asset_list, args=[asset_list])
             threads.append(thread)
+            thread.name = asset_list
             thread.start()
 
-        for thread in threads:
-            thread.join()
+        if blocking:
+            for thread in threads:
+                thread.join()
+        else:
+            return threads
 
     def new_assets_available(self):
         """Return the number of assets that still need to be downloaded"""
