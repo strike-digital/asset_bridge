@@ -32,7 +32,7 @@ def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGr
 #         return False
 
 
-def check_internet() -> bool:
+def check_internet(timeout=.3) -> bool:
     """
     Check whether the user has an active internet connection
     taken from: https://stackoverflow.com/a/29854274/18864758
@@ -40,7 +40,7 @@ def check_internet() -> bool:
     Host: 8.8.8.8 (google-public-dns-a.google.com)
     Service: domain (DNS/TCP)
     """
-    conn = http.client.HTTPSConnection("8.8.8.8", timeout=1)
+    conn = http.client.HTTPSConnection("8.8.8.8", timeout=timeout)
     try:
         conn.request("HEAD", "/")
         return True

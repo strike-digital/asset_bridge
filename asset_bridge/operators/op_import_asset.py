@@ -1,3 +1,4 @@
+from .op_report_message import report_message
 from bpy.props import (
     BoolProperty,
     EnumProperty,
@@ -66,9 +67,12 @@ class AB_OT_import_asset(Operator):
 
         # Find 3D coordinates of the point under the mouse cursor
         if self.at_mouse:
-            location = point_under_mouse(context, self.mouse_pos_region, self.mouse_pos_window)
-            if location is None:
-                # Couldn't find the location. The error is handled inside the function
+            try:
+                location = point_under_mouse(context, self.mouse_pos_region, self.mouse_pos_window)
+            except ValueError:
+                message = "Cannot import assets when the preferences window is active. \
+                    Blender is weird like that :(".replace("  ", "")
+                report_message("ERROR", message)
                 return {"CANCELLED"}
         else:
             location = V(self.location)

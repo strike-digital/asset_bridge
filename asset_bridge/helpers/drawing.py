@@ -1,10 +1,7 @@
 import bpy
 from bpy.types import Region, Context
 from mathutils import Vector as V
-from bpy_extras.view3d_utils import (
-    region_2d_to_origin_3d,
-    region_2d_to_vector_3d
-)
+from bpy_extras.view3d_utils import (region_2d_to_origin_3d, region_2d_to_vector_3d)
 
 from ..operators.op_report_message import report_message
 
@@ -27,17 +24,17 @@ def get_active_area(mouse_pos):
 
 def get_active_window_region(mouse_pos, fallback_area_type=""):
     """Get the window region of the area under the mouse position,
-    The fallback area type is used if the region cannot be found"""
+    The fallback area with the largest size is used if the region cannot be found"""
     area = get_active_area(mouse_pos)
     if not area and fallback_area_type:
+        areas = set()
         for window in bpy.context.window_manager.windows:
             for area in window.screen.areas:
                 if area.type == fallback_area_type:
-                    area = area
-                    break
-            else:
-                continue
-            break
+                    areas.add(area)
+
+        if areas:
+            area = max(areas, key=lambda area: area.width + area.height)
 
     if area:
         for region in area.regions:
@@ -63,11 +60,10 @@ def point_under_mouse(context: Context, mouse_pos_region: V, mouse_pos_window: V
             region = get_active_window_region(mouse_pos_window, fallback_area_type="VIEW_3D")
             mouse_pos_region = mouse_pos_window - V((region.x, region.y))
             # TODO: Try and fix this
-            if not region or any(c < 0 for c in mouse_pos_region):
-                message = "Cannot import assets when the preferences window is active. \
-                    Blender is weird like that :("                                                  .replace("  ", "")
-                report_message("ERROR", message)
-                return None
+            if not region:
+                raise ValueError("Cannot find the active region")
+            if any(c < 0 for c in mouse_pos_region):
+                mouse_pos_region = V((region.width / 2, region.height / 2))
 
     depsgraph = context.evaluated_depsgraph_get()
     r3d = region.data

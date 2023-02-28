@@ -69,7 +69,7 @@ class Dirs():
 
 class Files():
 
-    script_create_dummy_assets = Dirs.scripts / "create_dummy_assets.py"
+    script_create_dummy_assets = Dirs.scripts / "sc_create_dummy_assets.py"
     resources_blend = Dirs.resources / "resources.blend"
     prefs = Dirs.addon / "prefs.json"
 

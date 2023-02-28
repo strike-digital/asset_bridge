@@ -31,6 +31,6 @@ class AB_OT_report_message(Operator):
 
 def report_message(severity="INFO", message="Message!", main_thread=False):
     if main_thread:
-        run_in_main_thread(report_message, (message, severity, False))
+        run_in_main_thread(report_message, (severity, message, False))
     else:
-        bpy.ops.asset_bridge.report_message("INVOKE_DEFAULT", message=message, severity=severity)
+        bpy.ops.asset_bridge.report_message("INVOKE_DEFAULT", severity=severity, message=message)

@@ -102,7 +102,7 @@ class PH_Asset(Asset):
             blend_file = [f for f in self.get_files() if f.suffix == ".blend"][0]
             print(self.idname)
             process = new_blender_process(
-                script=Path(__file__).parent / "scripts" / "ph_setup_asset.py",
+                script=Path(__file__).parent / "scripts" / "ph_sc_setup_asset.py",
                 script_args=("--name", self.name, "--import_name", self.import_name),
                 file=blend_file,
                 use_stdout=True,

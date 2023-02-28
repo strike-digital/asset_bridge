@@ -50,7 +50,7 @@ class ACG_Asset(Asset):
         # Set up a blend file for this asset
         if self.type == MODEL:
             process = new_blender_process(
-                script=Path(__file__).parent / "scripts" / "acg_setup_asset.py",
+                script=Path(__file__).parent / "scripts" / "acg_sc_setup_asset.py",
                 script_args=("--name", self.import_name, "--output_file", str(self.blend_file)),
                 use_stdout=False,
             )

@@ -9,7 +9,7 @@ from bpy.types import ID, World, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
-from .general import copy_bl_properties
+from .general import check_internet, copy_bl_properties
 from .library import get_dir_size
 from .process import format_traceback
 from ..settings import get_ab_settings, get_asset_settings
@@ -39,6 +39,12 @@ def download_asset(
     Returns:
         str: The name of the download task.
     """
+
+    if not check_internet():
+        report_message("ERROR", "Can't donwnload asset, no internet connection")
+        task = ab.new_task()
+        task.cancel(remove=False)
+        return task.name
 
     ab = get_ab_settings(context)
     all_assets = get_asset_lists().all_assets
