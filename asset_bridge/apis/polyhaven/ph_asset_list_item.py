@@ -27,8 +27,8 @@ class PH_AssetListItem(AssetListItem):
         self.authors = list(data["authors"].keys()) or [""]
 
         self.categories = data["categories"]
-        names = ["HDRIs", "Materials", "Models"]
-        self.catalog_path = f"{names[data['type']]}/{self.categories[0]}"
+        # names = ["HDRIs", "Materials", "Models"]
+        # self.catalog_path = f"{names[data['type']]}/{self.categories[0]}"
 
         self.tags = data["tags"] + data["categories"]
         self.page_url = f"https://polyhaven.com/a/{name}"

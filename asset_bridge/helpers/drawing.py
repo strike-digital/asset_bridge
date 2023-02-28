@@ -1,9 +1,10 @@
 import bpy
 from bpy.types import Region, Context
 from mathutils import Vector as V
-from bpy_extras.view3d_utils import (region_2d_to_origin_3d, region_2d_to_vector_3d)
-
-from ..operators.op_report_message import report_message
+from bpy_extras.view3d_utils import (
+    region_2d_to_origin_3d,
+    region_2d_to_vector_3d
+)
 
 
 def mouse_in_window_bounds(mouse_pos, window):

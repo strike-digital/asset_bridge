@@ -263,16 +263,15 @@ class ABAddonPreferences(AddonPreferences):
             op.url = asset_list.support_url
 
         if __IS_DEV__ and self.show_tasks and len(ab.tasks):
+            # Debug section showing the currently running tasks
             section = draw_prefs_section(grid, "Tasks", self, "show_tasks")
             section.scale_y = .7
             for task in ab.tasks:
                 col = draw_inline_column(section, task.name, factor=.5)
-                # col.scale_y =
-                col.label(text=f"Progress obj: {task.progress}")
+                col.label(text=f"Progress obj: {'Yes' if task.progress else 'No'}")
                 col.label(text=f"Finished: {task.finished}")
                 col.label(text=f"Cancelled: {task.cancelled}")
                 section.separator()
-                # section.label()
 
 
 @BMenu()

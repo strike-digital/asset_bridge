@@ -214,14 +214,17 @@ def download_and_import_asset(
     task_name = download_asset(context, asset, draw, location)
 
     def check_download():
-        if ab.tasks[task_name].cancelled:
+        task = ab.tasks[task_name]
+        if task.cancelled:
             if on_cancel:
                 on_cancel()
+            task.finish()
             return
-        elif ab.tasks[task_name].finished:
+        elif task.finished:
             imported = import_asset(context, asset, location, material_slot)
             if on_completion:
                 on_completion(imported)
+            task.finish()
             return
         return .1
 

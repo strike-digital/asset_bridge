@@ -39,7 +39,8 @@ class ACG_AssetListItem(AssetListItem):
                 break
         else:
             category = self.tags[-1]
-        self.catalog_path = f"{names[data_type]}/{category}"
+        self.categories = [t for t in self.tags if t not in {"hdri", "3d"}]
+        # self.catalog_path = f"{names[data_type]}/{category}"
 
         # Modify the label
         label = name

@@ -163,6 +163,7 @@ class AssetList(ABC):
     url: str
     support_url: str
     description: str
+    categories: list[str]
 
     def __getitem__(self, key) -> AssetListItem:
         return self.assets[key]

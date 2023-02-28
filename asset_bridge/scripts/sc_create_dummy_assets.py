@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import sys
 from time import perf_counter
+from typing import Dict
 import bpy
 import addon_utils
 from bpy.types import Material, Object, World
@@ -12,6 +13,7 @@ from asset_bridge.api import get_asset_lists
 from asset_bridge.constants import DIRS
 from asset_bridge.settings import get_asset_settings
 from asset_bridge.helpers.catalog import AssetCatalogFile
+from asset_bridge.apis.asset_utils import HDRI, MATERIAL, MODEL
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
 These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
 
@@ -40,10 +42,45 @@ catalog.add_catalog(asset_list.label)
 
 paths = set()
 
-# Add the catalog paths
+# A dict the popularities of each asset category, separated by type
+all_categories: Dict[str, Dict[str, int]] = {}
+
+# Find the popularity of each asset category, separated by type
 for asset_item in asset_list.values():
-    name = asset_item.catalog_path.split('/')[-1]
-    paths.add(f"{asset_list.label}/{asset_item.catalog_path}")
+    for category in asset_item.categories:
+        # Increment category popularity by 1
+        categories = all_categories.get(asset_item.type, {})
+        count = categories.get(category, 0)
+        categories[category] = count + 1
+        all_categories[asset_item.type] = categories
+
+MAX_CATALOG_DEPTH = 3  # The maximum number of child catalogs that can occur under the main type catalogs
+ui_names = {HDRI: "HDRIs", MATERIAL: "Materials", MODEL: "Models"}
+
+# Find the catalog path for each asset.
+# This works by ordering the assets' categories by popularity, and using that to constuct the path.
+# That way, general categories appear at the top of the tree, with many assets in them, and below that
+# You can narrow your search by selecting more catalogs.
+for asset_item in asset_list.values():
+    # Sort the categories by popularity
+    categories = all_categories[asset_item.type]
+    cats = sorted(asset_item.categories, key=lambda k: categories[k], reverse=True)[:MAX_CATALOG_DEPTH]
+
+    # Remove chains of catalogs that only have one asset in them
+    for i in range(len(cats) - 1):
+        if categories[cats[i]] <= 1:
+            cats = cats[:i + 1]
+            break
+
+    # Set the catlog path path
+    path = f"{asset_list.label}/{ui_names[asset_item.type]}/{'/'.join(cats)}"
+    asset_item._catalog_path = path
+    paths.add(path)
+
+# Add the catalog paths
+# for asset_item in asset_list.values():
+#     name = asset_item.catalog_path.split('/')[-1]
+#     paths.add(f"{asset_list.label}/{asset_item.catalog_path}")
 
 # Add the intermediate paths (so that the names don't have the asterisk next to them in the asset browser)
 intermediate_paths = set()
@@ -96,7 +133,8 @@ for i, asset_item in enumerate(asset_list.values()):
         bpy.ops.ed.lib_id_load_custom_preview(filepath=str(DIRS.previews / f"{asset_item.idname}.png"))
 
     # Set the catalog
-    asset.asset_data.catalog_id = catalog[asset_list.label + "/" + asset_item.catalog_path].uuid
+    # asset.asset_data.catalog_id = catalog[asset_list.label + "/" + asset_item.catalog_path].uuid
+    asset.asset_data.catalog_id = catalog[asset_item._catalog_path].uuid
 
     # Update the progress
     progress += 1
