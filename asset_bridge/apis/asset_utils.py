@@ -1,6 +1,5 @@
 import json
 import math
-import asyncio
 from time import perf_counter
 from shutil import copyfileobj
 from typing import Dict, Type, Literal
@@ -95,36 +94,8 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
 
     # if progress_file.exists():
     #     os.remove(progress_file)
-    print("done", url)
 
     return download_file
-
-
-async def async_download_file(url: str, download_dir: Path, file_name: str):
-    if not isinstance(download_dir, Path):
-        download_dir = Path(download_dir)
-
-    download_dir.mkdir(exist_ok=True, parents=True)
-    file_name = file_name or file_name_from_url(url)
-    to_file = download_dir / file_name
-
-    r = await requests.get(url, stream=True)
-
-
-async def async_download_files(urls: list[str], download_dir: Path, file_names: str = []):
-    if not file_names:
-        file_names = [""] * len(urls)
-    tasks = []
-    for url, file_name in zip(urls, file_names):
-        task = asyncio.create_task(async_download_file(url, download_dir, file_name))
-        tasks.append(task)
-    
-    for task in tasks:
-        await task
-
-
-def download_files(urls: list[str], download_dir: Path, file_names: list[str] = []):
-    asyncio.run(async_download_files(urls, download_dir, file_names))
 
 
 def load_image(image_file, link_method, name=""):

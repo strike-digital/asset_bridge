@@ -1,3 +1,4 @@
+from collections import deque
 import os
 import random
 from time import perf_counter
@@ -94,42 +95,29 @@ class AB_OT_download_previews(Operator):
 
             start = perf_counter()
 
-            # Start a thread for every preview. This probably not the most efficient,
-            # but in my testing it's just as fast as downloading the previews in chunks...
-            # I don't know if that also works for lower end hardware though.
+            # Start 40 threads, each downloading previews from a queue.
+            # Not sure if this is an optimal number for all machines, or just mine.
             # TODO: Test on the laptop.
-            target_threads = 8
-            target_chunksize = 20
+            target_threads = 40
 
-            def download_previews(assets: list[AssetListItem]):
-                for asset in assets:
+            download_queue = deque(assets.values())
+
+            def download_previews():
+                """Continuously download previews until the queue is empty"""
+                while download_queue:
+                    asset = download_queue.pop()
                     download_preview(asset)
 
             threads: list[Thread] = []
 
-            values = list(assets.values())
-            chunks = [values[i::target_threads] for i in range(0, target_threads)]
-            # chunks = [values[i:i+target_chunksize] for i in range(0, len(values), target_chunksize)]
-
-            # print(len(chunks), len(chunks[0]))
-            # for chunk in chunks:
-            #     thread = Thread(target=download_previews, args=[chunk])
-            #     threads.append(thread)
-            #     thread.start()
-
-            for asset in assets.values():
-                thread = Thread(target=download_preview, args=[asset])
-                threads.append(thread)
+            # Start the target number of threads
+            for _ in range(target_threads):
+                thread = Thread(target=download_previews)
                 thread.start()
+                threads.append(thread)
 
             for thread in threads:
                 thread.join()
-
-            # for asset in values:
-            #     print(asset.name)
-            #     asset.download_preview()
-            #     progress.increment()
-            #     names.remove(asset.idname)
 
             finished = True
             if progress.cancelled:

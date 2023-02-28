@@ -32,16 +32,6 @@ class AllAssetLists():
         """Takes an asset list and initialises it with new data from the internet"""
         asset_list = self.asset_lists[name]
 
-        is_internet = check_internet()
-        print(is_internet)
-        print(is_internet)
-        print(is_internet)
-        print(is_internet)
-        print(is_internet)
-        print(is_internet)
-        print(is_internet)
-        print(is_internet)
-        print(is_internet)
         if not data and not check_internet():
             report_message(
                 severity="ERROR",
