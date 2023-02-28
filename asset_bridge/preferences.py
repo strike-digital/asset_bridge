@@ -35,6 +35,7 @@ from .operators.op_show_info import INFO
 from .ui.panel_asset_browser import AB_PT_asset_browser
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
+from .operators.op_remove_task import AB_OT_remove_task
 from .operators.op_report_message import report_message
 from .operators.op_download_previews import AB_OT_download_previews
 from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
@@ -155,7 +156,7 @@ class ABAddonPreferences(AddonPreferences):
         name="Automatically pack files",
         description="Automatically packed imported images into the current file,\
             meaning that if the source file is moved, they will still be accessible in the blend file.\
-            This will result in larger files though.".replace("  ", ""),
+            This will result in larger files though."                                                     .replace("  ", ""),
         default=False,
     )
 
@@ -196,10 +197,20 @@ class ABAddonPreferences(AddonPreferences):
         new_assets_available = lists_obj.new_assets_available()
         # Check if there are new assets/whether they are already downloading
         if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys() or new_assets_available or not lists_obj.all_initialized:
+            task = ab.tasks.get(PREVIEW_DOWNLOAD_TASK_NAME)
+            if not task.progress:
+                box = layout.box().column(align=True)
+                box.label(text="Error with downloading previews, click here to reset:", icon="ERROR")
+                box.separator()
+                row = box.row(align=True)
+                row.scale_y = 1.5
+                op = row.operator(AB_OT_remove_task.bl_idname, text="Reset", icon="FILE_REFRESH")
+                op.name = PREVIEW_DOWNLOAD_TASK_NAME
+                return
+
             all_assets = lists_obj.all_assets
             preview_files = os.listdir(DIRS.previews)
             first_time = len(preview_files) == 0
-            task = ab.tasks.get(PREVIEW_DOWNLOAD_TASK_NAME)
             task_steps = task.progress.max if task else 0
 
             # Draw info showing the number of previews to download, only if it is not the first time download

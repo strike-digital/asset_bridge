@@ -1,4 +1,5 @@
 import os
+import random
 from time import perf_counter
 from random import choice
 from itertools import islice
@@ -16,6 +17,7 @@ from ..helpers.general import check_internet
 from ..apis.asset_types import AssetListItem
 from .op_report_message import report_message
 from ..helpers.main_thread import run_in_main_thread
+from ..vendor.requests.exceptions import ConnectTimeout
 
 
 @BOperator("asset_bridge")
@@ -68,8 +70,12 @@ class AB_OT_download_previews(Operator):
                     return
                 try:
                     asset.download_preview()
-                except ConnectionError as e:
-                    report_message(severity="ERROR", message=f"Could not download the preview for {asset.idname}:\n{e}")
+                except (ConnectionError, ConnectTimeout) as e:
+                    report_message(
+                        severity="ERROR",
+                        message=f"Could not download the preview for {asset.idname}:\n{e}",
+                        main_thread=True,
+                    )
                 progress.increment()
                 names.remove(asset.idname)
 
@@ -78,6 +84,8 @@ class AB_OT_download_previews(Operator):
                 (Its mainly aesthetic, but also good for knowing which preview is taking so long)"""
                 if not names:
                     return
+                # random.
+                random.seed(len(assets) / len(list(names)))
                 progress.message = f"(1/2) Downloading: {choice(list(names))}.png"
                 if not finished:
                     return .01
@@ -90,8 +98,25 @@ class AB_OT_download_previews(Operator):
             # but in my testing it's just as fast as downloading the previews in chunks...
             # I don't know if that also works for lower end hardware though.
             # TODO: Test on the laptop.
-            target_threads = 300
+            target_threads = 8
+            target_chunksize = 20
+
+            def download_previews(assets: list[AssetListItem]):
+                for asset in assets:
+                    download_preview(asset)
+
             threads: list[Thread] = []
+
+            values = list(assets.values())
+            chunks = [values[i::target_threads] for i in range(0, target_threads)]
+            # chunks = [values[i:i+target_chunksize] for i in range(0, len(values), target_chunksize)]
+
+            # print(len(chunks), len(chunks[0]))
+            # for chunk in chunks:
+            #     thread = Thread(target=download_previews, args=[chunk])
+            #     threads.append(thread)
+            #     thread.start()
+
             for asset in assets.values():
                 thread = Thread(target=download_preview, args=[asset])
                 threads.append(thread)
@@ -100,12 +125,19 @@ class AB_OT_download_previews(Operator):
             for thread in threads:
                 thread.join()
 
+            # for asset in values:
+            #     print(asset.name)
+            #     asset.download_preview()
+            #     progress.increment()
+            #     names.remove(asset.idname)
+
             finished = True
             if progress.cancelled:
                 report_message(message="Download cancelled.", main_thread=True)
+                task.finish()
                 return
 
-            # task.finish()
+            task.finish()
             report_message(
                 message=f"Downloaded {len(assets)} asset previews in {perf_counter() - start:.2f}s",
                 main_thread=True,

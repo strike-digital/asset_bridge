@@ -1,7 +1,8 @@
-import os
 import json
 import math
-from time import time, perf_counter
+import asyncio
+from time import perf_counter
+from shutil import copyfileobj
 from typing import Dict, Type, Literal
 from pathlib import Path
 
@@ -72,28 +73,58 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
     download_file = download_dir / file_name
     progress_file = download_dir / f"{file_name}.progress.txt"
 
-    result = requests.get(url, stream=True)
-    if result.status_code != 200:
-        with open(DIRS.addon / "log.txt", "w") as f:
-            f.write(url)
-            f.write(result.status_code)
-        raise requests.ConnectionError()
+    # result = requests.get(url, stream=True)
 
-    total = 0
-    last_write = time()
-    with open(download_file, 'wb') as f:
-        for chunk in result.iter_content(chunk_size=8192):
-            size = f.write(chunk)
-            total += size
-            if progress_file and time() - last_write > .05:
-                with open(progress_file, "w") as pf:
-                    pf.write(str(total))
-                last_write = time()
+    # total = 0
+    # last_write = time()
+    with requests.get(url, stream=True) as result:
+        if result.status_code != 200:
+            with open(DIRS.addon / "log.txt", "w") as f:
+                f.write(url)
+                f.write(result.status_code)
+            raise requests.ConnectionError()
+        with open(download_file, 'wb') as f:
+            copyfileobj(result.raw, f)
+            # for chunk in result.iter_content(chunk_size=8192):
+            #     size = f.write(chunk)
+            #     total += size
+            #     if progress_file and time() - last_write > .05:
+            #         with open(progress_file, "w") as pf:
+            #             pf.write(str(total))
+            #         last_write = time()
 
-    if progress_file.exists():
-        os.remove(progress_file)
+    # if progress_file.exists():
+    #     os.remove(progress_file)
+    print("done", url)
 
     return download_file
+
+
+async def async_download_file(url: str, download_dir: Path, file_name: str):
+    if not isinstance(download_dir, Path):
+        download_dir = Path(download_dir)
+
+    download_dir.mkdir(exist_ok=True, parents=True)
+    file_name = file_name or file_name_from_url(url)
+    to_file = download_dir / file_name
+
+    r = await requests.get(url, stream=True)
+
+
+async def async_download_files(urls: list[str], download_dir: Path, file_names: str = []):
+    if not file_names:
+        file_names = [""] * len(urls)
+    tasks = []
+    for url, file_name in zip(urls, file_names):
+        task = asyncio.create_task(async_download_file(url, download_dir, file_name))
+        tasks.append(task)
+    
+    for task in tasks:
+        await task
+
+
+def download_files(urls: list[str], download_dir: Path, file_names: list[str] = []):
+    asyncio.run(async_download_files(urls, download_dir, file_names))
 
 
 def load_image(image_file, link_method, name=""):
