@@ -80,7 +80,7 @@ class AB_OT_draw_import_progress(Operator):
 
         if over_cancel and event.type == "LEFTMOUSE" and event.value == "PRESS":
             self.get_task(context).cancel()
-            report_message("Download cancelled", severity="WARNING")
+            report_message("WARNING", "Download cancelled")
 
         return {"PASS_THROUGH"}
 

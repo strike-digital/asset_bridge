@@ -119,7 +119,7 @@ class ABAddonPreferences(AddonPreferences):
         try:
             bpy.utils.unregister_class(panel)
         except RuntimeError as e:
-            report_message(severity="ERROR", message=e)
+            report_message("ERROR", message=e)
             return
         if self.viewport_panel_category:
             panel.bl_region_type = "UI"

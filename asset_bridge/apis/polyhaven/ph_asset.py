@@ -113,7 +113,7 @@ class PH_Asset(Asset):
             # Handle errors
             out = process.stdout.read().decode()
             if "Error" in out:
-                report_message(f"Error setting up Poly Haven asset blend file:\n{out}", severity="ERROR")
+                report_message("ERROR", f"Error setting up Poly Haven asset blend file:\n{out}")
 
     def import_asset(self, context: Context):
         files = self.get_files()

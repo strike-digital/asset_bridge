@@ -65,8 +65,8 @@ def point_under_mouse(context: Context, mouse_pos_region: V, mouse_pos_window: V
             # TODO: Try and fix this
             if not region or any(c < 0 for c in mouse_pos_region):
                 message = "Cannot import assets when the preferences window is active. \
-                    Blender is weird like that :(".replace("  ", "")
-                report_message(message, "ERROR")
+                    Blender is weird like that :("                                                  .replace("  ", "")
+                report_message("ERROR", message)
                 return None
 
     depsgraph = context.evaluated_depsgraph_get()

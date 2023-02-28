@@ -29,7 +29,7 @@ class AB_OT_report_message(Operator):
         return {"FINISHED"}
 
 
-def report_message(message="Message!", severity="INFO", main_thread=False):
+def report_message(severity="INFO", message="Message!", main_thread=False):
     if main_thread:
         run_in_main_thread(report_message, (message, severity, False))
     else:

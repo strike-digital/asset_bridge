@@ -47,15 +47,15 @@ def download_asset(
     # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
     if not asset_list_item:
         report_message(
-            f"Could not find asset {asset_list_item.label} in the asset list (Number of assets: {len(all_assets)})",
             "ERROR",
+            f"Could not find asset {asset_list_item.label} in the asset list (Number of assets: {len(all_assets)})",
         )
         task = ab.new_task()
         task.cancel(remove=False)
         return task.name
 
     elif message := asset_list_item.poll():
-        report_message(message, "ERROR")
+        report_message("ERROR", message)
         task = ab.new_task()
         task.cancel(remove=False)
         return task.name
@@ -126,8 +126,8 @@ def download_asset(
             asset.download_asset()
         except Exception as e:
             report_message(
+                "ERROR",
                 f"Error downloading asset {asset.idname}:\n{format_traceback(e)}",
-                severity="ERROR",
                 main_thread=True,
             )
 
@@ -177,7 +177,7 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
                 obj.location += location
     except Exception as e:
         # This is needed so that the errors are shown to the user.
-        report_message(f"Error importing asset {asset.idname}:\n{format_traceback(e)}", severity="ERROR")
+        report_message("ERROR", f"Error importing asset {asset.idname}:\n{format_traceback(e)}")
     return imported
 
 

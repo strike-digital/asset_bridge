@@ -1,3 +1,4 @@
+from ..helpers.general import check_internet
 import bpy
 from bpy.props import BoolProperty
 from bpy.types import Operator
@@ -17,6 +18,11 @@ class AB_OT_check_for_new_assets(Operator):
     report_message: BoolProperty(default=True)
 
     def execute(self, context):
+
+        if not check_internet():
+            report_message("ERROR", "Can't check for new assets, no internet connection detected")
+            return {"CANCELLED"}
+
         lists_obj = get_asset_lists()
         threads = lists_obj.initialize_all(blocking=False)
         task = get_ab_settings(context).new_task(name=CHECK_NEW_ASSETS_TASK_NAME)
@@ -24,7 +30,7 @@ class AB_OT_check_for_new_assets(Operator):
 
         def finish():
             if task.cancelled:
-                report_message("Cancelled checking for new assets")
+                report_message("INFO", "Cancelled checking for new assets")
                 task.finish()
                 return
 
@@ -48,9 +54,9 @@ class AB_OT_check_for_new_assets(Operator):
                 suffix = "s" if new_assets > 1 else ""
                 are = "are" if new_assets > 1 else "is"
                 if self.report_message:
-                    report_message(f"There {are} {new_assets} new asset{suffix} to download.", "INFO")
+                    report_message("INFO", f"There {are} {new_assets} new asset{suffix} to download.")
             elif self.report_message:
-                report_message("No new assets found, you're up to date!")
+                report_message("INFO", "No new assets found, you're up to date!")
 
             force_ui_update(area_types={"PREFERENCES"})
 

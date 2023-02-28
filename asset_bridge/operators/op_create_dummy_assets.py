@@ -71,7 +71,7 @@ class AB_OT_create_dummy_assets(Operator):
                 for name, process in processes.items():
                     process.kill()
                     output_log(name, process)
-                report_message("Setup cancelled.", severity="INFO")
+                report_message("INFO", "Setup cancelled.")
                 return
 
             # Check if all processes are finished
@@ -87,7 +87,7 @@ class AB_OT_create_dummy_assets(Operator):
                 for name, process in processes.items():
                     process.kill()
                     log = output_log(name, process)
-                report_message(message=f"Process timed out, please try again.\nError log:\n{log}", severity="ERROR")
+                report_message("ERROR", message=f"Process timed out, please try again.\nError log:\n{log}")
 
             if completed:
 
@@ -114,13 +114,13 @@ class AB_OT_create_dummy_assets(Operator):
                 for name, process in processes.items():
                     out = output_log(name, process)
                     if "Error" in out:
-                        report_message(f"Error creating assets for {name}:\n{out}", severity="ERROR")
+                        report_message("ERROR", f"Error creating assets for {name}:\n{out}")
                         errors = True
 
                 if not errors:
                     report_message(
+                        "INFO",
                         f"Downloaded and setup {progress.max} assets in {perf_counter() - task.start_time:.2f}s",
-                        severity="INFO",
                     )
 
                 task.finish()

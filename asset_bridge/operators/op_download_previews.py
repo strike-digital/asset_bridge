@@ -36,7 +36,7 @@ class AB_OT_download_previews(Operator):
     def execute(self, context):
 
         if not check_internet():
-            report_message("Cannot download the asset previews as there is no internet connection", severity="ERROR")
+            report_message("ERROR", "Cannot download the asset previews as there is no internet connection")
             return {"CANCELLED"}
 
         ab = get_ab_settings(context)
@@ -52,7 +52,7 @@ class AB_OT_download_previews(Operator):
             assets = dict(islice(assets.items(), self.test_number))
 
         if not assets:
-            report_message("No new asset previews to download")
+            report_message("INFO", "No new asset previews to download")
             return {"CANCELLED"}
 
         task = ab.new_task(name=PREVIEW_DOWNLOAD_TASK_NAME)
@@ -121,12 +121,13 @@ class AB_OT_download_previews(Operator):
 
             finished = True
             if progress.cancelled:
-                report_message(message="Download cancelled.", main_thread=True)
+                report_message("INFO", message="Download cancelled.", main_thread=True)
                 task.finish()
                 return
 
             task.finish()
             report_message(
+                "INFO",
                 message=f"Downloaded {len(assets)} asset previews in {perf_counter() - start:.2f}s",
                 main_thread=True,
             )
