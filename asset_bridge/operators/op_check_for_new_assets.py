@@ -17,6 +17,8 @@ class AB_OT_check_for_new_assets(Operator):
 
     report_message: BoolProperty(default=True)
 
+    auto_download: BoolProperty(default=False, description="Whether to automatically download newly found previews")
+
     def execute(self, context):
 
         if not check_internet():
@@ -51,12 +53,18 @@ class AB_OT_check_for_new_assets(Operator):
             task.finish()
             new_assets = lists_obj.new_assets_available()
             if new_assets:
-                suffix = "s" if new_assets > 1 else ""
-                are = "are" if new_assets > 1 else "is"
                 if self.report_message:
+                    suffix = "s" if new_assets > 1 else ""
+                    are = "are" if new_assets > 1 else "is"
                     report_message("INFO", f"There {are} {new_assets} new asset{suffix} to download.")
-            elif self.report_message:
-                report_message("INFO", "No new assets found, you're up to date!")
+                    if self.auto_download:
+                        print("Auto download")
+                        bpy.ops.asset_bridge.download_previews()
+            else:
+                if self.report_message:
+                    report_message("INFO", "No new assets found, you're up to date!")
+                if self.auto_download:
+                    bpy.ops.asset_bridge.create_dummy_assets()
 
             force_ui_update(area_types={"PREFERENCES"})
 

@@ -202,14 +202,8 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
     ab = get_ab_settings(bpy.context)
 
     if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys():
-        draw_task_progress(layout, bpy.context, PREVIEW_DOWNLOAD_TASK_NAME)
-        # row = layout.row(align=True)
-        # task = ab.tasks[PREVIEW_DOWNLOAD_TASK_NAME]
-        # row.prop(task, "ui_progress_prop", text=task.progress.message)
-        # row.scale_x = 1.25
-        # op = row.operator(AB_OT_cancel_task.bl_idname, text="", icon="X")
-        # op.name = PREVIEW_DOWNLOAD_TASK_NAME
-        # op.bl_description = "Cancel downloading previews"
+        task = ab.tasks[PREVIEW_DOWNLOAD_TASK_NAME]
+        task.draw_progress(layout)
     else:
         # If not all of the asset lists have been downloaded
         if not lists_obj.all_initialized:

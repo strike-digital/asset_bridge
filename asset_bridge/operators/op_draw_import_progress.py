@@ -1,3 +1,4 @@
+from ..helpers.prefs import get_prefs
 import bpy
 import gpu
 from bpy.props import StringProperty, FloatVectorProperty
@@ -127,7 +128,9 @@ class AB_OT_draw_import_progress(Operator):
         uv = coords
         fac = task.progress_prop / 100
         offset = location_3d_to_region_2d(context.region, context.region.data, location)
+        prefs = get_prefs(context)
         size = V([100] * 2)
+        size *= prefs.download_widget_scale * context.preferences.view.ui_scale
         # orig_size_x = size.x
         # size.x *= aspect
         line_width = 2

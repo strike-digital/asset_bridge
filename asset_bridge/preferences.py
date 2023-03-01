@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 import bpy
-from bpy.props import BoolProperty, EnumProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Menu, UILayout, AddonPreferences
 
 from .api import get_asset_lists
@@ -11,8 +11,7 @@ from .settings import new_show_prop, get_ab_settings
 from .constants import (DIRS, FILES, __IS_DEV__, ASSET_LIB_VERSION, CHECK_NEW_ASSETS_TASK_NAME,
                         PREVIEW_DOWNLOAD_TASK_NAME)
 from .helpers.prefs import get_prefs
-from .ui.ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_prefs_section, draw_task_progress,
-                            draw_download_previews)
+from .ui.ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_prefs_section, draw_download_previews)
 from .helpers.btypes import BMenu
 from .helpers.library import (is_lib_path_invalid, ensure_bl_asset_library_exists)
 from .ui.panel_asset_props import AB_PT_asset_props_viewport
@@ -23,7 +22,6 @@ from .operators.op_open_folder import AB_OT_open_folder
 from .operators.op_remove_task import AB_OT_remove_task
 from .operators.op_report_message import report_message
 from .operators.op_download_previews import AB_OT_download_previews
-from .operators.op_create_dummy_assets import AB_OT_create_dummy_assets
 from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
 
 
@@ -146,6 +144,12 @@ class ABAddonPreferences(AddonPreferences):
         default=False,
     )
 
+    download_widget_scale: FloatProperty(
+        name="Download widget scale",
+        description="The scale of the widget that shows the download progress of an asset in the 3D viewport",
+        default=1.0,
+    )
+
     show_general: new_show_prop("general")
     show_websites: new_show_prop("websites")
     show_tasks: new_show_prop("tasks")
@@ -184,7 +188,7 @@ class ABAddonPreferences(AddonPreferences):
         # Check if there are new assets/whether they are already downloading
         if PREVIEW_DOWNLOAD_TASK_NAME in ab.tasks.keys() or new_assets_available or not lists_obj.all_initialized:
             task = ab.tasks.get(PREVIEW_DOWNLOAD_TASK_NAME)
-            if not task.progress:
+            if task and not task.progress:
                 box = layout.box().column(align=True)
                 box.label(text="Error with downloading previews, click here to reset:", icon="ERROR")
                 box.separator()
@@ -216,13 +220,17 @@ class ABAddonPreferences(AddonPreferences):
         dummy_blends = [f for f in DIRS.dummy_assets.iterdir() if f.suffix == ".blend"]
 
         if (task := ab.tasks.get(CHECK_NEW_ASSETS_TASK_NAME)) and task.progress:
-            draw_task_progress(row, context, CHECK_NEW_ASSETS_TASK_NAME)
-            # row.prop(task, )
+            task.draw_progress(row)
 
         elif len(dummy_blends) < len(asset_lists):
             InfoSnippets.set_up_dummy_assets.draw(row)
             row.scale_x = 1.5
-            row.operator(AB_OT_create_dummy_assets.bl_idname, text="Set up asset library")
+            op = row.operator(
+                AB_OT_check_for_new_assets.bl_idname,
+                text="Check for new assets and set up asset library",
+            )
+            op.auto_download = True
+            # row.operator(AB_OT_create_dummy_assets.bl_idname, text="Set up asset library")
             # AB_OT_create_dummy_assets.
             # print("ho")
             return
@@ -246,8 +254,9 @@ class ABAddonPreferences(AddonPreferences):
         section = draw_prefs_section(grid, "General", self, "show_general")
         fac = .5
         draw_inline_prop(section, self, "auto_pack_files", "Auto pack files", "", factor=fac)
-        draw_inline_prop(section, self, "viewport_panel_category", "Viewport panel location", "", factor=fac)
-        draw_inline_prop(section, self, "browser_panel_location", "Browser panel location", "", factor=fac)
+        draw_inline_prop(section, self, "viewport_panel_category", "N-Panel category", "", factor=fac)
+        draw_inline_prop(section, self, "browser_panel_location", "Browser panel side", "", factor=fac)
+        draw_inline_prop(section, self, "download_widget_scale", "Widget scale", "", factor=fac)
 
         section = draw_prefs_section(grid, "Asset websites", self, "show_websites").column(align=True)
         section.scale_y = section.scale_x = 1.5

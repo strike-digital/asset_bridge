@@ -3,16 +3,9 @@ from time import time_ns, perf_counter
 from typing import TYPE_CHECKING, OrderedDict
 
 import bpy
-from bpy.props import (
-    IntProperty,
-    BoolProperty,
-    EnumProperty,
-    FloatProperty,
-    StringProperty,
-    PointerProperty,
-    CollectionProperty
-)
-from bpy.types import ID, Context, Material, PropertyGroup
+from bpy.props import (IntProperty, BoolProperty, EnumProperty, FloatProperty, StringProperty, PointerProperty,
+                       CollectionProperty)
+from bpy.types import ID, Context, Material, UILayout, PropertyGroup
 
 from .api import get_asset_lists
 from .helpers.progress import Progress
@@ -98,6 +91,17 @@ class AssetTask(PropertyGroup):
         self.finished = True
         if remove:
             self.remove()
+
+    def draw_progress(self, layout: UILayout, text: str = "", draw_cancel: bool = True):
+        """Draw a progress bar for this task that draws either the progress message or the given text,
+        and a cancel button, if draw_cancel enabled"""
+        row = layout.row(align=True)
+        row.prop(self, "ui_progress_prop", text=text or self.progress.message)
+        if draw_cancel:
+            row.scale_x = 1.25
+            op = row.operator("asset_bridge.cancel_task", text="", icon="X")
+            op.name = self.name
+            op.bl_description = "Cancel task"
 
 
 add_progress(AssetTask, "progress_prop")
