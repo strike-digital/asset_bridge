@@ -31,12 +31,16 @@ class AB_OT_create_dummy_assets(Operator):
         # Update/create the progress bar
         ab = get_ab_settings(context)
         task = ab.tasks.get(PREVIEW_DOWNLOAD_TASK_NAME)
+        continuing = task is not None
         if not task:
             task = ab.new_task(PREVIEW_DOWNLOAD_TASK_NAME)
         progress = task.new_progress(max_steps=len(asset_lists.all_assets))
         progress.progress = 0
         force_ui_update(context.area)
-        progress.message = ("(2/2) Setting up asset library:")
+    
+        # This operator is often chained with the download previews operator, if so, show a different message
+        prefix = ("(2/2)" if continuing else "")
+        progress.message = (f"{prefix} Setting up asset library:")
 
         # Create a blender process for each asset list
         processes: Dict[str, subprocess.Popen] = {}
@@ -118,9 +122,10 @@ class AB_OT_create_dummy_assets(Operator):
                         errors = True
 
                 if not errors:
+                    prefix = "Downloaded and setup" if continuing else "Setup"
                     report_message(
                         "INFO",
-                        f"Downloaded and setup {progress.max} assets in {perf_counter() - task.start_time:.2f}s",
+                        f"{prefix} {progress.max} assets in {perf_counter() - task.start_time:.2f}s",
                     )
 
                 task.finish()

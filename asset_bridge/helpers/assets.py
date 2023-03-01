@@ -1,7 +1,7 @@
 import os
-from time import sleep
+from time import sleep, time
 from uuid import uuid1
-from typing import Callable
+from typing import Callable, Dict
 from threading import Thread
 
 import bpy
@@ -17,6 +17,8 @@ from .main_thread import force_ui_update, run_in_main_thread
 from ..apis.asset_types import Asset
 from ..apis.asset_utils import HDRI
 from ..operators.op_report_message import report_message
+
+DOWNLOADING: Dict[str, str] = {}  # Contains the idname of the asset, and the name of the download task
 
 
 def download_asset(
@@ -48,32 +50,42 @@ def download_asset(
 
     ab = get_ab_settings(context)
     all_assets = get_asset_lists().all_assets
-    asset_list_item = asset.list_item
+    list_item = asset.list_item
+
+    # If this asset is already downloading, just return the task name for that instead of starting a new one.
+    if list_item.idname in DOWNLOADING:
+        task_name = DOWNLOADING[list_item.idname]
+        bpy.ops.asset_bridge.draw_import_progress(
+            "INVOKE_DEFAULT",
+            task_name=task_name,
+            location=location,
+            asset_id=list_item.idname,
+        )
+        return task_name
+    task = ab.new_task(name=f"download_{list_item.idname}_{uuid1()}")
 
     # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
-    if not asset_list_item:
+    if not list_item:
         report_message(
             "ERROR",
-            f"Could not find asset {asset_list_item.label} in the asset list (Number of assets: {len(all_assets)})",
+            f"Could not find asset {list_item.label} in the asset list (Number of assets: {len(all_assets)})",
         )
-        task = ab.new_task()
         task.cancel(remove=False)
         return task.name
 
-    elif message := asset_list_item.poll():
+    elif message := list_item.poll():
         report_message("ERROR", message)
-        task = ab.new_task()
         task.cancel(remove=False)
         return task.name
 
     elif asset.is_downloaded and not ab.reload_asset:
-        task = ab.new_task()
         task.finish(remove=False)
         return task.name
 
+    DOWNLOADING[asset.list_item.idname] = task.name
+
     ab = get_ab_settings(context)
     max_size = asset.get_download_size()
-    task = ab.new_task()
     task.new_progress(max_size)
     task_name = task.name
 
@@ -83,7 +95,7 @@ def download_asset(
             "INVOKE_DEFAULT",
             task_name=task.name,
             location=location,
-            asset_id=asset_list_item.idname,
+            asset_id=list_item.idname,
         )
 
     def download():
@@ -137,6 +149,7 @@ def download_asset(
                 main_thread=True,
             )
 
+        del DOWNLOADING[asset.list_item.idname]
         task = ab.tasks[task_name]
         force_ui_update(area_types="VIEW_3D")
         run_in_main_thread(task.finish, kwargs={"remove": False})
@@ -184,6 +197,7 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
     except Exception as e:
         # This is needed so that the errors are shown to the user.
         report_message("ERROR", f"Error importing asset {asset.idname}:\n{format_traceback(e)}")
+    bpy.ops.ed.undo_push()
     return imported
 
 
@@ -214,16 +228,17 @@ def download_and_import_asset(
     task_name = download_asset(context, asset, draw, location)
 
     def check_download():
-        task = ab.tasks[task_name]
-        if task.cancelled:
-            if on_cancel:
-                on_cancel()
-            task.finish()
-            return
-        elif task.finished:
+        task = ab.tasks.get(task_name)
+        if not task or task.finished:
             imported = import_asset(context, asset, location, material_slot)
             if on_completion:
                 on_completion(imported)
+            if task:
+                task.finish()
+            return
+        elif task.cancelled:
+            if on_cancel:
+                on_cancel()
             task.finish()
             return
         return .1

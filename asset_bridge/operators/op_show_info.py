@@ -32,7 +32,6 @@ class AB_OT_show_info(Operator):
         box.label(text=self.title + offset, icon=self.icon)
 
         box = column.box().column(align=True)
-        # box.alignment = "CENTER"
         message = self.message.replace("  ", "").replace("\n", " ")
         wrap_text(context, message, box, width=self.width * 1.25, splitter=" ")
 
@@ -44,8 +43,8 @@ class InfoSnippet():
     message: str
     icon: str = "NONE"
 
-    def draw(self, layout: UILayout):
-        op = layout.operator(AB_OT_show_info.bl_idname, text="", icon="INFO")
+    def draw(self, layout: UILayout, icon_override=""):
+        op = layout.operator(AB_OT_show_info.bl_idname, text="", icon=icon_override or "INFO")
         op.title = self.title
         op.message = self.message
         op.icon = self.icon
@@ -67,5 +66,14 @@ class InfoSnippets():
         icon="FILE_FOLDER",
     )
 
-
-INFO = InfoSnippets()
+    set_up_dummy_assets = InfoSnippet(
+        "Set up asset library",
+        """\
+        In order for the online assets to show up in the Blender asset browser, the addon first needs to set up\
+        a blend file containing a bunch of dummy assets to represent them. As an example, the object assets are\
+        just represented by empties, but their asset data is set to show up as if it is the online asset.\n
+        
+        This button simply creates a blend file containing these dummy assets that the addon can then use.
+        """,
+        icon="FILE_FOLDER",
+    )

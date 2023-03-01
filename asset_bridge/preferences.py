@@ -8,36 +8,22 @@ from bpy.types import Menu, UILayout, AddonPreferences
 
 from .api import get_asset_lists
 from .settings import new_show_prop, get_ab_settings
-from .constants import (
-    DIRS,
-    FILES,
-    __IS_DEV__,
-    ASSET_LIB_VERSION,
-    CHECK_NEW_ASSETS_TASK_NAME,
-    PREVIEW_DOWNLOAD_TASK_NAME
-)
+from .constants import (DIRS, FILES, __IS_DEV__, ASSET_LIB_VERSION, CHECK_NEW_ASSETS_TASK_NAME,
+                        PREVIEW_DOWNLOAD_TASK_NAME)
 from .helpers.prefs import get_prefs
-from .ui.ui_helpers import (
-    wrap_text,
-    draw_inline_prop,
-    draw_inline_column,
-    draw_prefs_section,
-    draw_task_progress,
-    draw_download_previews
-)
+from .ui.ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_prefs_section, draw_task_progress,
+                            draw_download_previews)
 from .helpers.btypes import BMenu
-from .helpers.library import (
-    is_lib_path_invalid,
-    ensure_bl_asset_library_exists
-)
+from .helpers.library import (is_lib_path_invalid, ensure_bl_asset_library_exists)
 from .ui.panel_asset_props import AB_PT_asset_props_viewport
-from .operators.op_show_info import INFO
+from .operators.op_show_info import InfoSnippets
 from .ui.panel_asset_browser import AB_PT_asset_browser
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
 from .operators.op_remove_task import AB_OT_remove_task
 from .operators.op_report_message import report_message
 from .operators.op_download_previews import AB_OT_download_previews
+from .operators.op_create_dummy_assets import AB_OT_create_dummy_assets
 from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
 
 
@@ -156,7 +142,7 @@ class ABAddonPreferences(AddonPreferences):
         name="Automatically pack files",
         description="Automatically packed imported images into the current file,\
             meaning that if the source file is moved, they will still be accessible in the blend file.\
-            This will result in larger files though."                                                     .replace("  ", ""),
+            This will result in larger files though.".replace("  ", ""),
         default=False,
     )
 
@@ -182,7 +168,7 @@ class ABAddonPreferences(AddonPreferences):
         row = box.row(align=True)
         row.scale_y = 1.5
         sub = row.row(align=True)
-        INFO.lib_path.draw(sub)
+        InfoSnippets.lib_path.draw(sub)
         row.scale_x = 1.5
         row.prop(self, "lib_path", text="")
         if message := is_lib_path_invalid(self.lib_path):
@@ -225,10 +211,22 @@ class ABAddonPreferences(AddonPreferences):
 
         row = layout.box().row(align=True)
         row.scale_y = 1.5
+        asset_lists = get_asset_lists()
+
+        dummy_blends = [f for f in DIRS.dummy_assets.iterdir() if f.suffix == ".blend"]
 
         if (task := ab.tasks.get(CHECK_NEW_ASSETS_TASK_NAME)) and task.progress:
             draw_task_progress(row, context, CHECK_NEW_ASSETS_TASK_NAME)
             # row.prop(task, )
+
+        elif len(dummy_blends) < len(asset_lists):
+            InfoSnippets.set_up_dummy_assets.draw(row)
+            row.scale_x = 1.5
+            row.operator(AB_OT_create_dummy_assets.bl_idname, text="Set up asset library")
+            # AB_OT_create_dummy_assets.
+            # print("ho")
+            return
+
         else:
             op = row.operator_menu_hold(
                 AB_OT_check_for_new_assets.bl_idname,
@@ -251,7 +249,6 @@ class ABAddonPreferences(AddonPreferences):
         draw_inline_prop(section, self, "viewport_panel_category", "Viewport panel location", "", factor=fac)
         draw_inline_prop(section, self, "browser_panel_location", "Browser panel location", "", factor=fac)
 
-        asset_lists = get_asset_lists()
         section = draw_prefs_section(grid, "Asset websites", self, "show_websites").column(align=True)
         section.scale_y = section.scale_x = 1.5
         for asset_list in asset_lists.values():
@@ -268,7 +265,10 @@ class ABAddonPreferences(AddonPreferences):
             section.scale_y = .7
             for task in ab.tasks:
                 col = draw_inline_column(section, task.name, factor=.5)
-                col.label(text=f"Progress obj: {'Yes' if task.progress else 'No'}")
+                row = col.row(align=True)
+                row.label(text=f"Progress obj: {'Yes' if task.progress else 'No'}")
+                op = row.operator(AB_OT_remove_task.bl_idname, text="", icon="X", emboss=False)
+                op.name = task.name
                 col.label(text=f"Finished: {task.finished}")
                 col.label(text=f"Cancelled: {task.cancelled}")
                 section.separator()

@@ -77,11 +77,6 @@ for asset_item in asset_list.values():
     asset_item._catalog_path = path
     paths.add(path)
 
-# Add the catalog paths
-# for asset_item in asset_list.values():
-#     name = asset_item.catalog_path.split('/')[-1]
-#     paths.add(f"{asset_list.label}/{asset_item.catalog_path}")
-
 # Add the intermediate paths (so that the names don't have the asterisk next to them in the asset browser)
 intermediate_paths = set()
 
