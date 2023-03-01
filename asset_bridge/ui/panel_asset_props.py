@@ -114,7 +114,7 @@ class AssetPropsPanel(Panel):
             slot = obj.material_slots[obj.active_material_index]
             slots = [slot for slot in obj.material_slots if slot.material]
             mat: Material = slot.material
-            if mat:
+            if mat and mat.node_tree:
                 nodes = get_material_nodes(mat.node_tree.nodes)
 
             for s in slots:

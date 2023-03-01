@@ -55,7 +55,7 @@ def main():
     files = [f for f in files if "asset_bridge\\" in str(f)]
     previews_dir = Path(__file__).parent / "asset_bridge" / "previews"
     files += [(previews_dir).relative_to(path)]
-    # files += [f.relative_to(path) for f in previews_dir.iterdir()]
+    files += [f.relative_to(path) for f in previews_dir.iterdir()]
 
     # version
     if args.version:

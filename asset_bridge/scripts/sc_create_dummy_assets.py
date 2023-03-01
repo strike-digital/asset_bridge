@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -10,7 +11,7 @@ from bpy.types import Material, Object, World
 
 addon_utils.enable(Path(__file__).parents[1].name)
 from asset_bridge.api import get_asset_lists
-from asset_bridge.constants import DIRS
+from asset_bridge.constants import DIRS, FILES
 from asset_bridge.settings import get_asset_settings
 from asset_bridge.helpers.catalog import AssetCatalogFile
 from asset_bridge.apis.asset_utils import HDRI, MATERIAL, MODEL
@@ -25,6 +26,9 @@ args = sys.argv[sys.argv.index('--') + 1:]
 args = parser.parse_args(args)
 
 asset_list = get_asset_lists()[args.asset_list_name]
+with open(FILES.prefs, "r") as f:
+    lib_path = json.load(f)["lib_path"]
+DIRS.update(lib_path)
 progress_file = DIRS.dummy_assets / f"{asset_list.name}_progress.txt"
 
 

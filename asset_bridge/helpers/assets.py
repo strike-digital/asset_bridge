@@ -1,7 +1,7 @@
 import os
-from time import sleep, time
+from time import sleep
 from uuid import uuid1
-from typing import Callable, Dict
+from typing import Dict, Callable
 from threading import Thread
 
 import bpy
