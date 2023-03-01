@@ -17,6 +17,7 @@
 *.json
 !**/asset_lists/*.json
 /builds
+/product_page
 todo.md
 asset_list.json
 __pycache__/
