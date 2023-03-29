@@ -16,8 +16,16 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
             return False
         if not context.asset_file_handle:
             return False
+        # In 3.5 the assets can also be viewed in th "All" asset library
         if ASSET_LIB_NAME != context.area.spaces.active.params.asset_library_ref:
-            return False
+            ab = get_ab_settings(context)
+            try:
+                asset = ab.selected_asset
+            except KeyError:
+                asset = None
+
+            if not asset:
+                return False
         return cls.asset_browser_panel_poll(context)
 
     def draw(self, context):
@@ -26,12 +34,14 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         try:
             asset = ab.selected_asset
         except KeyError:
+            asset = None
+
+        if not asset:
+            if context.area.spaces.active.params.asset_library_ref != ASSET_LIB_NAME:
+                return
             box = layout.box()
             box.alert = True
             wrap_text(context, "Asset not found", box, centered=True)
-            return
-
-        if not asset:
             return
 
         if message := asset.poll():
