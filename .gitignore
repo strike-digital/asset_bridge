@@ -15,6 +15,7 @@
 *.zip
 *.idea
 *.json
+**/log.txt
 !**/asset_lists/*.json
 /builds
 /product_page

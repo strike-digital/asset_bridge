@@ -1,4 +1,5 @@
 # from asset_bridge.operators import AB_OT_import_asset
+from .constants import ASSET_LIB_NAME
 import bpy
 from bpy.app import handlers
 from bpy.types import Scene
@@ -32,7 +33,11 @@ def get_browser_area(name) -> bpy.types.Area:
 
 
 def link_method(area):
-    return area.spaces.active.params.import_type
+    import_type = area.spaces.active.params.import_type
+    if import_type == "FOLLOW_PREFS":
+        lib = bpy.context.preferences.filepaths.asset_libraries.get(ASSET_LIB_NAME)
+        import_type = lib.import_method if lib else "APPED_REUSE"
+    return import_type
 
 
 prev_materials = {}

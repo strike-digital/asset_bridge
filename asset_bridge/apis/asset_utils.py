@@ -80,7 +80,7 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
         if result.status_code != 200:
             with open(DIRS.addon / "log.txt", "w") as f:
                 f.write(url)
-                f.write(result.status_code)
+                f.write(int(result.status_code))
             raise requests.ConnectionError()
         with open(download_file, 'wb') as f:
             copyfileobj(result.raw, f)

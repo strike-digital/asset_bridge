@@ -7,16 +7,8 @@ from bpy.types import Context
 from ...vendor import requests
 from ..asset_types import Asset
 from ..asset_types import AssetListItem as PH_AssetListItem
-from ..asset_utils import (
-    HDRI,
-    MODEL,
-    MATERIAL,
-    import_hdri,
-    import_model,
-    download_file,
-    import_material,
-    file_name_from_url
-)
+from ..asset_utils import (HDRI, MODEL, MATERIAL, import_hdri, import_model, download_file, import_material,
+                           file_name_from_url)
 from ...helpers.process import new_blender_process
 from ...operators.op_report_message import report_message
 
@@ -128,12 +120,18 @@ class PH_Asset(Asset):
             # Find the files and add them to the dictionary with the correct keys for importing
             texture_files = {}
             files = {f.stem: f for f in files}
-            associations = {"diffuse": "diff", "displacement": "disp", "normal": "nor_gl", "roughness": "rough"}
+            associations = {
+                "diffuse": {"diff", "col_1", "coll1", "col", "col_01"},
+                "displacement": {"disp"},
+                "normal": {"nor_gl"},
+                "roughness": {"rough"},
+            }
 
-            for name, ph_name in associations.items():
-                file = files.get(f"{self.name}_{ph_name}_{self.quality_level}")
-                if file:
-                    texture_files[name] = file
+            for name, ph_names in associations.items():
+                for ph_name in ph_names:
+                    file = files.get(f"{self.name}_{ph_name}_{self.quality_level}")
+                    if file:
+                        texture_files[name] = file
 
             mat = import_material(texture_files, self.import_name, link_method=self.link_method)
             return mat

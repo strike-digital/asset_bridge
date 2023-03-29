@@ -124,7 +124,6 @@ class PH_AssetListItem(AssetListItem):
             items.append((name, label, f"Load asset at {name} resolution"))
         return items
 
-    def download_preview(self):
-        size = 128
+    def download_preview(self, size=128):
         url = f"https://cdn.polyhaven.com/asset_img/thumbs/{self.name}.png?width={size}&height={size}"
         download_file(url, DIRS.previews, f"{self.idname}.png")
