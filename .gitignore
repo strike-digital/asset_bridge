@@ -3,6 +3,7 @@
 *.hdr
 *.exr
 *.png
+.vscode
 !**/icons/*
 !**/apis/**/*.png
 !images/*.png

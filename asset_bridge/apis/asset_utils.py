@@ -231,7 +231,7 @@ def import_material(
     image_nodes = []
     disp_node = diff_node = nor_node = rough_gamma_node = ao_mix_node = hsv_node = None
 
-    def new_image(file, input_index, node_name="", to_node=None, non_color=False):
+    def new_image(file, input_index, node_name="", to_node=None, non_color=True):
         """Add a new image node, and connect it to the given to_node if provided, or the bsdf node"""
         if not to_node:
             to_node = bsdf_node
@@ -241,13 +241,13 @@ def import_material(
         image_node.image = image
         links.new(image_node.outputs[0], to_node.inputs[input_index])
         image_nodes.append(image_node)
-        if non_color:
-            image.colorspace_settings.name = "Non-Color"
+        # image.colorspace_settings.name = "Non-Color"
+        image.colorspace_settings.is_data = non_color
         return image_node
 
     # Add images
     if diff_file := texture_files.get("diffuse"):
-        diff_node = new_image(diff_file, "Base Color", "Diffuse")
+        diff_node = new_image(diff_file, "Base Color", "Diffuse", non_color=False)
 
         # Ambient occlusion
         if ao_file := texture_files.get("ao"):
@@ -258,7 +258,7 @@ def import_material(
             ao_mix_node.blend_type = "MULTIPLY"
             links.new(diff_node.outputs[0], ao_mix_node.inputs[6])
             links.new(ao_mix_node.outputs[2], bsdf_node.inputs["Base Color"])
-            ao_image_node = new_image(ao_file, 7, "Ambient Occlusion", to_node=ao_mix_node, non_color=True)
+            ao_image_node = new_image(ao_file, 7, "Ambient Occlusion", to_node=ao_mix_node)
 
         hsv_node = nodes.new("ShaderNodeHueSaturation")
         hsv_node.name = NODES.hsv
@@ -266,10 +266,10 @@ def import_material(
         links.new(hsv_node.outputs["Color"], ao_mix_node.inputs[6] if ao_mix_node else bsdf_node.inputs["Base Color"])
 
     if metal_file := texture_files.get("metalness"):
-        new_image(metal_file, "Metallic", "Metalness", non_color=True)
+        new_image(metal_file, "Metallic", "Metalness")
 
     if rough_file := texture_files.get("roughness"):
-        rough_node = new_image(rough_file, "Roughness", "Roughness", non_color=True)
+        rough_node = new_image(rough_file, "Roughness", "Roughness")
 
         rough_gamma_node = nodes.new("ShaderNodeGamma")
         rough_gamma_node.name = NODES.rough_gamma
@@ -278,12 +278,12 @@ def import_material(
         links.new(rough_gamma_node.outputs[0], bsdf_node.inputs["Roughness"])
 
     if emission_file := texture_files.get("emission"):
-        new_image(emission_file, "Emmission Strength", "Emission", non_color=True)
+        new_image(emission_file, "Emmission Strength", "Emission")
         if diff_node:
             links.new(diff_node.outputs[0], bsdf_node.inputs["Emission"])
 
     if opacity_file := texture_files.get("opacity"):
-        opacity_node = new_image(opacity_file, "Alpha", "Opacity", non_color=True)
+        opacity_node = new_image(opacity_file, "Alpha", "Opacity")
         opacity_node.name = NODES.opacity
         mat.blend_method = "CLIP"
         mat.shadow_method = "CLIP"
@@ -291,7 +291,7 @@ def import_material(
     if nor_file := texture_files.get("normal"):
         nor_node = nodes.new("ShaderNodeNormalMap")
         nor_node.name = NODES.normal_map
-        new_image(nor_file, "Color", "Normal", to_node=nor_node, non_color=True)
+        new_image(nor_file, "Color", "Normal", to_node=nor_node)
         links.new(nor_node.outputs[0], bsdf_node.inputs["Normal"])
 
     if disp_file := texture_files.get("displacement"):
