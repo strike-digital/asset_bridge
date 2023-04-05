@@ -150,9 +150,10 @@ def download_asset(
             )
 
         del DOWNLOADING[asset.list_item.idname]
-        task = ab.tasks[task_name]
-        force_ui_update(area_types="VIEW_3D")
-        run_in_main_thread(task.finish, kwargs={"remove": False})
+        task = ab.tasks.get(task_name)
+        if task:
+            force_ui_update(area_types="VIEW_3D")
+            run_in_main_thread(task.finish, kwargs={"remove": False})
 
     thread = Thread(target=download)
     thread.start()

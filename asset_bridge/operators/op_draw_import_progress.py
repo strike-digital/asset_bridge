@@ -1,3 +1,4 @@
+from .op_cancel_task import cancel_task
 from ..helpers.prefs import get_prefs
 import bpy
 import gpu
@@ -80,7 +81,8 @@ class AB_OT_draw_import_progress(Operator):
                 context.window.cursor_modal_restore()
 
         if over_cancel and event.type == "LEFTMOUSE" and event.value == "PRESS":
-            self.get_task(context).cancel()
+            cancel_task(self.task_name)
+            # self.get_task(context).cancel()
             report_message("WARNING", "Download cancelled")
 
         return {"PASS_THROUGH"}

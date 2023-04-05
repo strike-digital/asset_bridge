@@ -1,3 +1,5 @@
+import bpy
+from ..helpers.main_thread import run_in_main_thread
 from bpy.props import StringProperty
 from bpy.types import Operator
 
@@ -22,3 +24,10 @@ class AB_OT_cancel_task(Operator):
 
         task.cancel(remove=False)
         return {"FINISHED"}
+
+
+def cancel_task(name: str, main_thread=False):
+    if main_thread:
+        run_in_main_thread(cancel_task, (name, False))
+    else:
+        bpy.ops.asset_bridge.cancel_task("INVOKE_DEFAULT", name=name)
