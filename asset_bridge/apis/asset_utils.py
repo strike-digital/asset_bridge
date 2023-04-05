@@ -11,7 +11,7 @@ from mathutils import Vector as V
 
 from ..api import asset_lists
 from ..vendor import requests
-from ..constants import DIRS, FILES, NODES, NODE_GROUPS, __IS_DEV__
+from ..constants import DIRS, FILES, NODES, NODE_GROUPS, __IS_DEV__, ServerError503
 from .asset_types import AssetList
 from ..helpers.prefs import get_prefs
 from ..ui.ui_helpers import dpifac
@@ -71,17 +71,19 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
     download_dir.mkdir(exist_ok=True, parents=True)
     file_name = file_name or file_name_from_url(url)
     download_file = download_dir / file_name
-    progress_file = download_dir / f"{file_name}.progress.txt"
+    # progress_file = download_dir / f"{file_name}.progress.txt"
 
-    # result = requests.get(url, stream=True)
-
-    # total = 0
-    # last_write = time()
     with requests.get(url, stream=True) as result:
         if result.status_code != 200:
+            # This can be handled specially to provide better information to the user.
+            if result.status_code == 503:
+                raise ServerError503(url)
+
             with open(DIRS.addon / "log.txt", "w") as f:
                 f.write(url)
-                f.write(int(result.status_code))
+                f.write("\n")
+                f.write(str(result.status_code))
+
             raise requests.ConnectionError()
         with open(download_file, 'wb') as f:
             copyfileobj(result.raw, f)

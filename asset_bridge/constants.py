@@ -13,8 +13,18 @@ PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"
 CHECK_NEW_ASSETS_TASK_NAME = "check_new_assets"
 
 
+# Custom web response errors
+class ServerError503(Exception):
+    """Returned when a server is temporarily down, potentially for maintenance or because of capacity issues."""
+
+    def __init__(self, url, message=""):
+        if not message:
+            message = f"The server couldn't fulfill the request for {url}"
+        super().__init__(message)
+
+
+# The names of useful node groups.
 # I'm now realising that these should probably be enums, but I don't care enough to change it.
-# The names of useful node groups
 class NodeGroups():
 
     anti_tiling = "AB-anti_tiling"

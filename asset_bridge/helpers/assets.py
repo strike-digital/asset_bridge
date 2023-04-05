@@ -3,6 +3,7 @@ from time import sleep
 from uuid import uuid1
 from typing import Dict, Callable
 from threading import Thread
+from ..constants import ServerError503
 
 import bpy
 from bpy.types import ID, World, Context, Material, Collection, MaterialSlot
@@ -138,10 +139,25 @@ def download_asset(
                 return .01
             return None
 
+        successful = False
+
         # Download the asset
         bpy.app.timers.register(check_progress)
         try:
             asset.download_asset()
+            successful = True
+
+        # Handle errors
+        except ServerError503:
+            asset.list_item.asset_list.url
+            report_message(
+                "ERROR",
+                f"Could not download {asset.idname}, got response code 503.\n\n\
+                This means that the web server is temporarily down, potentially for maintenance,\n\
+                or because of capacity problems.\n\n\
+                Try checking {asset.list_item.asset_list.url} to confirm this.".replace("  ", ""),
+                main_thread=True,
+            )
         except Exception as e:
             report_message(
                 "ERROR",
@@ -151,8 +167,13 @@ def download_asset(
 
         del DOWNLOADING[asset.list_item.idname]
         task = ab.tasks.get(task_name)
+        force_ui_update(area_types="VIEW_3D")
+
+        if not successful:
+            run_in_main_thread(task.cancel, kwargs={"remove": False})
+            return
+
         if task:
-            force_ui_update(area_types="VIEW_3D")
             run_in_main_thread(task.finish, kwargs={"remove": False})
 
     thread = Thread(target=download)
@@ -237,7 +258,7 @@ def download_and_import_asset(
             task.finish()
             return
 
-        elif not task or task.finished:
+        if not task or task.finished:
             imported = import_asset(context, asset, location, material_slot)
             if on_completion:
                 on_completion(imported)
