@@ -11,7 +11,7 @@ from mathutils import Vector as V
 
 from ..api import asset_lists
 from ..vendor import requests
-from ..constants import DIRS, FILES, NODES, NODE_GROUPS
+from ..constants import DIRS, FILES, NODES, NODE_GROUPS, __IS_DEV__
 from .asset_types import AssetList
 from ..helpers.prefs import get_prefs
 from ..ui.ui_helpers import dpifac
@@ -45,8 +45,9 @@ def register_asset_list(new_list: Type[AssetList]):
         asset_list = asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
         if asset_list is None:
             return {"CANCELLED"}
-        # TODO: remove this for the release
-        print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
+
+        if __IS_DEV__:
+            print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")
 
     # Load the asset list in another thread to prevent locking the UI and slowing down blender loading.
     # Turns out this can cause crashes. Would be good to fix in the future.

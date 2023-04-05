@@ -229,17 +229,19 @@ def download_and_import_asset(
 
     def check_download():
         task = ab.tasks.get(task_name)
-        if not task or task.finished:
+
+        if task.cancelled:
+            if on_cancel:
+                on_cancel()
+            task.finish()
+            return
+
+        elif not task or task.finished:
             imported = import_asset(context, asset, location, material_slot)
             if on_completion:
                 on_completion(imported)
             if task:
                 task.finish()
-            return
-        elif task.cancelled:
-            if on_cancel:
-                on_cancel()
-            task.finish()
             return
         return .1
 

@@ -94,7 +94,6 @@ class PH_AssetListItem(AssetListItem):
                 operator_kwargs={"url": "https://www.patreon.com/polyhaven/overview"},
                 label_icon="FUND",
             ))
-        # TODO: Maybe load the preview here
 
     @property
     def quality_levels(self):
