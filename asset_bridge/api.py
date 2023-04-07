@@ -78,7 +78,7 @@ class AllAssetLists():
         # Write the new cached data
         # This is very slow, so only do it when needed to prevent long register times.
         if not data:
-            list_file = DIRS.asset_lists / (asset_list.name + ".json")
+            list_file = DIRS.cache / (asset_list.name + ".json")
             with open(list_file, "w") as f:
                 json.dump(asset_list_data, f, indent=2)
 

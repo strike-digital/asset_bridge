@@ -29,7 +29,7 @@ def register_asset_list(new_list: Type[AssetList]):
         start = perf_counter()
         asset_lists[new_list.name] = new_list
         # Get the cached asset list data if it exists
-        list_file = DIRS.asset_lists / (new_list.name + ".json")
+        list_file = DIRS.cache / (new_list.name + ".json")
         asset_list_data = {}
         if list_file.exists():
             with open(list_file, "r") as f:
@@ -75,14 +75,15 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
 
     with requests.get(url, stream=True) as result:
         if result.status_code != 200:
-            # This can be handled specially to provide better information to the user.
-            if result.status_code == 503:
-                raise ServerError503(url)
 
-            with open(DIRS.addon / "log.txt", "w") as f:
+            with open(FILES.log, "w") as f:
                 f.write(url)
                 f.write("\n")
                 f.write(str(result.status_code))
+
+            # This can be handled specially to provide better information to the user.
+            if result.status_code == 503:
+                raise ServerError503(url)
 
             raise requests.ConnectionError()
         with open(download_file, 'wb') as f:

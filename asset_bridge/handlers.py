@@ -94,6 +94,8 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 except (IndexError, KeyError) as e:
                     print(e)
                     continue
+                except ReferenceError:
+                    continue
 
     for obj in bpy.data.objects:
         mats = [slot.material for slot in obj.material_slots]

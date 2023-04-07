@@ -54,7 +54,7 @@ NODES = NodeNames()
 class Dirs():
 
     addon = Path(__file__).parent
-    asset_lists = addon / "asset_lists"
+    cache = addon / "cache"
     previews = addon / "previews"
     scripts = addon / "scripts"
     resources = addon / "resources"
@@ -81,7 +81,8 @@ class Files():
 
     script_create_dummy_assets = Dirs.scripts / "sc_create_dummy_assets.py"
     resources_blend = Dirs.resources / "resources.blend"
-    prefs = Dirs.addon / "prefs.json"
+    prefs = Dirs.cache / "prefs.json"
+    log = Dirs.cache / "log.txt"
 
     def update(self, lib_path: Path = ""):
         lib = lib_path or DIRS.library
