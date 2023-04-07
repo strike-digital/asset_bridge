@@ -55,7 +55,7 @@ class Dirs():
 
     addon = Path(__file__).parent
     cache = addon / "cache"
-    previews = addon / "previews"
+    previews = cache / "previews"
     scripts = addon / "scripts"
     resources = addon / "resources"
 
