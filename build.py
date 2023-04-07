@@ -53,7 +53,9 @@ def main():
     path = Path(__file__).parent
     files = [Path(f.decode("utf8")) for f in subprocess.check_output("git ls-files", shell=True).splitlines()]
     files = [f for f in files if "asset_bridge\\" in str(f)]
-    previews_dir = Path(__file__).parent / "asset_bridge" / "previews"
+
+    previews_dir = Path(__file__).parent / "asset_bridge" / "cache" / "previews"
+
     files += [(previews_dir).relative_to(path)]
     files += [f.relative_to(path) for f in previews_dir.iterdir()]
 
