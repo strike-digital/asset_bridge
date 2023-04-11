@@ -1,18 +1,21 @@
-<img src="images/ab_logo_transparent_1k.png"
-style="display: block; 
-    margin-left: auto;
-    margin-right: auto;
-    width: 50%;">
+<p align="center">
+  <img width=50% src="images/ab_logo_transparent_1k.png">
+</p>
 
 <hr>
 
 Asset Bridge is a Blender addon for automatically downloading free assets from sites like Polyhaven.com and AmbientCG.com, all straight from the asset browser:
 
 <!-- Cabin video: -->
-https://user-images.githubusercontent.com/59890307/229322956-ac0e563f-8a0d-4277-86bf-3481e5379730.mp4
+<img src="https://user-images.githubusercontent.com/16434638/229322956-ac0e563f-8a0d-4277-86bf-3481e5379730.mp4" width="200">
 
+<!-- https://user-images.githubusercontent.com/59890307/229322956-ac0e563f-8a0d-4277-86bf-3481e5379730.mp4 -->
+<br>
+
+<img src="https://user-images.githubusercontent.com/59890307/229310826-35a6f546-0dbb-445e-b2e3-57ebf8b7e9c0.mp4
+" width="200">
 <!-- Files downloading video: -->
-https://user-images.githubusercontent.com/59890307/229310826-35a6f546-0dbb-445e-b2e3-57ebf8b7e9c0.mp4
+<!-- https://user-images.githubusercontent.com/59890307/229310826-35a6f546-0dbb-445e-b2e3-57ebf8b7e9c0.mp4 -->
 
 
 # Installation
