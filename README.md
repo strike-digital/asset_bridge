@@ -23,7 +23,9 @@ https://user-images.githubusercontent.com/59890307/229310826-35a6f546-0dbb-445e-
 Check out this youtube video for a quick overview of how to use the addon, plus some useful tips and tricks:
 
 <a href="https://youtu.be/lopmqNvIqZM?t=128" target="_blank">
-<img src="images/ab_yt_preview.png" width=50%/>
+    <p align="center">
+        <img src="images/ab_yt_preview.png" width=60%/>
+    </p>
 </a>
 
 
