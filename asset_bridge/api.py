@@ -11,6 +11,28 @@ from .apis.asset_types import AssetList, AssetListItem
 from .operators.op_report_message import report_message
 
 
+"""
+The asset lists data structure works like this:
+
+AllAssetLists -> [AssetList, ...] -> [AssetListItem, ...] -> Asset
+
+Each AssetList essentially represents a website source that the assets come from, and
+contains information about that site, such as the name, url, and of course a list of
+all of the available assets from the site.
+
+Each AssetListItem then contains all of the metadata about an asset
+(name, tags, web url etc.), and importantly the quality levels that
+are diplayed in the UI.
+It is also responsible for downloading the preview of the asset that it represents.
+It is meant as a lightweight object only for storing information, rather than doing operations.
+
+Then the Asset differs from the AssetListItem in that it is meant purely for downloading and importing the asset.
+An AssetListItem can be converted into an Asset via the .to_asset function.
+
+Thinking about this now, I should maybe have come up with a better naming scheme for it.
+"""
+
+
 class AllAssetLists():
     """Contains a list of all asset Lists, and is a top level structure for accessing their information."""
 
@@ -59,21 +81,6 @@ class AllAssetLists():
         self.asset_lists[asset_list.name] = asset_list
         for item in asset_list.values():
             item.asset_list = asset_list
-
-        # Ensure that there are no duplicate names in other apis, so that all assets can be accessed by name
-        # for name, asset in asset_list.assets.items():
-        #     asset.idname = f"{asset_list.acronym}_{asset.idname}"
-
-        # for name, other_list in self.asset_lists.items():
-        #     if name == asset_list.name:
-        #         continue
-
-        #     if duplicates := other_list.assets.keys() & asset_list.assets.keys():
-        #         for duplicate in duplicates:
-        #             asset = asset_list[duplicate]
-        #             del asset_list[duplicate]
-        #             asset_list[f"{duplicate}_1"] = asset
-        #             asset.idname = f"{duplicate}_1"
 
         # Write the new cached data
         # This is very slow, so only do it when needed to prevent long register times.

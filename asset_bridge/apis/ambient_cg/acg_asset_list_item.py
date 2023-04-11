@@ -133,7 +133,7 @@ class ACG_AssetListItem(AssetListItem):
         # These are models with a weird format.
         if any(q in {"HQ", "SQ", "LQ"} for q in self.quality_data):
             return inspect.cleandoc("""
-            This model has an unsupported format. This will be fixed by Ambient CG in the future,
+            This model has an unsupported format. This should be fixed by Ambient CG in the future,
             but currently this model cannot be imported. If you want it to be fixed faster,
             consider donating to their Patreon so that they have the resources to continue :).
             """)
