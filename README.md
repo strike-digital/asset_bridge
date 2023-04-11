@@ -1,59 +1,44 @@
-
-# Try beta 2.0 now
-The 2.0 version features a full rewrite of the addon and brings support for the asset browser, UI widgets, and support for assets from [abientcg.com](https://ambientcg.com/), bringing the total number of available assets to >2,700
-
-try it out here: https://github.com/strike-digital/asset_bridge/releases/tag/2.0.3
-<br>
-<hr> 
-<!-- <img src="images/asset_bridge_logo.png" width=150> -->
-<!-- width=150 -->
-<img src="images/asset_bridge_logo2.png"
+<img src="images/ab_logo_transparent_1k.png"
 style="display: block; 
     margin-left: auto;
     margin-right: auto;
     width: 50%;">
-<!-- <br> -->
 
-# Download free assets in a few clicks
-Asset bridge is a blender addon to make downloading free assets from online sites easy. With it you can simply select the asset you want to import and click the "Download" button for it to be automatically downloaded and imported into your scene.
+<hr>
 
+Asset Bridge is a Blender addon for automatically downloading free assets from sites like Polyhaven.com and AmbientCG.com, all straight from the asset browser:
 
-![Using the addon](https://thumbs.gfycat.com/MiniatureMeatyGoa-size_restricted.gif)
+<!-- Cabin video: -->
+https://user-images.githubusercontent.com/59890307/229322956-ac0e563f-8a0d-4277-86bf-3481e5379730.mp4
 
-Currently the addon works with [PolyHaven](https://polyhaven.com), which gives instant access to almost a thousand free assets from within Blender. If there's enough interest I might also try to add support for other free websites as well, such as [AmbientCG](https://ambientcg.com/) and [CGBookcase](https://www.cgbookcase.com/)
+<!-- Files downloading video: -->
+https://user-images.githubusercontent.com/59890307/229310826-35a6f546-0dbb-445e-b2e3-57ebf8b7e9c0.mp4
+
 
 # Installation
 
-1. Download the addon zip from the [releases page](https://github.com/strike-digital/asset_bridge/releases/latest)
+1. You can download the addon from the [releases page](https://github.com/strike-digital/asset_bridge/releases/latest)
 1. In Blender go to Edit > Preferences > Addons > Install and select the zip file you just downloaded
-1. You'll then need to download the preview images of all of the assets. This can be done by clicking the button in the preferences, and then waiting for the progress bar to complete. For me, this takes about 15s, but that will vary from computer to computer.
+1. Then you'll need to select and set up the asset library folder that the downloaded assets will be stored in in the preferences.
 1. You're done!
 
-# How to use
+# Usage
 
-1. You can find the addon panel in the N-sidebar in the 3D viewport.
-From there, you can use the interface to select the type and category of asset you want to find, search for a specific name or tag, and sort the results according to various attributes such as downloads, publishing date etc.
+Check out this youtube video for a quick overview of how to use the addon, plus some useful tips and tricks:
 
-    ![The categories and search bar](images/ui_top.jpg)
-
-
-2. You can then view the results by clicking on the large thumbnail preview.
-
-    ![The asset and quality picker](images/ui_middle.jpg)
-3. Then, below that, you can select the quality of the asset you want to download, and if you click the arrow, you can view more info about it, such as the author, number of downloads, real world scale, etc.
-
-    <img src="images/ui_info.jpg" width=230 alt="The info section">
-
-4. If you want to view the asset online, you can then click the website button to the right of the download button.
-
-    ![The main addon UI](images/ui_bottom.jpg)
-
-5. Finally, simply click the "Download asset" button, and it will be automatically downloaded and imported into your scene!
-
-# Support Polyhaven ♥
-I'm not affiliated with them, but without the amazing work of the Polyhaven devs and contributers, this addon wouldn't be possible, so be sure to send them some love :)
-
-## [Join the Patreon here](https://www.patreon.com/polyhaven/overview)
+<a href="https://youtu.be/lopmqNvIqZM?t=128" target="_blank">
+<img src="images/ab_yt_preview.png" width=50%/>
+</a>
 
 
-## [And visit the site here](https://polyhaven.com)
+# Support the asset creators
+
+If you [buy the addon on the Blender Market](https://blendermarket.com/products/asset-bridge), a portion of the sale (30%) will go straight to the creators, helping them to continue to create the assets that the addon relies on.
+
+And if you want to support them directly, you can donate to each site here:
+
+### [:heart: Polyhaven.com](https://www.patreon.com/polyhaven)
+
+### [:heart: AmbientCG.com](https://www.patreon.com/ambientCG)
+
+This addon wouldn't be possible without the incredible work that the people behind these sites do, so be sure to send them some love
