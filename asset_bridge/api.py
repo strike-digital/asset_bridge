@@ -54,13 +54,13 @@ class AllAssetLists():
         """Takes an asset list and initialises it with new data from the internet"""
         asset_list = self.asset_lists[name]
 
-        if not data and not check_internet():
-            report_message(
-                severity="ERROR",
-                message="Could not download asset list as there is no internet connection",
-                main_thread=True,
-            )
-            return None
+        # if not data and not check_internet():
+        #     report_message(
+        #         severity="ERROR",
+        #         message="Could not download asset list as there is no internet connection",
+        #         main_thread=True,
+        #     )
+        #     return None
 
         # Get new data from the internet, from the get_data function
         try:

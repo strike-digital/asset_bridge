@@ -48,15 +48,25 @@ def main():
         default="",
         type=str,
     )
+    parser.add_argument(
+        "-b",
+        "--beta",
+        help="Whether or no this is a beta version",
+        default="",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     path = Path(__file__).parent
     files = [Path(f.decode("utf8")) for f in subprocess.check_output("git ls-files", shell=True).splitlines()]
     files = [f for f in files if "asset_bridge\\" in str(f)]
 
-    previews_dir = Path(__file__).parent / "asset_bridge" / "cache" / "previews"
+    cache_dir = Path(__file__).parent / "asset_bridge" / "cache"
+    files += [(cache_dir).relative_to(path)]
+    files += [f.relative_to(path) for f in cache_dir.iterdir() if f.name not in {"prefs.json", "log.txt"}]
 
-    files += [(previews_dir).relative_to(path)]
+    previews_dir = cache_dir / "previews"
+
     files += [f.relative_to(path) for f in previews_dir.iterdir()]
 
     # version
@@ -74,7 +84,8 @@ def main():
     constants_file = path / "asset_bridge" / "constants.py"
     update_constants_file(constants_file, False)
 
-    out_path = path / "builds" / f"asset_bridge_{file_version}.zip"
+    beta = "_beta" if args.beta else ""
+    out_path = path / "builds" / f"asset_bridge_{file_version}{beta}.zip"
     out_path.parent.mkdir(exist_ok=True, parents=True)
 
     with ZipFile(out_path, 'w') as z:
@@ -85,6 +96,7 @@ def main():
 
     webbrowser.open(out_path.parent)
     # webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
+    # webbrowser.open("https://blendermarket.com/creator/products/asset-bridge/edit")
 
 
 if __name__ == "__main__":

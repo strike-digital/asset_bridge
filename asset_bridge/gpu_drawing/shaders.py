@@ -32,7 +32,7 @@ def load_shader(vert_path: Path, frag_path: Path, geom_path: Path = "") -> gpu.t
         return gpu.types.GPUShader(vert_shader, frag_shader)
 
 
-ASSET_PROGRESS_SHADER = load_shader(
-    Path(__file__).parent / "shader_files" / "asset_progress.vert",
-    Path(__file__).parent / "shader_files" / "asset_progress.frag",
-)
+# ASSET_PROGRESS_SHADER = load_shader(
+#     Path(__file__).parent / "shader_files" / "asset_progress.vert",
+#     Path(__file__).parent / "shader_files" / "asset_progress.frag",
+# )

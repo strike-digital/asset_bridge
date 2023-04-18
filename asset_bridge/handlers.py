@@ -164,3 +164,8 @@ def unregister():
     for handler in list(handlers.undo_post):
         if handler.__name__ == undo_post.__name__:
             handlers.undo_post.remove(handler)
+
+    global prev_materials
+    global prev_world
+    prev_materials = {}
+    prev_world = None

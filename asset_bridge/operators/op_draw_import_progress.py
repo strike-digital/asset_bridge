@@ -1,9 +1,11 @@
+from time import time
 from .op_cancel_task import cancel_task
 from ..helpers.prefs import get_prefs
 import bpy
 import gpu
+import bl_math
 from bpy.props import StringProperty, FloatVectorProperty
-from bpy.types import Operator
+from bpy.types import Context, Operator
 from mathutils import Color
 from mathutils import Vector as V
 from gpu_extras.batch import batch_for_shader
@@ -11,11 +13,11 @@ from bpy_extras.view3d_utils import location_3d_to_region_2d
 
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
-from ..helpers.math import Rectangle, vec_lerp
+from ..helpers.math import Rectangle, lerp, vec_lerp
 from ..helpers.btypes import BOperator
 from ..helpers.drawing import get_active_window_region
 from .op_report_message import report_message
-from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
+# from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
 
 handlers = []
 
@@ -47,6 +49,10 @@ class AB_OT_draw_import_progress(Operator):
                 # "POST_VIEW",
                 "POST_PIXEL",
             ))
+        self.start_time = time()
+        self.factor = 0
+        self.finish_time = 0
+
         self.cancel_box = Rectangle()
         self.handler = handlers[-1]
         asset_list_item = get_asset_lists().all_assets[self.asset_id]
@@ -99,12 +105,8 @@ class AB_OT_draw_import_progress(Operator):
         self.finish()
         return {"CANCELLED"}
 
-    def draw_callback_px(self, context, location):
+    def draw_callback_px(self, context: Context, location: V):
         task = self.get_task(context)
-
-        if task is None or not task.progress or task.cancelled or task.finished:  # or not task.progress_prop_active:
-            self.finish()
-            return
 
         self.region = context.region
 
@@ -127,15 +129,46 @@ class AB_OT_draw_import_progress(Operator):
             (3, 0),
         ]
 
-        uv = coords
-        fac = task.progress_prop / 100
-        offset = location_3d_to_region_2d(context.region, context.region.data, location)
+        if task is None or not task.progress or task.cancelled or task.finished:  # or not task.progress_prop_active:
+            if not self.finish_time:
+                self.finish_time = time()
+
+        # Handle scaling up at the start and down at the end animations
+        redraw = False
         prefs = get_prefs(context)
-        size = V([100] * 2)
-        size *= prefs.download_widget_scale * context.preferences.view.ui_scale
-        # orig_size_x = size.x
-        # size.x *= aspect
+        scale = V((1, 1))
+        scale *= prefs.download_widget_scale * context.preferences.view.ui_scale
+        if self.finish_time:
+            time_diff = time() - self.finish_time
+        else:
+            time_diff = time() - self.start_time
+
+        popup_time = .4
+        if time_diff < popup_time:
+            time_diff /= popup_time
+            time_diff = bl_math.smoothstep(0, popup_time, time_diff)
+            time_diff = 1 - time_diff if self.finish_time else time_diff
+            scale *= time_diff
+            redraw = True
+        elif self.finish_time:
+            self.finish()
+            return
+
+        # Smooth the bar animation
+        target = 1 if self.finish_time else task.progress_prop / 100
+        fac = lerp(.1, self.factor, target)
+        if (target - fac) > .01:  # Avoid unnecessary updates
+            redraw = True
+        self.factor = fac
+
+        if redraw:
+            bpy.app.timers.register(context.area.tag_redraw, first_interval=.01)
+
+        uv = coords
+        offset = location_3d_to_region_2d(context.region, context.region.data, location)
+
         line_width = 2
+        size = scale * 100
 
         # Custom shader version
         if False:
@@ -162,7 +195,7 @@ class AB_OT_draw_import_progress(Operator):
         # height *= size.y
 
         # Lines
-        bar_height = 20
+        bar_height = 20 * scale.y
         line_coords = [V(c) * size + V((0, bar_height if c[1] else 0)) for c in coords]
         line_coords = [c + offset for c in line_coords]
         line_coords += [line_coords[0] + V((0, bar_height)), line_coords[3] + V((0, bar_height))]
@@ -234,7 +267,7 @@ class AB_OT_draw_import_progress(Operator):
         batch.draw(sh)
 
         # Lines
-        gpu.state.line_width_set(2)
+        gpu.state.line_width_set(line_width)
         batch = batch_for_shader(sh, 'LINES', {"pos": line_coords}, indices=line_indeces)
         sh.bind()
         line_colour = (1, 1, 1, .9)

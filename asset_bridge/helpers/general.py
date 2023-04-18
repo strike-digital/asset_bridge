@@ -1,6 +1,8 @@
-import http
+from time import perf_counter
 
 from bpy.types import Property, PropertyGroup
+
+from ..vendor import requests
 
 
 def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGroup, print_errors=False):
@@ -31,36 +33,52 @@ def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGr
 #         print(ex)
 #         return False
 
-
-def check_internet(timeout=.3) -> bool:
-    """
-    Check whether the user has an active internet connection
-    taken from: https://stackoverflow.com/a/29854274/18864758
-
-    Host: 8.8.8.8 (google-public-dns-a.google.com)
-    Service: domain (DNS/TCP)
-    """
-    conn = http.client.HTTPSConnection("8.8.8.8", timeout=timeout)
-    try:
-        conn.request("HEAD", "/")
-        return True
-    except Exception as e:
-        print(e)
-        return False
-    finally:
-        conn.close()
+# import urllib3
 
 
-# def check_internet(url='http://www.google.com/', timeout=3):
-#     """"
-#     Check whether the user has an active internet connection
-#     taken from: https://stackoverflow.com/a/33117579/18864758
-#     """
+# def check_interneet():
 #     start = perf_counter()
-#     try:
-#         _ = requests.head(url, timeout=timeout)
+#     http = urllib3.PoolManager(timeout=3.0)
+#     r = http.request('GET', 'google.com', preload_content=False)
+#     code = r.status
+#     r.release_conn()
+#     if code == 200:
 #         print(f"{perf_counter() - start:.5f}")
 #         return True
-#     except requests.ConnectionError:
-#         print("No internet connection available.")
-#     return False
+#     else:
+#         return False
+
+
+# def check_internet(timeout=.3) -> bool:
+#     """
+#     Check whether the user has an active internet connection
+#     taken from: https://stackoverflow.com/a/29854274/18864758
+
+#     Host: 8.8.8.8 (google-public-dns-a.google.com)
+#     Service: domain (DNS/TCP)
+#     """
+#     # return True
+#     conn = http.client.HTTPSConnection("8.8.8.8", timeout=timeout)
+#     try:
+#         conn.request("HEAD", "/")
+#         return True
+#     except Exception as e:
+#         print(e)
+#         return False
+#     finally:
+#         conn.close()
+
+def check_internet(url='http://www.google.com/', timeout=.1):
+    """"
+    Check whether the user has an active internet connection
+    taken from: https://stackoverflow.com/a/33117579/18864758
+    """
+    start = perf_counter()
+    try:
+        _ = requests.head(url, timeout=timeout)
+        print(f"{perf_counter() - start:.5f}")
+        return True
+    except requests.ConnectionError:
+        return False
+        print("No internet connection available.")
+    return False
