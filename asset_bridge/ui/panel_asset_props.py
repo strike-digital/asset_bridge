@@ -2,24 +2,14 @@ from bpy.types import Node, Panel, Object, Material
 
 from ..settings import get_ab_settings, get_asset_settings
 from ..constants import NODES, NODE_GROUPS
-from .ui_helpers import (
-    DummyLayout,
-    wrap_text,
-    draw_inline_prop,
-    draw_inline_column,
-    draw_section_header,
-    draw_node_group_inputs
-)
+from .ui_helpers import (DummyLayout, wrap_text, draw_inline_prop, draw_inline_column, draw_section_header,
+                         draw_node_group_inputs)
 from ..helpers.btypes import BPanel
-from .menu_swap_asset import (
-    AB_MT_swap_hdri_asset,
-    AB_MT_swap_model_asset,
-    AB_MT_swap_material_asset
-)
+from .menu_swap_asset import (AB_MT_swap_hdri_asset, AB_MT_swap_model_asset, AB_MT_swap_material_asset)
 
 
-class AssetPropsPanel(Panel):
-    __no_reg__ = True
+@BPanel(space_type="VIEW_3D", region_type="UI", category="Asset Bridge", label="Asset Settings")
+class AB_PT_asset_props_viewport(Panel):
     bl_label = "Asset settings"
 
     can_draw = False
@@ -291,23 +281,3 @@ class AssetPropsPanel(Panel):
             box = layout.box().column(align=True)
             box.scale_y = .9
             wrap_text(context, "Select an imported Asset Bridge asset to see its settings here", box, centered=True)
-
-
-# @BPanel(space_type="FILE_BROWSER", region_type="TOOLS", index=100, show_header=False)
-# class AB_PT_asset_props_browser(AssetPropsPanel, AssetBrowserPanel):
-#     __no_reg__ = False
-
-#     __reg_order__ = 100
-
-#     @classmethod
-#     def poll(cls, context):
-#         if context.area.ui_type != "ASSETS":
-#             return False
-#         if ASSET_LIB_NAME != context.area.spaces.active.params.asset_library_ref:
-#             return False
-#         return cls.asset_browser_panel_poll(context)
-
-
-@BPanel(space_type="VIEW_3D", region_type="UI", category="Asset Bridge", label="Asset Settings")
-class AB_PT_asset_props_viewport(AssetPropsPanel):
-    __no_reg__ = False

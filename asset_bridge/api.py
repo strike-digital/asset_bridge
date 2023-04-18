@@ -5,7 +5,6 @@ from collections import OrderedDict
 
 from .constants import DIRS
 from .helpers.math import clamp
-from .helpers.general import check_internet
 from .helpers.process import format_traceback
 from .apis.asset_types import AssetList, AssetListItem
 from .operators.op_report_message import report_message

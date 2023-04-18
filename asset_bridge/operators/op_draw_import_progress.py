@@ -137,13 +137,13 @@ class AB_OT_draw_import_progress(Operator):
         redraw = False
         prefs = get_prefs(context)
         scale = V((1, 1))
-        scale *= prefs.download_widget_scale * context.preferences.view.ui_scale
+        scale *= prefs.widget_scale * context.preferences.view.ui_scale
         if self.finish_time:
             time_diff = time() - self.finish_time
         else:
             time_diff = time() - self.start_time
 
-        popup_time = .4
+        popup_time = .4 / prefs.widget_anim_speed
         if time_diff < popup_time:
             time_diff /= popup_time
             time_diff = bl_math.smoothstep(0, popup_time, time_diff)
@@ -156,7 +156,7 @@ class AB_OT_draw_import_progress(Operator):
 
         # Smooth the bar animation
         target = 1 if self.finish_time else task.progress_prop / 100
-        fac = lerp(.1, self.factor, target)
+        fac = lerp(.1 * prefs.widget_anim_speed, self.factor, target)
         if (target - fac) > .01:  # Avoid unnecessary updates
             redraw = True
         self.factor = fac
@@ -167,7 +167,7 @@ class AB_OT_draw_import_progress(Operator):
         uv = coords
         offset = location_3d_to_region_2d(context.region, context.region.data, location)
 
-        line_width = 2
+        line_width = 2 * prefs.widget_scale
         size = scale * 100
 
         # Custom shader version

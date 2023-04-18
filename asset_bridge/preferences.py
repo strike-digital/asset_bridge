@@ -16,7 +16,7 @@ from .helpers.btypes import BMenu
 from .helpers.library import (is_lib_path_invalid, ensure_bl_asset_library_exists)
 from .ui.panel_asset_props import AB_PT_asset_props_viewport
 from .operators.op_show_info import InfoSnippets
-from .ui.panel_asset_browser import AB_PT_asset_browser
+from .ui.panel_asset_info import AB_PT_asset_info
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
 from .operators.op_remove_task import AB_OT_remove_task
@@ -121,7 +121,7 @@ class ABAddonPreferences(AddonPreferences):
     )
 
     def browser_panel_location_update(self, context):
-        browser_panel = AB_PT_asset_browser
+        browser_panel = AB_PT_asset_info
         bpy.utils.unregister_class(browser_panel)
         browser_panel.bl_region_type = "TOOLS" if self.browser_panel_location == "LEFT" else "TOOL_PROPS"
         bpy.utils.register_class(browser_panel)
@@ -144,12 +144,31 @@ class ABAddonPreferences(AddonPreferences):
         default=False,
     )
 
-    download_widget_scale: FloatProperty(
+    widget_scale: FloatProperty(
         name="Download widget scale",
         description="The scale of the widget that shows the download progress of an asset in the 3D viewport",
         default=1.0,
+        min=0,
+        soft_min=.1,
+        soft_max=2,
+        subtype="FACTOR",
     )
 
+    widget_anim_speed: FloatProperty(
+        name="animation speed",
+        description="The speed of the animations for the download widget in the 3D viewport",
+        default=1.0,
+        min=0,
+        soft_min=.1,
+        soft_max=2,
+        subtype="FACTOR",
+    )
+
+    # IMPORT SETTINGS PANEL
+    show_import_settings: new_show_prop("Import settings", False)
+    draw_import_settings_at_top: BoolProperty(name="Show the import settings at the top of the panel or not", default=True)
+
+    # SHOW PREFS SECTIONS
     show_general: new_show_prop("general")
     show_websites: new_show_prop("websites")
     show_tasks: new_show_prop("tasks")
@@ -256,7 +275,9 @@ class ABAddonPreferences(AddonPreferences):
         draw_inline_prop(section, self, "auto_pack_files", "Auto pack files", "", factor=fac)
         draw_inline_prop(section, self, "viewport_panel_category", "N-Panel category", "", factor=fac)
         draw_inline_prop(section, self, "browser_panel_location", "Browser panel side", "", factor=fac)
-        draw_inline_prop(section, self, "download_widget_scale", "Widget scale", "", factor=fac)
+        col = section.column(align=True)
+        draw_inline_prop(col, self, "widget_scale", "Widget scale", "", factor=fac)
+        draw_inline_prop(col, self, "widget_anim_speed", "Animation speed", "", factor=fac)
 
         section = draw_prefs_section(grid, "Asset websites", self, "show_websites").column(align=True)
         section.scale_y = section.scale_x = 1.5

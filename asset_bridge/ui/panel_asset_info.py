@@ -1,5 +1,6 @@
-from bpy.types import Panel
+from bpy.types import Context, Panel, UILayout
 from bpy_extras.asset_utils import AssetBrowserPanel
+from ..helpers.prefs import get_prefs
 
 from ..settings import get_ab_settings
 from ..constants import DIRS, ASSET_LIB_NAME
@@ -7,8 +8,11 @@ from .ui_helpers import wrap_text
 from ..helpers.btypes import BPanel
 
 
-@BPanel(space_type="FILE_BROWSER", region_type="TOOLS", label="Asset Bridge")
-class AB_PT_asset_browser(Panel, AssetBrowserPanel):
+@BPanel(space_type="FILE_BROWSER", region_type="TOOLS", label="Asset Info")
+class AB_PT_asset_info(Panel, AssetBrowserPanel):
+
+    # __no_reg__ = True
+    __reg_order__ = 0
 
     @classmethod
     def poll(cls, context):
@@ -28,8 +32,38 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
                 return False
         return cls.asset_browser_panel_poll(context)
 
+    def draw_import_settings(self, layout: UILayout, context: Context):
+        col = layout.column(align=True).box()
+        row = col.row(align=True)
+        prefs = get_prefs(context)
+
+        # Draw a left aligned open button
+        show_settings = prefs.show_import_settings
+        subrow = row.row(align=True)
+        subrow.alignment = "LEFT"
+        subrow.prop(
+            prefs,
+            "show_import_settings",
+            emboss=False,
+            text="Import settings",
+            icon="DOWNARROW_HLT" if show_settings else "RIGHTARROW_THIN",
+        )
+        subrow = row.row(align=True)
+        subrow.prop(prefs, "show_import_settings", emboss=False, text=" ", icon="NONE", toggle=True)
+        subrow.prop(prefs, "draw_import_settings_at_top", emboss=False, icon="GRIP", text="")
+
+        if show_settings:
+            col.label(text="Some very cool import settings")
+            col.label(text="Use your imagination")
+
     def draw(self, context):
         layout = self.layout
+
+        prefs = get_prefs(context)
+        if prefs.draw_import_settings_at_top:
+            self.draw_import_settings(layout, context)
+
+        # ASSET INFO
         ab = get_ab_settings(context)
         try:
             asset = ab.selected_asset
@@ -84,3 +118,6 @@ class AB_PT_asset_browser(Panel, AssetBrowserPanel):
         metadata = asset.metadata
         for item in metadata:
             item.draw(col, context)
+
+        if not prefs.draw_import_settings_at_top:
+            self.draw_import_settings(layout, context)
