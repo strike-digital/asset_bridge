@@ -77,39 +77,42 @@ class AssetMetadataItem():
 class AssetListItem(ABC):
     """A light representation of an asset, only containing info needed for display before being selected"""
 
-    asset_type: Type[Asset]  # The api asset class
-    asset_list: AssetList  # The asset list that this list item is contained within
+    # Attributes starting with ab_ are reserved and used by the addon
 
-    acronym: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
-    idname: str  # The unique Asset Bridge identifier of this asset
-    name: str  # The api name of the asset
-    label: str  # The name visible in the UI
-    type: str  # HDRI/Texture/Model etc.
-    bl_type: ID  # The type of asset to import (World, Object, Material etc.)
-    categories: list[str]  # The categories that this asset is in
-    authors: list[str]  # The authors of this asset
-    catalog_path: str  # The path to the asset in the asset browser
+    ab_asset_type: Type[Asset]  # The api asset class
+    ab_asset_list: AssetList  # The asset list that this list item is contained within
+
+    ab_acronym: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
+    ab_idname: str  # The unique Asset Bridge identifier of this asset
+    ab_name: str  # The api name of the asset
+    ab_label: str  # The name visible in the UI
+    ab_type: str  # HDRI/Texture/Model etc.
+    ab_bl_type: ID  # The type of asset to import (World, Object, Material etc.)
+    ab_categories: list[str]  # The categories that this asset is in
+    ab_authors: list[str]  # The authors of this asset
+    ab_catalog_path: str  # The path to the asset in the asset browser
+
+    ab_material_size: float = 1.0  # The real world size of a material in meters
 
     # The different levels of quality in the format of blender enum property items
-    quality_levels: list[tuple[str, str, str]]
+    ab_quality_levels: list[tuple[str, str, str]]
 
-    preview: int = -1
-    tags: list[str] = []
-    metadata: list[AssetMetadataItem] = []  # Info to be drawn in the metadata table
+    ab_tags: list[str] = []
+    ab_metadata: list[AssetMetadataItem] = []  # Info to be drawn in the metadata table
 
     @property
-    def idname(self):
-        return f"{self.acronym}_{self.name}"
+    def ab_idname(self):
+        return f"{self.ab_acronym}_{self.ab_name}"
 
     @property
     def downloads_dir(self):
         """The directory where all of the asset files will be downloaded to.
         IMPORTANT: This is for *All* quality levels, use the Asset class for a specific level, or do it manually"""
-        return DIRS.assets / self.idname
+        return DIRS.assets / self.ab_idname
 
     @property
     def preview_name(self):
-        return self.idname + ".png"
+        return self.ab_idname + ".png"
 
     @property
     def previews_dir(self):
@@ -121,7 +124,7 @@ class AssetListItem(ABC):
 
     @property
     def progress_file(self):
-        return DIRS.dummy_assets / f"{self.name}"
+        return DIRS.dummy_assets / f"{self.ab_name}"
 
     def poll(self):
         """Whether this asset can be imported currently.
@@ -139,7 +142,7 @@ class AssetListItem(ABC):
         link_method: Literal["LINK", "APPEND", "APPEND_REUSE"],
     ) -> Asset:
         """Return an Asset type for downloading and importing of this asset"""
-        asset = self.asset_type(self, quality_level, link_method)
+        asset = self.ab_asset_type(self, quality_level, link_method)
         # asset.quality = quality_level
         # asset.link_method = link_method
         return asset
@@ -209,7 +212,7 @@ class Asset(ABC):
     @property
     def import_name(self) -> str:
         """The name of the asset once it has been imported as a data block"""
-        return f"{self.list_item.idname}_{self.quality_level}"
+        return f"{self.list_item.ab_idname}_{self.quality_level}"
 
     @property
     def is_downloaded(self) -> bool:

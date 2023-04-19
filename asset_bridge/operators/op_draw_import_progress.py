@@ -13,7 +13,7 @@ from bpy_extras.view3d_utils import location_3d_to_region_2d
 
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
-from ..helpers.math import Rectangle, lerp, vec_lerp
+from ..helpers.math import Rectangle, lerp
 from ..helpers.btypes import BOperator
 from ..helpers.drawing import get_active_window_region
 from .op_report_message import report_message
@@ -89,7 +89,7 @@ class AB_OT_draw_import_progress(Operator):
         if over_cancel and event.type == "LEFTMOUSE" and event.value == "PRESS":
             cancel_task(self.task_name)
             # self.get_task(context).cancel()
-            report_message("WARNING", "Download cancelled")
+            report_message("INFO", "Download cancelled")
 
         return {"PASS_THROUGH"}
 
@@ -262,7 +262,10 @@ class AB_OT_draw_import_progress(Operator):
         batch = batch_for_shader(sh, 'TRIS', {"pos": bar_coords}, indices=indices)
         sh.bind()
         alpha = .8
-        color = vec_lerp(fac, (1, 0, 0, alpha), (0, .8, 0, alpha))
+        # Hue lerp rather than rgb lerp to get nicer colours
+        color = Color()
+        color.hsv = (lerp(fac, 0, 1 / 3), 1, lerp(fac, 1, .8))
+        color = list(color) + [alpha]
         sh.uniform_float("color", color)
         batch.draw(sh)
 

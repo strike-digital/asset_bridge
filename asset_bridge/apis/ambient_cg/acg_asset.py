@@ -16,9 +16,9 @@ class ACG_Asset(Asset):
 
     def __init__(self, asset_list_item: ACG_AssetListItem, quality_level: str, link_method: str):
         self.list_item = asset_list_item
-        self.name = asset_list_item.name
-        self.idname = asset_list_item.idname
-        self.type = asset_list_item.type
+        self.name = asset_list_item.ab_name
+        self.idname = asset_list_item.ab_idname
+        self.type = asset_list_item.ab_type
         self.all_quality_data = asset_list_item.quality_data
         self.quality_data = self.all_quality_data[quality_level]
         self.quality_level = quality_level

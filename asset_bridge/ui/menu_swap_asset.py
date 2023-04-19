@@ -13,7 +13,7 @@ def draw_swap_op(layout: UILayout, asset_list_item: AssetListItem, qlevel_id: st
     op: AB_OT_swap_asset = layout.operator("asset_bridge.swap_asset", text=qlevel_label, icon=icon)
     op.bl_description = f"Change this asset's quality level to {qlevel_label}"
     op.to_quality = qlevel_id
-    op.asset_id = asset_list_item.idname
+    op.asset_id = asset_list_item.ab_idname
 
 
 def draw_asset_levels(data_block: ID, layout: UILayout, label: str = "Change quality level", icon="NONE"):
@@ -25,7 +25,7 @@ def draw_asset_levels(data_block: ID, layout: UILayout, label: str = "Change qua
     settings = get_asset_settings(data_block)
     asset_name = settings.idname
     asset = get_asset_lists().all_assets[asset_name]
-    for level_id, level_label, _ in asset.quality_levels:
+    for level_id, level_label, _ in asset.ab_quality_levels:
         row = layout.row(align=True)
         if settings.quality_level == level_id:
             row.enabled = False

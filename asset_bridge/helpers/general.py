@@ -78,7 +78,7 @@ def check_internet(url='http://www.google.com/', timeout=.1):
         _ = requests.head(url, timeout=timeout)
         return True
         print(f"{perf_counter() - start:.5f}")
-    except requests.ConnectionError:
+    except (requests.ConnectionError, requests.ReadTimeout):
         return False
         print("No internet connection available.")
     return False

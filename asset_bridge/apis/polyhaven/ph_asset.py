@@ -23,9 +23,9 @@ class PH_Asset(Asset):
 
     def __init__(self, asset_list_item: PH_AssetListItem, quality_level: str = "", link_method: str = ""):
         self.list_item = asset_list_item
-        self.name = asset_list_item.name
-        self.idname = asset_list_item.idname
-        self.type = asset_list_item.type
+        self.name = asset_list_item.ab_name
+        self.idname = asset_list_item.ab_idname
+        self.type = asset_list_item.ab_type
 
         self.quality_level = quality_level
         # if quality_level:

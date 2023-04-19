@@ -4,7 +4,7 @@ from ..helpers.prefs import get_prefs
 
 from ..settings import get_ab_settings
 from ..constants import DIRS, ASSET_LIB_NAME
-from .ui_helpers import wrap_text
+from .ui_helpers import draw_left_aligned_prop, wrap_text
 from ..helpers.btypes import BPanel
 
 
@@ -33,8 +33,9 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         return cls.asset_browser_panel_poll(context)
 
     def draw_import_settings(self, layout: UILayout, context: Context):
-        col = layout.column(align=True).box()
-        row = col.row(align=True)
+        col = layout.column(align=True)
+        box = col.box()
+        row = box.row(align=True)
         prefs = get_prefs(context)
 
         # Draw a left aligned open button
@@ -50,11 +51,15 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         )
         subrow = row.row(align=True)
         subrow.prop(prefs, "show_import_settings", emboss=False, text=" ", icon="NONE", toggle=True)
+
+        subrow = subrow.row(align=True)
+        subrow.active = False
         subrow.prop(prefs, "draw_import_settings_at_top", emboss=False, icon="GRIP", text="")
 
         if show_settings:
-            col.label(text="Some very cool import settings")
-            col.label(text="Use your imagination")
+            box = col.box()
+            box.label(text="Some very cool import settings")
+            box.label(text="Use your imagination")
 
     def draw(self, context):
         layout = self.layout
@@ -102,22 +107,24 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
             op.file_path = str(DIRS.assets)
 
         row = bigrow.row(align=True)
-        row.alignment = "CENTER"
-        text = "   " + asset.label if is_downloaded else asset.label + "    "
-        row.label(text=text)
-
+        # row.alignment = "CENTER"
+        # text = "   " + asset.label if is_downloaded else asset.label + "    "
+        text = "   " + asset.ab_label
+        draw_left_aligned_prop(row, context, prefs, "show_asset_info", text, False)
         if is_downloaded:
             row = bigrow.row(align=True)
             row.alignment = "RIGHT"
             row.prop(ab, "reload_asset", text="", icon="FILE_REFRESH", emboss=ab.reload_asset)
 
-        box = col.box()
-        box.prop(ab, "asset_quality", text="Quality")
+        if prefs.show_asset_info:
 
-        col = box.column(align=True)
-        metadata = asset.metadata
-        for item in metadata:
-            item.draw(col, context)
+            box = col.box()
+            box.prop(ab, "asset_quality", text="Quality")
+
+            col = box.column(align=True)
+            metadata = asset.ab_metadata
+            for item in metadata:
+                item.draw(col, context)
 
         if not prefs.draw_import_settings_at_top:
             self.draw_import_settings(layout, context)

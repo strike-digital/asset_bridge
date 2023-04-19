@@ -74,11 +74,11 @@ class AB_OT_download_previews(Operator):
                 except (ConnectionError, ConnectTimeout) as e:
                     report_message(
                         severity="ERROR",
-                        message=f"Could not download the preview for {asset.idname}:\n{e}",
+                        message=f"Could not download the preview for {asset.ab_idname}:\n{e}",
                         main_thread=True,
                     )
                 progress.increment()
-                names.remove(asset.idname)
+                names.remove(asset.ab_idname)
 
             def update_message():
                 """Update the message with a random preview name.

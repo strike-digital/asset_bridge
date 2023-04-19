@@ -103,7 +103,7 @@ class ACG_AssetList(AssetList):
         for name, asset_info in data.items():
             if asset_info["dataType"] in {"Material", "HDRI", "3DModel"}:
                 item = ACG_AssetListItem(name, asset_info)
-                self.assets[item.idname] = item
+                self.assets[item.ab_idname] = item
 
 
 register_asset_list(ACG_AssetList)

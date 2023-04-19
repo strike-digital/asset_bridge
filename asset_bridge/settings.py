@@ -189,7 +189,7 @@ class AssetBridgeSettings(PropertyGroup):
         asset_list_item = self.selected_asset
         if asset_list_item:
             items = []
-            for i, level in enumerate(asset_list_item.quality_levels):
+            for i, level in enumerate(asset_list_item.ab_quality_levels):
                 # Avoid enum bug
                 icon = "CHECKMARK" if asset_list_item.is_downloaded(level[0]) else "IMPORT"
                 items.append(_make_item(level[0], level[1], level[2], icon, i))

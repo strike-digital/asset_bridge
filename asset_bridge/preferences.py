@@ -16,7 +16,7 @@ from .helpers.btypes import BMenu
 from .helpers.library import (is_lib_path_invalid, ensure_bl_asset_library_exists)
 from .ui.panel_asset_props import AB_PT_asset_props_viewport
 from .operators.op_show_info import InfoSnippets
-from .ui.panel_asset_info import AB_PT_asset_info
+from .ui.panel_asset_browser import AB_PT_asset_info
 from .operators.op_show_popup import show_popup
 from .operators.op_open_folder import AB_OT_open_folder
 from .operators.op_remove_task import AB_OT_remove_task
@@ -165,8 +165,10 @@ class ABAddonPreferences(AddonPreferences):
     )
 
     # IMPORT SETTINGS PANEL
-    show_import_settings: new_show_prop("Import settings", False)
-    draw_import_settings_at_top: BoolProperty(name="Show the import settings at the top of the panel or not", default=True)
+    show_import_settings: new_show_prop("import", False)
+    draw_import_settings_at_top: BoolProperty(name="Show the import settings at the top of the panel or not",
+                                              default=True)
+    show_asset_info: new_show_prop("asset", True)
 
     # SHOW PREFS SECTIONS
     show_general: new_show_prop("general")
@@ -225,7 +227,7 @@ class ABAddonPreferences(AddonPreferences):
             # Draw info showing the number of previews to download, only if it is not the first time download
             if new_assets_available and task_steps != len(all_assets) and not first_time:
                 needed_previews = set(
-                    a.idname for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
+                    a.ab_idname for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
                 layout.label(text=self.format_download_label(needed_previews))
 
             # Draw the button/progress bar

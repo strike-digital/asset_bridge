@@ -26,7 +26,7 @@ class PH_AssetList(AssetList):
         self.assets = OrderedDict()
         for name, asset_info in data.items():
             item = PH_AssetListItem(name, asset_info)
-            self.assets[item.idname] = item
+            self.assets[item.ab_idname] = item
 
 
 register_asset_list(PH_AssetList)

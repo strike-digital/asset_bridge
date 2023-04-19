@@ -6,21 +6,15 @@ from bpy.types import World, Object, Material
 from .acg_asset import ACG_Asset
 from ..asset_types import AssetListItem
 from ..asset_types import AssetMetadataItem as Metadata
-from ..asset_utils import (
-    HDRI,
-    MODEL,
-    MATERIAL,
-    download_file,
-    dimensions_to_string
-)
+from ..asset_utils import (HDRI, MODEL, MATERIAL, download_file, dimensions_to_string)
 from ...helpers.library import human_readable_file_size
 
 
 class ACG_AssetListItem(AssetListItem):
 
-    asset_type = ACG_Asset
-    acronym = "acg"
-    authors = ["Lennart Demes"]
+    ab_asset_type = ACG_Asset
+    ab_acronym = "acg"
+    ab_authors = ["Lennart Demes"]
 
     def __init__(self, name: str, data: dict):
         asset_types = {"HDRI": HDRI, "Material": MATERIAL, "3DModel": MODEL}
@@ -28,18 +22,18 @@ class ACG_AssetListItem(AssetListItem):
         names = {"HDRI": "HDRIs", "Material": "Materials", "3DModel": "Models"}
 
         # Necessary data
-        self.name = name
+        self.ab_name = name
         data_type = data["dataType"]
-        self.type = asset_types[data_type]
-        self.bl_type = bl_types[data_type]
-        self.tags = data["tags"]
+        self.ab_type = asset_types[data_type]
+        self.ab_bl_type = bl_types[data_type]
+        self.ab_tags = data["tags"]
         for tag in data["tags"]:
             if tag not in {"hdri", "3d"}:
                 category = tag
                 break
         else:
-            category = self.tags[-1]
-        self.categories = [t for t in self.tags if t not in {"hdri", "3d"}]
+            category = self.ab_tags[-1]
+        self.ab_categories = [t for t in self.ab_tags if t not in {"hdri", "3d"}]
         # self.catalog_path = f"{names[data_type]}/{category}"
 
         # Modify the label
@@ -49,17 +43,17 @@ class ACG_AssetListItem(AssetListItem):
         label = label.replace("HDRI", "")
         label = re.sub("([A-Z])", " \\1", label)[1:]
         label = re.sub("(\\d\\d\\d)", " \\1 ", label)
-        self.label = label
+        self.ab_label = label
 
         # The quality levels to show in the UI, in the format of an EnumProperty items list
         self.quality_data = data["quality_levels"]
-        self.quality_levels = []
+        self.ab_quality_levels = []
         for name, quality_data in data["quality_levels"].items():
             if "PREVIEW" in name:
                 continue
             label = name.lower().replace('-', ' ').replace("lq", "Low").replace("sq", "Medium").replace("hq", "High")
             label = f"{label} ({human_readable_file_size(quality_data['size'])})"
-            self.quality_levels.append((name, label, f"Download this asset at {label} quality"))
+            self.ab_quality_levels.append((name, label, f"Download this asset at {label} quality"))
             # self.quality_levels.append((name, name, f"Download this asset at {label} quality"))
 
         model_levels = ["LQ", "SQ", "HQ"]
@@ -69,27 +63,27 @@ class ACG_AssetListItem(AssetListItem):
             name = level[0]
             parts = name.split("-")
             value = 0
-            if self.type == HDRI:
+            if self.ab_type == HDRI:
                 if "TONEMAPPED" in name:
                     value += 100
-            elif self.type == MODEL:
+            elif self.ab_type == MODEL:
                 try:
                     value += model_levels.index(parts[0])
                 except ValueError:
                     pass
 
-            if self.type in {HDRI, MATERIAL}:
+            if self.ab_type in {HDRI, MATERIAL}:
                 qual = parts[0].split("K")[0].split("k")[0]
                 try:
                     value += int(qual)
                 except ValueError as e:
-                    print(f"Error sorting quality levels for asset {self.name}: {e}")
+                    print(f"Error sorting quality levels for asset {self.ab_name}: {e}")
             return value
 
-        self.quality_levels.sort(key=sort_quality)
+        self.ab_quality_levels.sort(key=sort_quality)
 
         # Setup info for the metadata panel
-        self.metadata = [
+        self.ab_metadata = [
             Metadata(
                 "Link",
                 "AmbientCG",
@@ -109,14 +103,14 @@ class ACG_AssetListItem(AssetListItem):
             Metadata("tags", data["tags"]),
         ]
         if data["dimensionX"]:
-            self.metadata.append(
+            self.ab_metadata.append(
                 Metadata(
                     "Dimensions",
                     [[data["dimensionX"], data["dimensionY"], data["dimensionZ"]]],
                     to_string=dimensions_to_string,
                 ))
 
-        self.metadata.append(
+        self.ab_metadata.append(
             Metadata(
                 "Support",
                 ["Patreon", "Ko-Fi"],
@@ -140,5 +134,5 @@ class ACG_AssetListItem(AssetListItem):
         return ""
 
     def download_preview(self):
-        url = f"https://cdn3.struffelproductions.com/file/ambientCG/media/sphere/128-PNG/{self.name}_PREVIEW.png"
+        url = f"https://cdn3.struffelproductions.com/file/ambientCG/media/sphere/128-PNG/{self.ab_name}_PREVIEW.png"
         download_file(url, self.previews_dir, self.preview_name)

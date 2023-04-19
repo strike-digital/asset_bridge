@@ -8,8 +8,6 @@ from .helpers.math import clamp
 from .helpers.process import format_traceback
 from .apis.asset_types import AssetList, AssetListItem
 from .operators.op_report_message import report_message
-
-
 """
 The asset lists data structure works like this:
 
@@ -79,7 +77,7 @@ class AllAssetLists():
             asset_list = asset_list(asset_list_data)
         self.asset_lists[asset_list.name] = asset_list
         for item in asset_list.values():
-            item.asset_list = asset_list
+            item.ab_asset_list = asset_list
 
         # Write the new cached data
         # This is very slow, so only do it when needed to prevent long register times.

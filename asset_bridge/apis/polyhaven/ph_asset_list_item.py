@@ -12,31 +12,27 @@ from ...constants import DIRS
 
 class PH_AssetListItem(AssetListItem):
 
-    acronym = "ph"
-    asset_type = PH_Asset
+    ab_acronym = "ph"
+    ab_asset_type = PH_Asset
 
     def __init__(self, name: str, data: dict):
         self.asset: PH_Asset = None
 
         asset_types = [HDRI, MATERIAL, MODEL]
         bl_types = [World, Material, Object]
-        self.name = name
-        self.label = data["name"]
-        self.type = asset_types[data["type"]]
-        self.bl_type = bl_types[data["type"]]
-        self.authors = list(data["authors"].keys()) or [""]
-
-        self.categories = data["categories"]
-        # names = ["HDRIs", "Materials", "Models"]
-        # self.catalog_path = f"{names[data['type']]}/{self.categories[0]}"
-
-        self.tags = data["tags"] + data["categories"]
+        self.ab_name = name
+        self.ab_label = data["name"]
+        self.ab_type = asset_types[data["type"]]
+        self.ab_bl_type = bl_types[data["type"]]
+        self.ab_authors = list(data["authors"].keys()) or [""]
+        self.ab_categories = data["categories"]
+        self.ab_tags = data["tags"] + data["categories"]
         self.page_url = f"https://polyhaven.com/a/{name}"
 
         self.loading_asset = False
 
         # Add metadata items
-        self.metadata = [
+        self.ab_metadata = [
             AssetMetadataItem(
                 "Link",
                 "Poly Haven",
@@ -57,36 +53,38 @@ class PH_AssetListItem(AssetListItem):
 
         if "dimensions" in data:
             # This needs the context to work so pass it as an argument
-            self.metadata.append(AssetMetadataItem(
-                "Dimensions",
-                [data["dimensions"]],
-                to_string=dimensions_to_string,
-            ))
+            self.ab_metadata.append(
+                AssetMetadataItem(
+                    "Dimensions",
+                    [data["dimensions"]],
+                    to_string=dimensions_to_string,
+                ))
+            self.ab_material_size = data["dimensions"][0] / 1000
 
         if "evs" in data:
-            self.metadata.append(AssetMetadataItem("EVs", str(data["evs"])))
+            self.ab_metadata.append(AssetMetadataItem("EVs", str(data["evs"])))
 
         if "whitebalance" in data:
-            self.metadata.append(AssetMetadataItem("Whitebalance", f"{str(data['whitebalance'])}K"))
+            self.ab_metadata.append(AssetMetadataItem("Whitebalance", f"{str(data['whitebalance'])}K"))
 
-        self.metadata.append(
+        self.ab_metadata.append(
             AssetMetadataItem(
                 "Date published",
                 datetime.fromtimestamp(data["date_published"]).strftime(format="%d/%m/%Y"),
             ))
 
         if "date_taken" in data:
-            self.metadata.append(
+            self.ab_metadata.append(
                 AssetMetadataItem(
                     "Date taken",
                     datetime.fromtimestamp(data["date_taken"]).strftime(format="%d/%m/%Y"),
                 ))
 
-        self.metadata.append(AssetMetadataItem(
+        self.ab_metadata.append(AssetMetadataItem(
             "Tags",
             data["tags"],
         ))
-        self.metadata.append(
+        self.ab_metadata.append(
             AssetMetadataItem(
                 "Support",
                 "Patreon",
@@ -96,7 +94,7 @@ class PH_AssetListItem(AssetListItem):
             ))
 
     @property
-    def quality_levels(self):
+    def ab_quality_levels(self):
         """The quality levels of Poly haven assets aren't accessible from the normal asset list,
         So here we load the full asset and cache it, use its data to get the quality levels."""
         if not self.asset:
@@ -124,5 +122,5 @@ class PH_AssetListItem(AssetListItem):
         return items
 
     def download_preview(self, size=128):
-        url = f"https://cdn.polyhaven.com/asset_img/thumbs/{self.name}.png?width={size}&height={size}"
-        download_file(url, DIRS.previews, f"{self.idname}.png")
+        url = f"https://cdn.polyhaven.com/asset_img/thumbs/{self.ab_name}.png?width={size}&height={size}"
+        download_file(url, DIRS.previews, f"{self.ab_idname}.png")

@@ -76,7 +76,7 @@ class AB_OT_import_asset(Operator):
         asset_list_item = get_asset_lists().all_assets.get(self.asset_name)
         asset = asset_list_item.to_asset(self.asset_quality, self.link_method)
 
-        if self.at_mouse and asset_list_item.type in {HDRI, MATERIAL} and len(context.window_manager.windows) > 1:
+        if self.at_mouse and asset_list_item.ab_type in {HDRI, MATERIAL} and len(context.window_manager.windows) > 1:
             report_message(
                 "WARNING",
                 "Downloading hdris and materials may not work as expected when Blender has multiple windows open. \

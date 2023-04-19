@@ -1,9 +1,10 @@
 import os
+from statistics import mean
 from time import sleep
 from uuid import uuid1
 from typing import Dict, Callable
 from threading import Thread
-from ..constants import ServerError503
+from ..constants import NODES, ServerError503
 
 import bpy
 from bpy.types import ID, World, Context, Material, Collection, MaterialSlot
@@ -54,16 +55,16 @@ def download_asset(
     list_item = asset.list_item
 
     # If this asset is already downloading, just return the task name for that instead of starting a new one.
-    if list_item.idname in DOWNLOADING:
-        task_name = DOWNLOADING[list_item.idname]
+    if list_item.ab_idname in DOWNLOADING:
+        task_name = DOWNLOADING[list_item.ab_idname]
         bpy.ops.asset_bridge.draw_import_progress(
             "INVOKE_DEFAULT",
             task_name=task_name,
             location=location,
-            asset_id=list_item.idname,
+            asset_id=list_item.ab_idname,
         )
         return task_name
-    task = ab.new_task(name=f"download_{list_item.idname}_{uuid1()}")
+    task = ab.new_task(name=f"download_{list_item.ab_idname}_{uuid1()}")
 
     # Handle if the asset is not in the list. Could happen if list is still loading for some reason, but is unlikely
     if not list_item:
@@ -83,7 +84,7 @@ def download_asset(
         task.finish(remove=False)
         return task.name
 
-    DOWNLOADING[asset.list_item.idname] = task.name
+    DOWNLOADING[asset.list_item.ab_idname] = task.name
 
     ab = get_ab_settings(context)
     max_size = asset.get_download_size()
@@ -96,13 +97,13 @@ def download_asset(
             "INVOKE_DEFAULT",
             task_name=task.name,
             location=location,
-            asset_id=list_item.idname,
+            asset_id=list_item.ab_idname,
         )
 
     def download():
 
         # Delete existing files
-        if asset.list_item.type == HDRI:
+        if asset.list_item.ab_type == HDRI:
             # We need to sleep here in to allow the blender UI to reload the hdri file if it is in cycles rendered view.
             # Otherwise the file is deleted first, and cycles loads in as a pink texture, until it is reloaded.
             # This might need to be longer on lower end hardware, but it's a pretty niche bug,
@@ -149,13 +150,13 @@ def download_asset(
 
         # Handle errors
         except ServerError503:
-            asset.list_item.asset_list.url
+            asset.list_item.ab_asset_list.url
             report_message(
                 "ERROR",
                 f"Could not download {asset.idname}, got response code 503.\n\n\
                 This means that the web server is temporarily down, potentially for maintenance,\n\
                 or because of capacity problems.\n\n\
-                Try checking {asset.list_item.asset_list.url} to confirm this.".replace("  ", ""),
+                Try checking {asset.list_item.ab_asset_list.url} to confirm this.".replace("  ", ""),
                 main_thread=True,
             )
         except Exception as e:
@@ -165,7 +166,7 @@ def download_asset(
                 main_thread=True,
             )
 
-        del DOWNLOADING[asset.list_item.idname]
+        del DOWNLOADING[asset.list_item.ab_idname]
         task = ab.tasks.get(task_name)
         force_ui_update(area_types="VIEW_3D")
 
@@ -187,7 +188,7 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
     This modifies blend data, so it needs to be run in the main thread."""
     asset_list_item = asset.list_item
     imported = None
-    if asset.list_item.type == HDRI:
+    if asset.list_item.ab_type == HDRI:
         from_world = context.scene.world
     try:
         imported = asset.import_asset(context)
@@ -196,7 +197,7 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
         def update_settings(data_block, index=0):
             settings = get_asset_settings(data_block)
             settings.is_asset_bridge = True
-            settings.idname = asset_list_item.idname
+            settings.idname = asset_list_item.ab_idname
             settings.quality_level = asset.quality_level
             settings.uuid = str(uuid)
             settings.index = index
@@ -208,6 +209,12 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
                 material_slot.material = imported
                 obj = material_slot.id_data
                 obj.active_material_index = list(obj.material_slots).index(material_slot)
+
+                # Set real world scale
+                size = mean(obj.dimensions)
+                node = imported.node_tree.nodes[NODES.scale]
+                node.outputs[0].default_value = asset_list_item.ab_material_size / size
+                # print(mean(obj.dimensions))
         elif isinstance(imported, World):
             if from_world:
                 copy_bl_properties(from_world.cycles, imported.cycles)

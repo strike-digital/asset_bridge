@@ -42,7 +42,7 @@ class AB_OT_swap_asset(Operator):
         initial_obj: Object = context.object
 
         # Find 3D coordinates of the point under the mouse cursor
-        if asset_list_item.type == HDRI:
+        if asset_list_item.ab_type == HDRI:
             region = context.region
 
             # Place in center of the viewport, taking the n panel into consideration
@@ -59,7 +59,7 @@ class AB_OT_swap_asset(Operator):
         else:
             location = initial_obj.location
 
-        if asset_list_item.type == MATERIAL:
+        if asset_list_item.ab_type == MATERIAL:
             material_slot = initial_obj.material_slots[initial_obj.active_material_index]
         else:
             material_slot = None
@@ -75,10 +75,10 @@ class AB_OT_swap_asset(Operator):
 
         def on_completion(imported: ID):
             """Called whent the asset has been imported"""
-            if asset_list_item.type == HDRI:
+            if asset_list_item.ab_type == HDRI:
                 for world in list(bpy.data.worlds):
                     settings = get_asset_settings(world)
-                    if settings.idname == asset_list_item.idname and world != imported:
+                    if settings.idname == asset_list_item.ab_idname and world != imported:
                         copy_nodes_settings(world.node_tree, imported.node_tree)
                         for node in world.node_tree.nodes:
                             if hasattr(node, "image") and (image := node.image):
@@ -88,16 +88,16 @@ class AB_OT_swap_asset(Operator):
                         bpy.data.worlds.remove(world)
                 imported.name = asset.import_name
 
-            elif asset_list_item.type == MATERIAL:
+            elif asset_list_item.ab_type == MATERIAL:
                 for material in list(bpy.data.materials):
                     settings = get_asset_settings(material)
-                    if settings.idname != asset_list_item.idname or material == imported:
+                    if settings.idname != asset_list_item.ab_idname or material == imported:
                         continue
                     copy_nodes_settings(material.node_tree, imported.node_tree)
                     clean_up_material(material)
                 imported.name = asset.import_name
 
-            elif asset_list_item.type == MODEL:
+            elif asset_list_item.ab_type == MODEL:
                 # Find all of the objects that are part of the old asset, and remove all of their data.
                 done = set()
                 to_remove = []
@@ -147,7 +147,7 @@ class AB_OT_swap_asset(Operator):
 
                 for collection in list(bpy.data.collections):
                     settings = get_asset_settings(collection)
-                    if settings.idname != asset_list_item.idname or collection == imported:
+                    if settings.idname != asset_list_item.ab_idname or collection == imported:
                         continue
                     if collection.users == 1:
                         bpy.data.collections.remove(collection)

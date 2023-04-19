@@ -213,6 +213,7 @@ def import_material(
         texture_files (Dict[str, Path]): A dictionary of file paths to the supported texture files (see type hint).
         name (str): The name of the imported material
         link_method (str, optional): The link method to use. Defaults to "APPEND_REUSE".
+        real_world_size (float, optional): The real world size of the textures, used to apply the correct scaling
 
     Returns:
         bpy.types.Material: The imported material

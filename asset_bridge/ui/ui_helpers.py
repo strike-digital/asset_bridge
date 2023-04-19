@@ -287,3 +287,34 @@ def draw_node_group_inputs(
         socket.draw(context, box, socket.node, socket.name)
         i += 1
         i += 1
+
+
+def draw_left_aligned_operator(layout: UILayout, context: Context, operator: str, text: str, kwargs: dict = {}):
+    """This is some magic that places an operator button on top of a label,
+    which allows the text to be left aligned rather than in the center.
+    It works by creating a dummy row above the operator, and then giving it a negative scale,
+    which pushes the operator up to be directly over the text.
+    If you want to see what it's doing, set emboss to True and change the sub.scale_y parameter.
+    It is also entirely overkill"""
+    col = layout.column(align=True)
+    col.label(text=text)
+    subcol = col.column(align=True)
+    sub = subcol.column(align=True)
+    sub.scale_y = -1
+    sub.prop(context.scene.render, "resolution_x")  # A random property
+    subrow = subcol.row(align=True)
+    op = subrow.operator(operator, text="", emboss=True)
+    for name, value in kwargs.items():
+        setattr(op, name, value)
+
+
+def draw_left_aligned_prop(layout: UILayout, context: Context, data, prop_name: str, text: str, emboss: bool = True):
+    """Draw a property with the text aligned to the left"""
+    col = layout.column(align=True)
+    col.label(text=text)
+    subcol = col.column(align=True)
+    sub = subcol.column(align=True)
+    sub.scale_y = -1
+    sub.prop(context.scene.render, "resolution_x")  # A random property
+    subrow = subcol.row(align=True)
+    subrow.prop(data, prop_name, text=" ", emboss=emboss)
