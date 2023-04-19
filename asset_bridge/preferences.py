@@ -14,7 +14,7 @@ from .helpers.prefs import get_prefs
 from .ui.ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_prefs_section, draw_download_previews)
 from .helpers.btypes import BMenu
 from .helpers.library import (is_lib_path_invalid, ensure_bl_asset_library_exists)
-from .ui.panel_asset_props import AB_PT_asset_props_viewport
+from .ui.panel_3d_viewport import AB_PT_asset_props_viewport
 from .operators.op_show_info import InfoSnippets
 from .ui.panel_asset_browser import AB_PT_asset_info
 from .operators.op_show_popup import show_popup
@@ -166,8 +166,10 @@ class ABAddonPreferences(AddonPreferences):
 
     # IMPORT SETTINGS PANEL
     show_import_settings: new_show_prop("import", False)
-    draw_import_settings_at_top: BoolProperty(name="Show the import settings at the top of the panel or not",
-                                              default=True)
+    draw_import_settings_at_top: BoolProperty(
+        name="Whether to show the import settings at the top of the panel or at the bottom",
+        default=True,
+    )
     show_asset_info: new_show_prop("asset", True)
 
     # SHOW PREFS SECTIONS

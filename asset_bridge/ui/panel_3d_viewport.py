@@ -165,9 +165,14 @@ class AB_PT_asset_props_viewport(Panel):
                         draw_inline_prop(box, mat, "blend_method", "Blend:", "", factor=FACTOR)
                         draw_inline_prop(box, mat, "shadow_method", "Shadow", "", factor=FACTOR)
                         box.separator(factor=PROP_SPACING)
+
                     if scale_node := nodes["scale"]:
                         socket = scale_node.outputs[0]
-                        draw_inline_prop(box, socket, "default_value", "Scale", "Amount", factor=FACTOR)
+                        row = draw_inline_column(box, "Scale", factor=FACTOR).row(align=True)
+                        row.prop(socket, "default_value", text="")
+                        op = row.operator("asset_bridge.set_real_world_mat_scale", text="", icon="SHADING_BBOX")
+                        op.object = obj.name
+                        op.material = mat.name
                         box.separator(factor=PROP_SPACING)
 
                     if nor_node := nodes["normal"]:

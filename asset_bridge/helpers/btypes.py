@@ -1,10 +1,12 @@
+import inspect
 from typing import Literal
 from dataclasses import dataclass
 
 import blf
-from bpy.props import StringProperty
-from bpy.types import Menu, Panel, Context, Operator, UILayout
-
+import bpy
+from bpy.props import BoolProperty, FloatProperty, FloatVectorProperty, IntProperty, StringProperty
+from bpy.types import Material, Menu, Object, Panel, Context, Operator, UILayout
+from mathutils import Vector
 """A module containing helpers to make defining blender types easier (panels, operators etc.)"""
 
 
@@ -309,6 +311,7 @@ class BOperator():
                 bl_description = op_description
 
             if not hasattr(cls, "execute"):
+
                 def execute(self, context):
                     return {"FINISHED"}
 
@@ -332,3 +335,110 @@ class BOperator():
         Wrapped.__doc__ = op_description
         Wrapped.__name__ = cls.__name__
         return Wrapped
+
+
+function_ops = []
+
+
+@dataclass
+class FunctionToOperator():
+    """A decorator that takes a function and registers an operator that will call it in the execute function.
+    It automatically converts the arguments of the function to operator arguments for basic data types,
+    and for blender id types (e.g. Objects etc.), the operator takes the name and then automatically gets the data
+    block to pass to the wrapped function
+
+    The idname of the operator is just bpy.ops.{category}.{function_name}
+    
+    Maybe this is going overboard and making the code harder to understand, but it works for me.
+    
+    Args:
+        category (str): The category that the operator will be placed in.
+        label (str): The label to display in the UI"""
+
+    category: str
+    label: str = ""
+
+    def __call__(self, function):
+
+        parameters = inspect.signature(function).parameters
+        supported_id_types = {
+            Material,
+            Object,
+        }
+
+        # Convert between python and blender property types
+        # In the future if I need to add more Data blocks, I can, but for now it is just materials and objects.
+        prop_types = {
+            str: StringProperty,
+            bool: BoolProperty,
+            float: FloatProperty,
+            int: IntProperty,
+            Vector: FloatVectorProperty,
+        }
+
+        prop_types.update({id_type: StringProperty for id_type in supported_id_types})
+        label = self.label if self.label else function.__name__.replace("_", " ").title()
+
+        # Define the new operator
+        @BOperator(
+            category=self.category,
+            idname=function.__name__,
+            description=function.__doc__,
+            label=label,
+        )
+        class CustomOperator(Operator):
+
+            def execute(self, context):
+                # Get the operator properties and convert them to function key word arguments
+
+                types_to_data = {
+                    Material: bpy.data.materials,
+                    Object: bpy.data.objects,
+                }
+
+                kwargs = {}
+                for name, param in parameters.items():
+                    # If it is an ID type, convert the name to the actual data block
+                    if param.annotation in supported_id_types:
+                        kwargs[name] = types_to_data[param.annotation][getattr(self, name)]
+                    # Context is a special case
+                    elif param.annotation == Context:
+                        kwargs[name] = context
+                    # Otherwise just pass the value
+                    else:
+                        kwargs[name] = getattr(self, name)
+
+                # Call the function
+                function(**kwargs)
+                return {"FINISHED"}
+
+        # Convert the function arguments into operator properties by adding to the annotations
+        for name, param in parameters.items():
+            prop_type = prop_types.get(param.annotation)
+
+            # Custom python objects cannot be passed.
+            if not prop_type and param.annotation != Context:
+                raise ValueError(f"Cannot convert function arguments of type {param.annotation} to operator property")
+
+            # Whether to set a default value or not
+            if param.default == inspect._empty:
+                prop = prop_types[param.annotation](name=name)
+            else:
+                prop = prop_types[param.annotation](name=name, default=param.default)
+
+            # Create the property
+            CustomOperator.__annotations__[name] = prop
+
+        # CustomOperator.__name__ = function.__name__
+        function_ops.append(CustomOperator)
+        return function
+
+
+def register():
+    for op in function_ops:
+        bpy.utils.register_class(op)
+
+
+def unregister():
+    for op in function_ops:
+        bpy.utils.unregister_class(op)

@@ -135,8 +135,14 @@ class AssetBridgeShowUISettings(PropertyGroup):
 
     mat_displacement: new_show_prop("Displacement")
 
+    # Import settings
+    import_mat: new_show_prop("Material")
 
-class AssetBridgeSettings(PropertyGroup):
+
+class AssetBridgeWmSettings(PropertyGroup):
+    """General settings that can be kept in the window manager.
+    This means that they get reset when starting a new blender session,
+    but otherwise they are more global than scene settings."""
     __reg_order__ = 1
 
     ui_show: PointerProperty(
@@ -219,6 +225,18 @@ class AssetBridgeSettings(PropertyGroup):
     )
 
 
+class AssetBridgeSceneSettings(PropertyGroup):
+    """General settings that need to be kept per-scene"""
+
+    apply_real_world_scale: BoolProperty(
+        name="Use real world scale",
+        default=False,
+        description="Set the scale of the imported material to be accurate to a real world scale when imported.\n\n\
+        This only applies to materials that have their dimensions defined, otherwise the texture dimension \
+        will be assumed to be 1m x 1m (the same as if the setting wasn't enabled)".replace("  ", ""),
+    )
+
+
 class AssetBridgeIDSettings(PropertyGroup):
     """Used to identify whether a datablock has been imported by asset bridge"""
 
@@ -237,6 +255,10 @@ class AssetBridgeIDSettings(PropertyGroup):
 
     # Used to tell if a datablock has been imported by asset bridge
     is_asset_bridge: BoolProperty()
+
+    @property
+    def asset_list_item(self):
+        return get_asset_lists().all_assets[self.idname]
 
 
 class AssetBridgeMaterialSettings(AssetBridgeIDSettings, PropertyGroup):
@@ -264,9 +286,14 @@ class AssetBridgeMaterialSettings(AssetBridgeIDSettings, PropertyGroup):
     )
 
 
-def get_ab_settings(context: bpy.types.Context) -> AssetBridgeSettings:
+def get_ab_settings(context: bpy.types.Context) -> AssetBridgeWmSettings:
     """Get the global asset bridge settings, registered to `context.window_manager.asset_bridge`"""
     return context.window_manager.asset_bridge
+
+
+def get_ab_scene_settings(context: bpy.types.Context) -> AssetBridgeSceneSettings:
+    """Get the scene specific asset bridge settings, registered to `context.scene.asset_bridge`"""
+    return context.scene.asset_bridge
 
 
 def get_asset_settings(data_block: ID) -> AssetBridgeIDSettings:
@@ -275,17 +302,14 @@ def get_asset_settings(data_block: ID) -> AssetBridgeIDSettings:
 
 
 def register():
-    bpy.types.WindowManager.asset_bridge = PointerProperty(type=AssetBridgeSettings)
-
+    bpy.types.WindowManager.asset_bridge = PointerProperty(type=AssetBridgeWmSettings)
+    bpy.types.Scene.asset_bridge = PointerProperty(type=AssetBridgeSceneSettings)
     bpy.types.ID.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
-    # bpy.types.Object.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
-    # bpy.types.World.asset_bridge = PointerProperty(type=AssetBridgeIDSettings)
     bpy.types.Material.asset_bridge = PointerProperty(type=AssetBridgeMaterialSettings)
 
 
 def unregister():
     del bpy.types.WindowManager.asset_bridge
-
-    # del bpy.types.Object.asset_bridge
-    # del bpy.types.World.asset_bridge
+    del bpy.types.Scene.asset_bridge
+    del bpy.types.ID.asset_bridge
     del bpy.types.Material.asset_bridge

@@ -162,13 +162,17 @@ def draw_section_header(
     row = box.row(align=True)
     if hide_prop_data:
         if show_icon:
-            arrow_icon = "TRIA_RIGHT" if not getattr(hide_prop_data, hide_prop_name) else "TRIA_DOWN"
+            # arrow_icon = "TRIA_RIGHT" if not getattr(hide_prop_data, hide_prop_name) else "TRIA_DOWN"
+            arrow_icon = "RIGHTARROW_THIN" if not getattr(hide_prop_data, hide_prop_name) else "DOWNARROW_HLT"
             icon = icon or arrow_icon
             name += " " * right_padding
         else:
             icon = "NONE"
             row.active = not getattr(hide_prop_data, hide_prop_name)
-        row.prop(hide_prop_data, hide_prop_name, text=name, emboss=False, icon=icon)
+        if not centered:
+            draw_left_aligned_prop(row, hide_prop_data, hide_prop_name, text=name, emboss=False, icon=icon)
+        else:
+            row.prop(hide_prop_data, hide_prop_name, text=name, emboss=False, icon=icon)
     else:
         if centered:
             row.alignment = "CENTER"
@@ -308,13 +312,13 @@ def draw_left_aligned_operator(layout: UILayout, context: Context, operator: str
         setattr(op, name, value)
 
 
-def draw_left_aligned_prop(layout: UILayout, context: Context, data, prop_name: str, text: str, emboss: bool = True):
+def draw_left_aligned_prop(layout: UILayout, data, prop_name: str, text: str, emboss: bool = True, icon: str = "NONE"):
     """Draw a property with the text aligned to the left"""
     col = layout.column(align=True)
-    col.label(text=text)
+    col.label(text=text, icon=icon)
     subcol = col.column(align=True)
     sub = subcol.column(align=True)
     sub.scale_y = -1
-    sub.prop(context.scene.render, "resolution_x")  # A random property
+    sub.prop(bpy.context.scene.render, "resolution_x")  # A random property
     subrow = subcol.row(align=True)
     subrow.prop(data, prop_name, text=" ", emboss=emboss)

@@ -1,10 +1,10 @@
 import os
-from statistics import mean
 from time import sleep
 from uuid import uuid1
 from typing import Dict, Callable
 from threading import Thread
-from ..constants import NODES, ServerError503
+
+from ..constants import ServerError503
 
 import bpy
 from bpy.types import ID, World, Context, Material, Collection, MaterialSlot
@@ -14,11 +14,12 @@ from ..api import get_asset_lists
 from .general import check_internet, copy_bl_properties
 from .library import get_dir_size
 from .process import format_traceback
-from ..settings import get_ab_settings, get_asset_settings
+from ..settings import get_ab_scene_settings, get_ab_settings, get_asset_settings
 from .main_thread import force_ui_update, run_in_main_thread
 from ..apis.asset_types import Asset
 from ..apis.asset_utils import HDRI
 from ..operators.op_report_message import report_message
+from ..operators.op_set_real_world_mat_scale import set_real_world_mat_scale
 
 DOWNLOADING: Dict[str, str] = {}  # Contains the idname of the asset, and the name of the download task
 
@@ -211,10 +212,9 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
                 obj.active_material_index = list(obj.material_slots).index(material_slot)
 
                 # Set real world scale
-                size = mean(obj.dimensions)
-                node = imported.node_tree.nodes[NODES.scale]
-                node.outputs[0].default_value = asset_list_item.ab_material_size / size
-                # print(mean(obj.dimensions))
+                if get_ab_scene_settings(context).apply_real_world_scale:
+                    set_real_world_mat_scale(imported, obj)
+
         elif isinstance(imported, World):
             if from_world:
                 copy_bl_properties(from_world.cycles, imported.cycles)

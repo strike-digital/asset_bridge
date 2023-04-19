@@ -2,9 +2,9 @@ from bpy.types import Context, Panel, UILayout
 from bpy_extras.asset_utils import AssetBrowserPanel
 from ..helpers.prefs import get_prefs
 
-from ..settings import get_ab_settings
+from ..settings import get_ab_scene_settings, get_ab_settings
 from ..constants import DIRS, ASSET_LIB_NAME
-from .ui_helpers import draw_left_aligned_prop, wrap_text
+from .ui_helpers import draw_inline_prop, draw_left_aligned_prop, draw_section_header, wrap_text
 from ..helpers.btypes import BPanel
 
 
@@ -37,6 +37,8 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         box = col.box()
         row = box.row(align=True)
         prefs = get_prefs(context)
+        ab = get_ab_settings(context)
+        ab_scene = get_ab_scene_settings(context)
 
         # Draw a left aligned open button
         show_settings = prefs.show_import_settings
@@ -55,11 +57,14 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         subrow = subrow.row(align=True)
         subrow.active = False
         subrow.prop(prefs, "draw_import_settings_at_top", emboss=False, icon="GRIP", text="")
+        show = ab.ui_show
 
         if show_settings:
-            box = col.box()
-            box.label(text="Some very cool import settings")
-            box.label(text="Use your imagination")
+            box = col.box().column(align=True)
+            draw_section_header(box, "Materials", show, "import_mat", centered=False, icon="MATERIAL")
+            if show.import_mat:
+                box = box.box().column(align=True)
+                draw_inline_prop(box, ab_scene, "apply_real_world_scale", "Use real world scale", "", factor=.9)
 
     def draw(self, context):
         layout = self.layout
@@ -110,7 +115,7 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         # row.alignment = "CENTER"
         # text = "   " + asset.label if is_downloaded else asset.label + "    "
         text = "   " + asset.ab_label
-        draw_left_aligned_prop(row, context, prefs, "show_asset_info", text, False)
+        draw_left_aligned_prop(row, prefs, "show_asset_info", text, False)
         if is_downloaded:
             row = bigrow.row(align=True)
             row.alignment = "RIGHT"
