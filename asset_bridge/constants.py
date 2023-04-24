@@ -58,6 +58,7 @@ class NodeNames():
     displacement_strength = "AB-displacement_strength"
     scale = "AB-scale"
     opacity = "AB-opacity"
+    temp_output = "AB-temp_output"
 
 
 NODE_GROUPS = NodeGroups()

@@ -248,15 +248,21 @@ class AB_PT_asset_props_viewport(Panel):
                 draw_section_header(col, "Anti-Tiling", show_props, "mat_tiling")
                 if show_props.mat_tiling:
                     box = col.box().column(align=True)
+                    row = box.row(align=True)
 
-                    box.prop(
+                    row.prop(
                         tiling_node,
                         "mute",
-                        text="Enable" if tiling_node.mute else "Disable",
+                        text="Enable" if tiling_node.mute else "         Disable",
                         toggle=True,
                         invert_checkbox=True,
                     )
                     if not tiling_node.mute:
+                        viewing = bool(mat.node_tree.nodes.get(NODES.temp_output))
+                        icon = "HIDE_OFF" if viewing else "HIDE_ON"
+                        op = row.operator("asset_bridge.preview_tiling_node", icon=icon, text="", depress=True)
+                        op.material = mat.name
+
                         box.separator()
                         box = box.column(align=True)
 

@@ -400,7 +400,7 @@ class FunctionToOperator():
                 for name, param in parameters.items():
                     # If it is an ID type, convert the name to the actual data block
                     if param.annotation in supported_id_types:
-                        kwargs[name] = types_to_data[param.annotation][getattr(self, name)]
+                        kwargs[name] = types_to_data[param.annotation].get(getattr(self, name))
                     # Context is a special case
                     elif param.annotation == Context:
                         kwargs[name] = context

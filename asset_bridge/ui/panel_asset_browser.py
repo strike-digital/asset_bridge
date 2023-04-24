@@ -142,7 +142,7 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         if prefs.show_asset_info:
 
             box = col.box()
-            box.prop(ab, "asset_quality", text="Quality")
+            box.prop(ab, "asset_quality", text="Quality", )
 
             col = box.column(align=True)
             metadata = asset.ab_metadata
