@@ -171,8 +171,10 @@ class AB_PT_asset_props_viewport(Panel):
             if not mat or not nodes.any():
                 return True
 
+            principled_nodes = [n for n in mat.node_tree.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled"]
+
             # GENERAL
-            if any([nodes.normal, nodes.scale, nodes.opacity, nodes.roughness]):
+            if any([nodes.normal, nodes.scale, nodes.opacity, nodes.roughness]) or len(principled_nodes):
                 col = column.column(align=True)
                 draw_section_header(col, "General", show_props, "mat_general")
                 if show_props.mat_general:
@@ -202,6 +204,11 @@ class AB_PT_asset_props_viewport(Panel):
                         socket = rough_math_node.inputs[1]
                         draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount", factor=FACTOR)
                         box.separator(factor=PROP_SPACING)
+                    elif len(principled_nodes):
+                        socket = principled_nodes[0].inputs["Roughness"]
+                        if not socket.links:
+                            draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount", factor=FACTOR)
+                            box.separator(factor=PROP_SPACING)
 
             # COLOR
             if hsv_node := nodes.hsv:
