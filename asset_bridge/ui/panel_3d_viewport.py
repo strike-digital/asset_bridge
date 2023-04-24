@@ -1,4 +1,5 @@
 from bpy.types import Node, Panel, Object, Material
+from ..operators.op_toggle_tiling_preview import AB_OT_toggle_tiling_preview
 
 from ..settings import get_ab_settings, get_asset_settings
 from ..constants import NODES, NODE_GROUPS
@@ -260,8 +261,8 @@ class AB_PT_asset_props_viewport(Panel):
                     if not tiling_node.mute:
                         viewing = bool(mat.node_tree.nodes.get(NODES.temp_output))
                         icon = "HIDE_OFF" if viewing else "HIDE_ON"
-                        op = row.operator("asset_bridge.preview_tiling_node", icon=icon, text="", depress=True)
-                        op.material = mat.name
+                        op = row.operator(AB_OT_toggle_tiling_preview.bl_idname, icon=icon, text="", depress=True)
+                        op.material_name = mat.name
 
                         box.separator()
                         box = box.column(align=True)

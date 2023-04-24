@@ -1,11 +1,11 @@
 import inspect
-from typing import Literal
+from typing import Generic, Literal, Type, TypeVar
 from dataclasses import dataclass
 
 import blf
 import bpy
 from bpy.props import BoolProperty, FloatProperty, FloatVectorProperty, IntProperty, StringProperty
-from bpy.types import Material, Menu, Object, Panel, Context, Operator, UILayout
+from bpy.types import Context, Material, Menu, Object, Operator, Panel, UILayout
 from mathutils import Vector
 """A module containing helpers to make defining blender types easier (panels, operators etc.)"""
 
@@ -196,6 +196,9 @@ class BPanel():
         return Wrapped
 
 
+T = TypeVar("T")
+
+
 @dataclass
 class BOperator():
     """A decorator for defining blender Operators that helps to cut down on boilerplate code,
@@ -258,7 +261,7 @@ class BOperator():
     # ik this is the same name as the module, but I don't care.
     logging: int = -1
 
-    def __call__(self, cls):
+    def __call__(self, cls: Type[T]):
         """This takes the decorated class and populate's the bl_ attributes with either the supplied values,
         or a best guess based on the other values"""
         cls_name_end = cls.__name__.split("OT_")[-1]
@@ -290,7 +293,7 @@ class BOperator():
             options = options.union(cls.bl_options)
         log = self._logging if self.logging == -1 else bool(self.logging)
 
-        class Wrapped(cls, Operator):
+        class Wrapped(cls, Operator, Generic[T]):
             bl_idname = idname
             bl_label = label
             bl_options = options
@@ -331,6 +334,45 @@ class BOperator():
                     if not hasattr(super(), "invoke"):
                         retval = _self.execute(context)
                     return retval
+
+            @classmethod
+            def draw_button(
+                _cls,
+                layout: UILayout,
+                text: str = "",
+                text_ctxt: str = "",
+                translate: bool = True,
+                icon: str | int = 'NONE',
+                emboss: bool = True,
+                depress: bool = False,
+                icon_value: int = 0,
+            ) -> 'Wrapped':
+                """Draw this operator as a button.
+                I wanted it to be able to provide proper auto complete for the operator properties,
+                but I can't figure out how to do that for a decorator... It's really annoying.
+
+                Args:
+                    text (str): Override automatic text of the item
+                    text_ctxt (str): Override automatic translation context of the given text
+                    translate (bool): Translate the given text, when UI translation is enabled
+                    icon (str | into): Icon, Override automatic icon of the item
+                    emboss (bool): Draw the button itself, not just the icon/text
+                    depress (bool): Draw pressed in
+                    icon_value (int): Icon Value, Override automatic icon of the item
+                
+                Returns:
+                    OperatorProperties: Operator properties to fill in
+                """
+                return layout.operator(
+                    _cls.bl_idname,
+                    text=text,
+                    text_ctxt=text_ctxt,
+                    translate=translate,
+                    icon=icon,
+                    emboss=emboss,
+                    depress=depress,
+                    icon_value=icon_value,
+                )
 
         Wrapped.__doc__ = op_description
         Wrapped.__name__ = cls.__name__
