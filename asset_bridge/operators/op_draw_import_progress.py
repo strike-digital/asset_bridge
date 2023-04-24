@@ -143,7 +143,7 @@ class AB_OT_draw_import_progress(Operator):
         else:
             time_diff = time() - self.start_time
 
-        speed = 1000  # Overall animation speed
+        speed = 1  # Overall animation speed
         popup_time = .4 / prefs.widget_anim_speed / speed
         if time_diff < popup_time:
             time_diff /= popup_time

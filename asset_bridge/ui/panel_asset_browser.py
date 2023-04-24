@@ -3,7 +3,7 @@ from bpy_extras.asset_utils import AssetBrowserPanel
 from ..helpers.prefs import get_prefs
 
 from ..settings import get_ab_scene_settings, get_ab_settings
-from ..constants import DIRS, ASSET_LIB_NAME
+from ..constants import AB_COLLECTION_NAME, DIRS, ASSET_LIB_NAME
 from .ui_helpers import draw_inline_prop, draw_left_aligned_prop, draw_section_header, wrap_text
 from ..helpers.btypes import BPanel
 
@@ -63,8 +63,26 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
             box = col.box().column(align=True)
             draw_section_header(box, "Materials", show, "import_mat", centered=False, icon="MATERIAL")
             if show.import_mat:
-                box = box.box().column(align=True)
-                draw_inline_prop(box, ab_scene, "apply_real_world_scale", "Use real world scale", "", factor=.9)
+                col = box.box().column(align=True)
+                draw_inline_prop(col, ab_scene, "apply_real_world_scale", "Use real world scale", "", factor=.9)
+
+            box.separator()
+
+            draw_section_header(box, "Models", show, "import_model", centered=False, icon="OBJECT_DATAMODE")
+            if show.import_model:
+                col = box.box().column(align=True)
+                row = draw_inline_prop(
+                    col,
+                    ab_scene,
+                    "import_collection",
+                    "Import collection",
+                    "",
+                    factor=.5,
+                    row=True,
+                )
+                collection = ab_scene.import_collection
+                if not collection or collection.name != AB_COLLECTION_NAME:
+                    row.operator("asset_bridge.create_ab_collection", text="", icon="COLLECTION_NEW")
 
     def draw(self, context):
         layout = self.layout

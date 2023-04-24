@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, OrderedDict
 import bpy
 from bpy.props import (IntProperty, BoolProperty, EnumProperty, FloatProperty, StringProperty, PointerProperty,
                        CollectionProperty)
-from bpy.types import ID, Context, Material, UILayout, PropertyGroup
+from bpy.types import ID, Collection, Context, Material, UILayout, PropertyGroup
 
 from .api import get_asset_lists
 from .helpers.progress import Progress
@@ -138,6 +138,8 @@ class AssetBridgeShowUISettings(PropertyGroup):
     # Import settings
     import_mat: new_show_prop("Material")
 
+    import_model: new_show_prop("Model")
+
 
 class AssetBridgeWmSettings(PropertyGroup):
     """General settings that can be kept in the window manager.
@@ -234,6 +236,13 @@ class AssetBridgeSceneSettings(PropertyGroup):
         description="Set the scale of the imported material to be accurate to a real world scale when imported.\n\n\
         This only applies to materials that have their dimensions defined, otherwise the texture dimension \
         will be assumed to be 1m x 1m (the same as if the setting wasn't enabled)".replace("  ", ""),
+    )
+
+    import_collection: PointerProperty(
+        type=Collection,
+        name="Default import collection",
+        description="The collection in which to place newly imported models.\n\
+        If left blank, this will default to currently active collection.".replace("  ", ""),
     )
 
 

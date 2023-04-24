@@ -253,9 +253,31 @@ def draw_inline_column(layout: UILayout, label: str, factor: float = 0):
     return col
 
 
-def draw_inline_prop(layout: UILayout, data, prop_name: str, col_label: str, prop_label: str, factor: float = 0):
-    """Draw a property with the label on the left"""
+def draw_inline_prop(
+    layout: UILayout,
+    data,
+    prop_name: str,
+    col_label: str,
+    prop_label: str,
+    factor: float = 0,
+    row=False,
+) -> UILayout:
+    """Draw a property with the label on the left side.
+
+    Args:
+        data (Any): The data for the property to draw
+        prop_name (str): The name of the property
+        col_label (str): The label to draw on the left
+        prop_label (str): The label to draw in the property. Only really useful for float and int properties
+        factor (float, optional): How far across to put the split between label and property. Defaults to 0.
+        row (bool, optional): Whether to return a row or a column. Defaults to False.
+
+    Returns:
+        UILayout: The row or column that the property is drawn in.
+    """    # """Draw a property with the label on the left"""
     col = draw_inline_column(layout, col_label, factor)
+    if row:
+        col = col.row(align=True)
     col.prop(data, prop_name, text=prop_label)
     return col
 

@@ -8,6 +8,7 @@ from pathlib import Path
 import bpy
 from bpy.types import Node, Object, Material, NodeGroup
 from mathutils import Vector as V
+from ..settings import get_ab_scene_settings
 
 from ..api import asset_lists
 from ..vendor import requests
@@ -416,18 +417,19 @@ def import_model(context, blend_file, name, link_method="APPEND_REUSE"):
         obj.select_set(False)
 
     collection: bpy.types.Collection = collection or data_to.collections[0]
+    to_collection: bpy.types.Collection = get_ab_scene_settings(context).import_collection or context.collection
     if link:
         # Create an empty to use as an instance collection so that it can be moved by the user.
         empty = bpy.data.objects.new(collection.name, None)
         empty.instance_type = "COLLECTION"
         empty.instance_collection = collection
-        context.collection.objects.link(empty)
+        to_collection.objects.link(empty)
         empty.empty_display_size = math.hypot(*list(collection.objects[0].dimensions))
         empty.select_set(True)
         final_obj = empty
         retval = empty
     else:
-        context.collection.children.link(collection)
+        to_collection.children.link(collection)
 
         # Set the selection
         final_obj = None
