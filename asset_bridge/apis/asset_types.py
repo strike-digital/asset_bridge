@@ -126,6 +126,9 @@ class AssetListItem(ABC):
     def progress_file(self):
         return DIRS.dummy_assets / f"{self.ab_name}"
 
+    def get_quality_dir(self, quality_level: str):
+        return self.downloads_dir / quality_level
+
     def poll(self):
         """Whether this asset can be imported currently.
         Return an empty string if it can, and an error to show if it can't."""

@@ -106,7 +106,7 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         row = bigrow.row(align=True)
         if is_downloaded:
             op = row.operator("asset_bridge.open_folder", text="", icon="FILE_FOLDER", emboss=False)
-            op.file_path = str(asset.downloads_dir)
+            op.file_path = str(asset.get_quality_dir(ab.asset_quality))
         else:
             op = row.operator("asset_bridge.open_folder", text="", icon="IMPORT", emboss=False)
             op.file_path = str(DIRS.assets)

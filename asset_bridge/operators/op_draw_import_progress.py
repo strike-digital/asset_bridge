@@ -143,7 +143,8 @@ class AB_OT_draw_import_progress(Operator):
         else:
             time_diff = time() - self.start_time
 
-        popup_time = .4 / prefs.widget_anim_speed
+        speed = 1000  # Overall animation speed
+        popup_time = .4 / prefs.widget_anim_speed / speed
         if time_diff < popup_time:
             time_diff /= popup_time
             time_diff = bl_math.smoothstep(0, popup_time, time_diff)
@@ -156,7 +157,7 @@ class AB_OT_draw_import_progress(Operator):
 
         # Smooth the bar animation
         target = 1 if self.finish_time else task.progress_prop / 100
-        fac = lerp(.1 * prefs.widget_anim_speed, self.factor, target)
+        fac = lerp(min(.1 * prefs.widget_anim_speed * speed, 1), self.factor, target)
         if (target - fac) > .01:  # Avoid unnecessary updates
             redraw = True
         self.factor = fac
