@@ -24,11 +24,24 @@ class ServerError503(Exception):
         super().__init__(message)
 
 
+class AssetVersions():
+    """The import version of an asset, used for versioning.
+    The order is (Breaking, Important, Minor)."""
+
+    material = (1, 0, 0)
+    model = (1, 0, 0)
+    hdri = (1, 0, 0)
+
+
+ASSET_VERSIONS = AssetVersions()
+
+
 # The names of useful node groups.
 # I'm now realising that these should probably be enums, but I don't care enough to change it.
 class NodeGroups():
 
     anti_tiling = "AB-anti_tiling"
+    roughness_map = "AB-roughness_map"
     hdri_coords = "AB-hdri_coords"
     hdri_color = "AB-hdri_color"
 
@@ -39,7 +52,7 @@ class NodeNames():
     mapping = "AB-mapping"
     ao_mix = "AB-ao_mix"
     hsv = "AB-hsv"
-    rough_gamma = "AB-rough_gamma"
+    roughness = "AB-roughness"
     normal_map = "AB-normal_map"
     displacement = "AB-displacement"
     displacement_strength = "AB-displacement_strength"

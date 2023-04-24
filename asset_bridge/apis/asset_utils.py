@@ -235,7 +235,7 @@ def import_material(
     bsdf_node = nodes["Principled BSDF"]
     out_node = nodes["Material Output"]
     image_nodes = []
-    disp_node = diff_node = nor_node = rough_gamma_node = ao_mix_node = hsv_node = None
+    disp_node = diff_node = nor_node = rough_group_node = ao_mix_node = hsv_node = None
 
     def new_image(file, input_index, node_name="", to_node=None, non_color=True):
         """Add a new image node, and connect it to the given to_node if provided, or the bsdf node"""
@@ -247,7 +247,6 @@ def import_material(
         image_node.image = image
         links.new(image_node.outputs[0], to_node.inputs[input_index])
         image_nodes.append(image_node)
-        # image.colorspace_settings.name = "Non-Color"
         image.colorspace_settings.is_data = non_color
         return image_node
 
@@ -277,11 +276,11 @@ def import_material(
     if rough_file := texture_files.get("roughness"):
         rough_node = new_image(rough_file, "Roughness", "Roughness")
 
-        rough_gamma_node = nodes.new("ShaderNodeGamma")
-        rough_gamma_node.name = NODES.rough_gamma
-        rough_gamma_node.label = "Roughness"
-        links.new(rough_node.outputs[0], rough_gamma_node.inputs[0])
-        links.new(rough_gamma_node.outputs[0], bsdf_node.inputs["Roughness"])
+        rough_group_node = nodes.new("ShaderNodeGroup")
+        rough_group_node.node_tree = get_node_group(FILES.resources_blend, NODE_GROUPS.roughness_map, link_method=link_method)
+        rough_group_node.name = NODES.roughness
+        links.new(rough_node.outputs[0], rough_group_node.inputs[0])
+        links.new(rough_group_node.outputs[0], bsdf_node.inputs["Roughness"])
 
     if emission_file := texture_files.get("emission"):
         new_image(emission_file, "Emmission Strength", "Emission")
@@ -370,8 +369,8 @@ def import_material(
     if ao_mix_node:
         ao_mix_node.location = ao_image_node.location + V((ao_image_node.width + 40, 0))
 
-    if rough_gamma_node:
-        rough_gamma_node.location = rough_node.location + V((rough_node.width + 40, 0))
+    if rough_group_node:
+        rough_group_node.location = rough_node.location + V((rough_node.width + 40, 0))
 
     if nor_node:
         nor_image_node = nodes["Normal"]

@@ -8,6 +8,20 @@ from ..helpers.btypes import BPanel
 from .menu_swap_asset import (AB_MT_swap_hdri_asset, AB_MT_swap_model_asset, AB_MT_swap_material_asset)
 
 
+class Nodes():
+    """A helper for storing important nodes in a material"""
+
+    def __init__(self, all_nodes):
+        pass
+
+    def any(self):
+        """Return whether any of the nodes exist"""
+        for attr in self.__dict__.values():
+            if attr and isinstance(attr, Node):
+                return True
+        return False
+
+
 @BPanel(space_type="VIEW_3D", region_type="UI", category="Asset Bridge", label="Asset Settings")
 class AB_PT_asset_props_viewport(Panel):
     bl_label = "Asset settings"
@@ -39,12 +53,15 @@ class AB_PT_asset_props_viewport(Panel):
             if not world:
                 return False
 
-            nodes = {
-                "coords": world.node_tree.nodes.get(NODE_GROUPS.hdri_coords),
-                "color": world.node_tree.nodes.get(NODE_GROUPS.hdri_color),
-            }
+            class HdriNodes(Nodes):
+                __init__ = lambda self: None
 
-            if not any(nodes.values()):
+                coords = world.node_tree.nodes.get(NODE_GROUPS.hdri_coords),
+                color = world.node_tree.nodes.get(NODE_GROUPS.hdri_color),
+
+            nodes = HdriNodes()
+
+            if not nodes.any():
                 return False
             elif is_dummy:
                 return True
@@ -67,14 +84,14 @@ class AB_PT_asset_props_viewport(Panel):
                 return True
             column = column.box().column(align=False)
 
-            if node := nodes["color"]:
+            if node := nodes.color:
                 col = column.column(align=True)
                 draw_section_header(col, "Color", show_props, "hdri_color")
                 if show_props.hdri_color:
                     box = col.box().column(align=True)
                     draw_node_group_inputs(node, box, context, False, spacing=PROP_SPACING, factor=FACTOR)
 
-            if node := nodes["coords"]:
+            if node := nodes.coords:
                 col = column.column(align=True)
                 draw_section_header(col, "Warping", show_props, "hdri_coords")
                 if show_props.hdri_coords:
@@ -88,27 +105,28 @@ class AB_PT_asset_props_viewport(Panel):
             if not obj or len(obj.material_slots) == 0:
                 return False
 
-            def get_material_nodes(all_nodes: list[Node]):
-                nodes = {}
-                nodes["tiling"] = all_nodes.get(NODES.anti_tiling)
-                nodes["mapping"] = all_nodes.get(NODES.mapping)
-                nodes["normal"] = all_nodes.get(NODES.normal_map)
-                nodes["scale"] = all_nodes.get(NODES.scale)
-                nodes["displacement"] = all_nodes.get(NODES.displacement)
-                nodes["displacement_scale"] = all_nodes.get(NODES.displacement_strength)
-                nodes["hsv"] = all_nodes.get(NODES.hsv)
-                nodes["rough_gamma"] = all_nodes.get(NODES.rough_gamma)
-                nodes["opacity"] = all_nodes.get(NODES.opacity)
-                return nodes
+            class MatNodes(Nodes):
+                """A helper for storing important nodes in a material"""
+
+                def __init__(self, all_nodes):
+                    self.tiling = all_nodes.get(NODES.anti_tiling)
+                    self.mapping = all_nodes.get(NODES.mapping)
+                    self.normal = all_nodes.get(NODES.normal_map)
+                    self.scale = all_nodes.get(NODES.scale)
+                    self.displacement = all_nodes.get(NODES.displacement)
+                    self.displacement_scale = all_nodes.get(NODES.displacement_strength)
+                    self.hsv = all_nodes.get(NODES.hsv)
+                    self.roughness = all_nodes.get(NODES.roughness)
+                    self.opacity = all_nodes.get(NODES.opacity)
 
             slot = obj.material_slots[obj.active_material_index]
             slots = [slot for slot in obj.material_slots if slot.material]
             mat: Material = slot.material
             if mat and mat.node_tree:
-                nodes = get_material_nodes(mat.node_tree.nodes)
+                nodes = MatNodes(mat.node_tree.nodes)
 
             for s in slots:
-                if any(get_material_nodes(s.material.node_tree.nodes).values()):
+                if MatNodes(s.material.node_tree.nodes).any():
                     column = layout.column(align=True)
                     row = draw_section_header(
                         column,
@@ -150,23 +168,23 @@ class AB_PT_asset_props_viewport(Panel):
             column.template_ID(slot, "material")
             column.separator(factor=.1)
 
-            if not mat or not any(nodes.values()):
+            if not mat or not nodes.any():
                 return True
 
             # GENERAL
-            if any([nodes["normal"], nodes["scale"], nodes["opacity"]]):
+            if any([nodes.normal, nodes.scale, nodes.opacity, nodes.roughness]):
                 col = column.column(align=True)
                 draw_section_header(col, "General", show_props, "mat_general")
                 if show_props.mat_general:
                     box = col.box().column(align=True)
                     render_engine = context.scene.render.engine
                     shading_type = context.space_data.shading.type
-                    if nodes["opacity"] and (render_engine == "BLENDER_EEVEE" or shading_type == "MATERIAL"):
+                    if nodes.opacity and (render_engine == "BLENDER_EEVEE" or shading_type == "MATERIAL"):
                         draw_inline_prop(box, mat, "blend_method", "Blend:", "", factor=FACTOR)
                         draw_inline_prop(box, mat, "shadow_method", "Shadow", "", factor=FACTOR)
                         box.separator(factor=PROP_SPACING)
 
-                    if scale_node := nodes["scale"]:
+                    if scale_node := nodes.scale:
                         socket = scale_node.outputs[0]
                         row = draw_inline_column(box, "Scale", factor=FACTOR).row(align=True)
                         row.prop(socket, "default_value", text="")
@@ -175,18 +193,18 @@ class AB_PT_asset_props_viewport(Panel):
                         op.material = mat.name
                         box.separator(factor=PROP_SPACING)
 
-                    if nor_node := nodes["normal"]:
+                    if nor_node := nodes.normal:
                         socket = nor_node.inputs["Strength"]
                         draw_inline_prop(box, socket, "default_value", "Normal:", socket.name, factor=FACTOR)
                         box.separator(factor=PROP_SPACING)
 
-                    if rough_gamma_node := nodes["rough_gamma"]:
-                        socket = rough_gamma_node.inputs[1]
+                    if rough_math_node := nodes.roughness:
+                        socket = rough_math_node.inputs[1]
                         draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount", factor=FACTOR)
                         box.separator(factor=PROP_SPACING)
 
             # COLOR
-            if hsv_node := nodes["hsv"]:
+            if hsv_node := nodes.hsv:
                 col = column.column(align=True)
                 draw_section_header(col, "Color", show_props, "mat_hsv")
                 if show_props.mat_hsv:
@@ -195,7 +213,7 @@ class AB_PT_asset_props_viewport(Panel):
                         box.prop(socket, "default_value", text=socket.name)
 
             # MAPPING
-            if mapping_node := nodes["mapping"]:
+            if mapping_node := nodes.mapping:
                 col = column.column(align=True)
                 draw_section_header(col, "Mapping", show_props, "mat_mapping")
                 if show_props.mat_mapping:
@@ -218,7 +236,7 @@ class AB_PT_asset_props_viewport(Panel):
                     col.separator(factor=PROP_SPACING)
 
             # TILING
-            if tiling_node := nodes["tiling"]:
+            if tiling_node := nodes.tiling:
                 col = column.column(align=True)
                 draw_section_header(col, "Anti-Tiling", show_props, "mat_tiling")
                 if show_props.mat_tiling:
@@ -235,15 +253,17 @@ class AB_PT_asset_props_viewport(Panel):
                         box.separator()
                         box = box.column(align=True)
 
-                        draw_node_group_inputs(tiling_node,
-                                               box,
-                                               context,
-                                               in_boxes=False,
-                                               spacing=PROP_SPACING,
-                                               factor=FACTOR)
+                        draw_node_group_inputs(
+                            tiling_node,
+                            box,
+                            context,
+                            in_boxes=False,
+                            spacing=PROP_SPACING,
+                            factor=FACTOR,
+                        )
 
             # DISPLACEMENT
-            if (disp_node := nodes["displacement"]) and context.scene.render.engine == "CYCLES":
+            if (disp_node := nodes.displacement) and context.scene.render.engine == "CYCLES":
                 col = column.column(align=True)
                 draw_section_header(col, "Displacement", show_props, "mat_displacement")
                 if show_props.mat_displacement and disp_node.outputs[0].links:
@@ -258,23 +278,27 @@ class AB_PT_asset_props_viewport(Panel):
                     if settings.enable_displacement:
                         box.separator()
                         box = box.column(align=True)
-                        draw_inline_prop(box,
-                                         disp_node.inputs["Midlevel"],
-                                         "default_value",
-                                         "Midlevel",
-                                         "",
-                                         factor=FACTOR)
-                        if disp_scale_node := nodes["displacement_scale"]:
-                            draw_inline_prop(box,
-                                             disp_scale_node.inputs[0],
-                                             "default_value",
-                                             "Scale",
-                                             "",
-                                             factor=FACTOR)
+                        draw_inline_prop(
+                            box,
+                            disp_node.inputs["Midlevel"],
+                            "default_value",
+                            "Midlevel",
+                            "",
+                            factor=FACTOR,
+                        )
+                        if disp_scale_node := nodes.displacement_scale:
+                            draw_inline_prop(
+                                box,
+                                disp_scale_node.inputs[0],
+                                "default_value",
+                                "Scale",
+                                "",
+                                factor=FACTOR,
+                            )
 
                         # draw_inline_prop(box, disp_node.inputs["Scale"], "default_value", "Scale", "", factor=FACTOR)
 
-            return any(nodes.values())
+            return nodes.any()
 
         drawn = any((draw_hdri_props(), draw_material_props()))
 

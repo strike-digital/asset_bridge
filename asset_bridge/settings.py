@@ -3,8 +3,8 @@ from time import time_ns, perf_counter
 from typing import TYPE_CHECKING, OrderedDict
 
 import bpy
-from bpy.props import (IntProperty, BoolProperty, EnumProperty, FloatProperty, StringProperty, PointerProperty,
-                       CollectionProperty)
+from bpy.props import (FloatVectorProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, StringProperty,
+                       PointerProperty, CollectionProperty)
 from bpy.types import ID, Collection, Context, Material, UILayout, PropertyGroup
 
 from .api import get_asset_lists
@@ -264,6 +264,13 @@ class AssetBridgeIDSettings(PropertyGroup):
 
     # Used to tell if a datablock has been imported by asset bridge
     is_asset_bridge: BoolProperty()
+
+    version: FloatVectorProperty(
+        name="Asset Version",
+        description="The version number of this asset. The order is (Breaking, Important, Minor).\
+        Used for versioning in the addon.",
+        size=3,
+    )
 
     @property
     def asset_list_item(self):

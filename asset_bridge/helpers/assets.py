@@ -4,10 +4,10 @@ from uuid import uuid1
 from typing import Dict, Callable
 from threading import Thread
 
-from ..constants import ServerError503
+from ..constants import ASSET_VERSIONS, ServerError503
 
 import bpy
-from bpy.types import ID, World, Context, Material, Collection, MaterialSlot
+from bpy.types import ID, Object, World, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
@@ -202,6 +202,12 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
             settings.quality_level = asset.quality_level
             settings.uuid = str(uuid)
             settings.index = index
+            if isinstance(data_block, World):
+                settings.version = ASSET_VERSIONS.hdri
+            elif isinstance(data_block, Material):
+                settings.version = ASSET_VERSIONS.material
+            elif isinstance(data_block, Collection) or isinstance(data_block, Object):
+                settings.version = ASSET_VERSIONS.model
 
         update_settings(imported)
 
