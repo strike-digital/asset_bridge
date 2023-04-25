@@ -282,7 +282,12 @@ class ABAddonPreferences(AddonPreferences):
         draw_inline_prop(col, self, "widget_anim_speed", "Animation speed", "", factor=fac)
 
         # WEBSITES
-        section = draw_prefs_section(grid, "Asset websites", self, "show_websites").column(align=True)
+        section = draw_prefs_section(
+            grid,
+            "Asset websites",
+            self,
+            "show_websites",
+        ).column(align=True)
         section.scale_y = section.scale_x = 1.5
         for asset_list in asset_lists.values():
             row = section.row(align=True)

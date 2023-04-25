@@ -1,4 +1,5 @@
 from bpy.types import Node, Panel, Object, Material
+from ..operators.op_show_info import InfoSnippets
 from ..operators.op_toggle_tiling_preview import AB_OT_toggle_tiling_preview
 
 from ..settings import get_ab_settings, get_asset_settings
@@ -277,9 +278,23 @@ class AB_PT_asset_props_viewport(Panel):
                         )
 
             # DISPLACEMENT
-            if (disp_node := nodes.displacement) and context.scene.render.engine == "CYCLES":
+            # if (disp_node := nodes.displacement) and context.scene.render.engine == "CYCLES":
+            if (disp_node := nodes.displacement):
                 col = column.column(align=True)
-                draw_section_header(col, "Displacement", show_props, "mat_displacement")
+                available = context.scene.render.engine == "CYCLES"
+                row = draw_section_header(
+                    col,
+                    "Displacement",
+                    show_props,
+                    "mat_displacement",
+                    right_padding=6 if available else 0,
+                )
+                if not available:
+                    col.active = False
+                    row.active = True
+                    row.emboss = "NONE"
+                    InfoSnippets.displacement_unavailable.draw(row)
+
                 if show_props.mat_displacement and disp_node.outputs[0].links:
                     box = col.box().column(align=True)
                     settings = get_asset_settings(mat)

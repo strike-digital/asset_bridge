@@ -77,3 +77,17 @@ class InfoSnippets():
         """,
         icon="FILE_FOLDER",
     )
+
+    displacement_unavailable = InfoSnippet(
+        "Displacement unavailable",
+        """\
+        Material displacement is only available in Cycles.\n\n
+        To get the best results, in Cycles set the feature set to 'Experimental' and add a new subdivision surface \
+        modifier to the object you want to displace. Then enable the 'adaptive subdivision' checkbox, and in rendered view, \
+        the parts of the mesh closest to the camera will have a very high quality subdivision, while parts far away \
+        will have lower quality.\n
+        
+        This will give you the best looking displacement, but be aware that it can increase memory usage and render \
+        initialization times substantially, so it's best to use sparingly unless you have a godly PC.
+        """,
+    )

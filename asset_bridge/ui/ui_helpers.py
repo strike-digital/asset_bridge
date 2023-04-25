@@ -147,6 +147,7 @@ def draw_prefs_section(
 
     box = main_col.box()
     col = box.column()
+    main_col.separator()
     return col
 
 
