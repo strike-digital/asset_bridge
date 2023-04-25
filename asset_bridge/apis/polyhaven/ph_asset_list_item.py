@@ -12,7 +12,7 @@ from ...constants import DIRS
 
 class PH_AssetListItem(AssetListItem):
 
-    ab_acronym = "ph"
+    ab_prefix = "ph"
     ab_asset_type = PH_Asset
 
     def __init__(self, name: str, data: dict):

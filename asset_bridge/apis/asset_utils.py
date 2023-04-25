@@ -8,6 +8,7 @@ from pathlib import Path
 import bpy
 from bpy.types import Node, Object, Material, NodeGroup
 from mathutils import Vector as V
+from ..previews import load_icon
 from ..settings import get_ab_scene_settings
 
 from ..api import asset_lists
@@ -46,6 +47,9 @@ def register_asset_list(new_list: Type[AssetList]):
         asset_list = asset_lists.initialize_asset_list(new_list.name, data=asset_list_data)
         if asset_list is None:
             return {"CANCELLED"}
+
+        # Load the list icon if it exists
+        load_icon(asset_list.icon_path)
 
         if __IS_DEV__:
             print(f"Initialization for {new_list.name} took {perf_counter() - start:.2f}s")

@@ -13,13 +13,12 @@ from ...helpers.library import human_readable_file_size
 class ACG_AssetListItem(AssetListItem):
 
     ab_asset_type = ACG_Asset
-    ab_acronym = "acg"
+    ab_prefix = "acg"
     ab_authors = ["Lennart Demes"]
 
     def __init__(self, name: str, data: dict):
         asset_types = {"HDRI": HDRI, "Material": MATERIAL, "3DModel": MODEL}
         bl_types = {"HDRI": World, "Material": Material, "3DModel": Object}
-        names = {"HDRI": "HDRIs", "Material": "Materials", "3DModel": "Models"}
 
         # Necessary data
         self.ab_name = name

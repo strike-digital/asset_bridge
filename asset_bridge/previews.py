@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict
 from bpy.types import ImagePreview as P
 from bpy.utils import previews
@@ -22,13 +23,19 @@ class Icons():
 ICONS = Icons()
 
 
-def register():
-    coll = previews.new()
-
-    for f in DIRS.icons.iterdir():
-        coll.load(f.stem, str(f), "IMAGE")
-
+def load_icon(path: Path):
+    if not path.exists():
+        raise FileNotFoundError(f"Could not load file '{path}' as it doesn't exist")
+    coll = preview_collections.get("icons")
+    if not coll:
+        coll = previews.new()
+    coll.load(path.stem, str(path), "IMAGE")
     preview_collections["icons"] = coll
+
+
+def register():
+    for f in DIRS.icons.iterdir():
+        load_icon(f)
 
 
 def unregister():

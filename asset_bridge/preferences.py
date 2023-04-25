@@ -269,13 +269,9 @@ class ABAddonPreferences(AddonPreferences):
             )
             op.bl_description = "Check for new assets, and if they exist, download their previews and update the library."
 
-        # row.operator(
-        #     "wm.url_open",
-        #     icon="FUND",
-        #     text="Support Polyhaven",
-        # ).url = "https://www.patreon.com/polyhaven/overview"
-
         grid = layout.grid_flow(row_major=True, even_columns=True)
+
+        # GENERAL
         section = draw_prefs_section(grid, "General", self, "show_general")
         fac = .5
         draw_inline_prop(section, self, "auto_pack_files", "Auto pack files", "", factor=fac)
@@ -285,16 +281,18 @@ class ABAddonPreferences(AddonPreferences):
         draw_inline_prop(col, self, "widget_scale", "Widget scale", "", factor=fac)
         draw_inline_prop(col, self, "widget_anim_speed", "Animation speed", "", factor=fac)
 
+        # WEBSITES
         section = draw_prefs_section(grid, "Asset websites", self, "show_websites").column(align=True)
         section.scale_y = section.scale_x = 1.5
         for asset_list in asset_lists.values():
             row = section.row(align=True)
-            op = row.operator("wm.url_open", text=asset_list.label, icon="URL")
+            op = row.operator("wm.url_open", text=asset_list.label, icon_value=asset_list.icon)
             op.url = asset_list.url
 
             op = row.operator("wm.url_open", text="", icon="FUND")
             op.url = asset_list.support_url
 
+        # CONTACT
         section = draw_prefs_section(grid, "Contact", self, "show_contact").column(align=True)
         section.scale_y = section.scale_x = 1.5
 
@@ -308,8 +306,10 @@ class ABAddonPreferences(AddonPreferences):
         op.url = "https://twitter.com/StrikeDigital1"
 
         op = section.operator("wm.url_open", text="Leave a review :)        ", icon_value=ICONS.ab_review)
-        op.url = "https://twitter.com/StrikeDigital1"
+        op.url = "https://blendermarket.com/products/asset-bridge/ratings"
 
+        section = draw_prefs_section(grid, "Contact", self, "show_contact").column(align=True)
+        section.scale_y = section.scale_x = 1.5
         if __IS_DEV__ and self.show_tasks and len(ab.tasks):
             # Debug section showing the currently running tasks
             section = draw_prefs_section(grid, "Tasks", self, "show_tasks")

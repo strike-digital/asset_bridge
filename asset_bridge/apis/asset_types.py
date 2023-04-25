@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
+import sys
 from typing import Type, Literal, Callable, OrderedDict
 from pathlib import Path
 from itertools import zip_longest
 from dataclasses import field, dataclass
 
 from bpy.types import ID, Context, UILayout
+from ..previews import get_icon
 
 from ..constants import DIRS
 
@@ -82,7 +84,7 @@ class AssetListItem(ABC):
     ab_asset_type: Type[Asset]  # The api asset class
     ab_asset_list: AssetList  # The asset list that this list item is contained within
 
-    ab_acronym: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
+    ab_prefix: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
     ab_idname: str  # The unique Asset Bridge identifier of this asset
     ab_name: str  # The api name of the asset
     ab_label: str  # The name visible in the UI
@@ -102,7 +104,7 @@ class AssetListItem(ABC):
 
     @property
     def ab_idname(self):
-        return f"{self.ab_acronym}_{self.ab_name}"
+        return f"{self.ab_prefix}_{self.ab_name}"
 
     @property
     def downloads_dir(self):
@@ -170,6 +172,19 @@ class AssetList(ABC):
     support_url: str
     description: str
     categories: list[str]
+
+    @property
+    def icon_path(self) -> Path:
+        """The path to the icon for this asset list.
+        By default this is 'api_folder / {list_prefix}_logo.png', but it can be overriden if needed"""
+        file = sys.modules[self.__class__.__module__].__file__  # Get the api folder
+        return Path(file).parent / f"{list(self.assets.values())[0].ab_prefix}_logo.png"
+
+    @property
+    def icon(self):
+        """Get the icon for this asset library.
+        Requires the icon_path to be set."""
+        return get_icon(self.icon_path.stem)
 
     def __getitem__(self, key) -> AssetListItem:
         return self.assets[key]
