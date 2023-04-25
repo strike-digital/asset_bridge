@@ -61,14 +61,16 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
 
         if show_settings:
             box = col.box().column(align=True)
-            draw_section_header(box, "Materials", show, "import_mat", centered=False, icon="MATERIAL")
+            icon = "DOWNARROW_HLT" if show.import_mat else "RIGHTARROW_THIN"
+            draw_section_header(box, "Materials", show, "import_mat", centered=False, icon=icon)
             if show.import_mat:
                 col = box.box().column(align=True)
                 draw_inline_prop(col, ab_scene, "apply_real_world_scale", "Use real world scale", "", factor=.9)
 
             box.separator()
 
-            draw_section_header(box, "Models", show, "import_model", centered=False, icon="OBJECT_DATAMODE")
+            icon = "DOWNARROW_HLT" if show.import_model else "RIGHTARROW_THIN"
+            draw_section_header(box, "Models", show, "import_model", centered=False, icon=icon)
             if show.import_model:
                 col = box.box().column(align=True)
                 row = draw_inline_prop(
@@ -142,7 +144,11 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         if prefs.show_asset_info:
 
             box = col.box()
-            box.prop(ab, "asset_quality", text="Quality", )
+            box.prop(
+                ab,
+                "asset_quality",
+                text="Quality",
+            )
 
             col = box.column(align=True)
             metadata = asset.ab_metadata

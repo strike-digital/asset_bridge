@@ -277,7 +277,9 @@ def import_material(
         rough_node = new_image(rough_file, "Roughness", "Roughness")
 
         rough_group_node = nodes.new("ShaderNodeGroup")
-        rough_group_node.node_tree = get_node_group(FILES.resources_blend, NODE_GROUPS.roughness_map, link_method=link_method)
+        rough_group_node.node_tree = get_node_group(FILES.resources_blend,
+                                                    NODE_GROUPS.roughness_map,
+                                                    link_method=link_method)
         rough_group_node.name = NODES.roughness
         links.new(rough_node.outputs[0], rough_group_node.inputs[0])
         links.new(rough_group_node.outputs[0], bsdf_node.inputs["Roughness"])
@@ -340,7 +342,7 @@ def import_material(
         value_node.outputs[0].default_value = 1
         value_node.name = NODES.scale
         value_node.label = "Scale"
-        value_node.location = anti_tiling_node.location + (V((0, -330)))
+        value_node.location = anti_tiling_node.location + (V((0, -350)))
 
         links.new(value_node.outputs[0], scale_node.inputs[3])
 

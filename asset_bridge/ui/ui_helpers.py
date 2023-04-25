@@ -41,6 +41,9 @@ class DummyLayout():
     def separator(*args, **kwargs):
         return DummyLayout()
 
+    def operator(*args, **kwargs):
+        return DummyLayout()
+
 
 def dpifac() -> float:
     """Taken from Node Wrangler"""

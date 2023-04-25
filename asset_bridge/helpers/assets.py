@@ -44,6 +44,7 @@ def download_asset(
     Returns:
         str: The name of the download task.
     """
+    ab = get_ab_settings(context)
 
     if not check_internet():
         report_message("ERROR", "Can't donwnload asset, no internet connection")
@@ -51,7 +52,6 @@ def download_asset(
         task.cancel(remove=False)
         return task.name
 
-    ab = get_ab_settings(context)
     all_assets = get_asset_lists().all_assets
     list_item = asset.list_item
 

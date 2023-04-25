@@ -5,6 +5,7 @@ from pathlib import Path
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Menu, UILayout, AddonPreferences
+from .previews import ICONS
 
 from .api import get_asset_lists
 from .settings import new_show_prop, get_ab_settings
@@ -175,6 +176,7 @@ class ABAddonPreferences(AddonPreferences):
     # SHOW PREFS SECTIONS
     show_general: new_show_prop("general")
     show_websites: new_show_prop("websites")
+    show_contact: new_show_prop("contact")
     show_tasks: new_show_prop("tasks")
 
     def format_download_label(self, needed_previews):
@@ -292,6 +294,21 @@ class ABAddonPreferences(AddonPreferences):
 
             op = row.operator("wm.url_open", text="", icon="FUND")
             op.url = asset_list.support_url
+
+        section = draw_prefs_section(grid, "Contact", self, "show_contact").column(align=True)
+        section.scale_y = section.scale_x = 1.5
+
+        op = section.operator("wm.url_open", text="Blender Artists        ", icon_value=ICONS.ab_blender_artists)
+        op.url = "https://blenderartists.org/t/asset-bridge-addon/1397728?u=strike_digital"
+
+        op = section.operator("wm.url_open", text="Blender Market        ", icon_value=ICONS.ab_blender_market)
+        op.url = "https://blendermarket.com/creators/strike-digital"
+
+        op = section.operator("wm.url_open", text="Twitter        ", icon_value=ICONS.ab_twitter)
+        op.url = "https://twitter.com/StrikeDigital1"
+
+        op = section.operator("wm.url_open", text="Leave a review :)        ", icon_value=ICONS.ab_review)
+        op.url = "https://twitter.com/StrikeDigital1"
 
         if __IS_DEV__ and self.show_tasks and len(ab.tasks):
             # Debug section showing the currently running tasks

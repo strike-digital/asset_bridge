@@ -73,6 +73,7 @@ class Dirs():
     previews = cache / "previews"
     scripts = addon / "scripts"
     resources = addon / "resources"
+    icons = resources / "icons"
 
     # We need the context to create these, so run them in a timer.
     def update(self, lib_path: Path = None):
