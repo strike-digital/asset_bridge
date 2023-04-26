@@ -1,1 +1,2 @@
 requests == 2.28.1
+humanize  # I removed the locale files as they currently aren't needed, might want to rethink that in the future.

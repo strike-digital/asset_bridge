@@ -5,10 +5,9 @@ from pathlib import Path
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Menu, UILayout, AddonPreferences
-from .addon_updater_ops import UpdaterPreferences, update_settings_ui
-from .previews import ICONS
 
 from .api import get_asset_lists
+from .previews import ICONS
 from .settings import new_show_prop, get_ab_settings
 from .constants import (DIRS, FILES, __IS_DEV__, ASSET_LIB_VERSION, CHECK_NEW_ASSETS_TASK_NAME,
                         PREVIEW_DOWNLOAD_TASK_NAME)
@@ -16,6 +15,7 @@ from .helpers.prefs import get_prefs
 from .ui.ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_prefs_section, draw_download_previews)
 from .helpers.btypes import BMenu
 from .helpers.library import (is_lib_path_invalid, ensure_bl_asset_library_exists)
+from .addon_updater_ops import UpdaterPreferences, update_settings_ui
 from .ui.panel_3d_viewport import AB_PT_asset_props_viewport
 from .operators.op_show_info import InfoSnippets
 from .ui.panel_asset_browser import AB_PT_asset_info
@@ -179,6 +179,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
     show_websites: new_show_prop("websites")
     show_contact: new_show_prop("contact")
     show_tasks: new_show_prop("tasks")
+    show_updates: new_show_prop("tasks")
 
     def format_download_label(self, needed_previews):
         needed_previews = list(needed_previews)
@@ -328,7 +329,8 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
                 col.label(text=f"Cancelled: {task.cancelled}")
                 section.separator()
 
-        update_settings_ui(self, context)
+        section = draw_prefs_section(grid, "Auto updates", self, "show_updates").column(align=True)
+        update_settings_ui(self, context, section)
 
 
 @BMenu()

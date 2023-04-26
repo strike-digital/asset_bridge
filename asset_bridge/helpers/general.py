@@ -35,7 +35,6 @@ def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGr
 
 # import urllib3
 
-
 # def check_interneet():
 #     start = perf_counter()
 #     http = urllib3.PoolManager(timeout=3.0)
@@ -47,7 +46,6 @@ def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGr
 #         return True
 #     else:
 #         return False
-
 
 # def check_internet(timeout=.3) -> bool:
 #     """
@@ -67,6 +65,7 @@ def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGr
 #         return False
 #     finally:
 #         conn.close()
+
 
 def check_internet(url='http://www.google.com/', timeout=3):
     """"

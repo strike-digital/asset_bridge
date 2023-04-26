@@ -20,11 +20,15 @@
 Implements draw calls, popups, and operators that use the addon_updater.
 """
 
+import datetime
 import os
 import traceback
 
 import bpy
 from bpy.app.handlers import persistent
+from bpy.types import Context, UILayout
+from .vendor.humanize.time import naturaldelta
+from .ui.ui_helpers import draw_inline_column, draw_inline_prop
 
 # Safely import the updater.
 # Prevents popups for users with invalid python installs e.g. missing libraries
@@ -903,7 +907,7 @@ def update_notice_box_ui(self, context):
         col.operator("wm.url_open", text="Get it now").url = updater.website
 
 
-def update_settings_ui(self, context, element=None):
+def update_settings_ui(self: UpdaterPreferences, context: Context, layout: UILayout = None):
     """Preferences - for drawing with full width inside user preferences
 
     A function that can be run inside user preferences panel for prefs UI.
@@ -914,23 +918,23 @@ def update_settings_ui(self, context, element=None):
     """
 
     # Element is a UI element, such as layout, a row, column, or box.
-    if element is None:
-        element = self.layout
-    box = element.box()
+    if layout is None:
+        layout = self.layout
+    main_col = layout.column(align=True)
 
     # In case of error importing updater.
     if updater.invalid_updater:
-        box.label(text="Error initializing updater code:")
-        box.label(text=updater.error_msg)
+        main_col.label(text="Error initializing updater code:")
+        main_col.label(text=updater.error_msg)
         return
     settings = get_user_preferences(context)
     if not settings:
-        box.label(text="Error getting updater preferences", icon='ERROR')
+        main_col.label(text="Error getting updater preferences", icon='ERROR')
         return
 
     # auto-update settings
-    box.label(text="Updater Settings")
-    row = box.row()
+    # main_col.label(text="Updater Settings")
+    row = main_col.row()
 
     # special case to tell user to restart blender, if set that way
     if not updater.auto_reload_post_update:
@@ -940,31 +944,9 @@ def update_settings_ui(self, context, element=None):
             row.operator("wm.quit_blender", text="Restart blender to complete update", icon="ERROR")
             return
 
-    split = layout_split(row, factor=0.4)
-    sub_col = split.column()
-    sub_col.prop(settings, "auto_check_update")
-    sub_col = split.column()
-
-    if not settings.auto_check_update:
-        sub_col.enabled = False
-    sub_row = sub_col.row()
-    sub_row.label(text="Interval between checks")
-    sub_row = sub_col.row(align=True)
-    check_col = sub_row.column(align=True)
-    check_col.prop(settings, "updater_interval_months")
-    check_col = sub_row.column(align=True)
-    check_col.prop(settings, "updater_interval_days")
-    check_col = sub_row.column(align=True)
-
-    # Consider un-commenting for local dev (e.g. to set shorter intervals)
-    # check_col.prop(settings,"updater_interval_hours")
-    # check_col = sub_row.column(align=True)
-    # check_col.prop(settings,"updater_interval_minutes")
-
-    # Checking / managing updates.
-    row = box.row()
     col = row.column()
     if updater.error is not None:
+        print("1")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
@@ -980,15 +962,17 @@ def update_settings_ui(self, context, element=None):
         split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
 
     elif updater.update_ready is None and not updater.async_checking:
+        print("2")
         col.scale_y = 2
-        col.operator(AddonUpdaterCheckNow.bl_idname)
+        col.operator(AddonUpdaterCheckNow.bl_idname, text="Check for update", icon="URL")
     elif updater.update_ready is None:  # async is running
+        print("3")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
-        split.enabled = False
+        # split.enabled = False
         split.scale_y = 2
-        split.operator(AddonUpdaterCheckNow.bl_idname, text="Checking...")
+        split.operator(AddonUpdaterCheckNow.bl_idname, text="Checking...", icon="FILE_REFRESH")
         split = sub_col.split(align=True)
         split.scale_y = 2
         split.operator(AddonUpdaterEndBackground.bl_idname, text="", icon="X")
@@ -996,6 +980,7 @@ def update_settings_ui(self, context, element=None):
     elif updater.include_branches and \
             len(updater.tags) == len(updater.include_branch_list) and not \
             updater.manual_only:
+        print("4")
         # No releases found, but still show the appropriate branch.
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
@@ -1008,6 +993,7 @@ def update_settings_ui(self, context, element=None):
         split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
 
     elif updater.update_ready and not updater.manual_only:
+        print("5")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
@@ -1018,27 +1004,31 @@ def update_settings_ui(self, context, element=None):
         split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
 
     elif updater.update_ready and updater.manual_only:
+        print("6")
         col.scale_y = 2
         dl_now_txt = "Download " + str(updater.update_version)
         col.operator("wm.url_open", text=dl_now_txt).url = updater.website
     else:  # i.e. that updater.update_ready == False.
+        print("7")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
-        split.enabled = False
+        # split.enabled = False
         split.scale_y = 2
-        split.operator(AddonUpdaterCheckNow.bl_idname, text="Addon is up to date")
-        split = sub_col.split(align=True)
-        split.scale_y = 2
-        split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
+        split.operator(AddonUpdaterCheckNow.bl_idname, text="Addon is up to date!", icon="CHECKMARK")
+        # split = sub_col.split(align=True)
+        # split.scale_y = 2
+        # split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
 
     if not updater.manual_only:
-        col = row.column(align=True)
-        if updater.include_branches and len(updater.include_branch_list) > 0:
-            branch = updater.include_branch_list[0]
-            col.operator(AddonUpdaterUpdateTarget.bl_idname, text="Install {} / old version".format(branch))
-        else:
-            col.operator(AddonUpdaterUpdateTarget.bl_idname, text="(Re)install addon version")
+        main_col.separator()
+        col = main_col.column(align=True)
+        if AddonUpdaterUpdateTarget.poll(context):
+            if updater.include_branches and len(updater.include_branch_list) > 0:
+                # branch = updater.include_branch_list[0]
+                col.operator(AddonUpdaterUpdateTarget.bl_idname, text="Install old version")
+            else:
+                col.operator(AddonUpdaterUpdateTarget.bl_idname, text="(Re)install addon version")
         last_date = "none found"
         backup_path = os.path.join(updater.stage_path, "backup")
         if "backup_date" in updater.json and os.path.isdir(backup_path):
@@ -1046,19 +1036,55 @@ def update_settings_ui(self, context, element=None):
                 last_date = "Date not found"
             else:
                 last_date = updater.json["backup_date"]
-        backup_text = "Restore addon backup ({})".format(last_date)
-        col.operator(AddonUpdaterRestoreBackup.bl_idname, text=backup_text)
+        backup_text = "Restore backup ({})".format(last_date.replace("-", " "))
+        if AddonUpdaterRestoreBackup.poll(context):
+            col.operator(AddonUpdaterRestoreBackup.bl_idname, text=backup_text)
 
-    row = box.row()
-    row.scale_y = 0.7
+    # main_col.separator()
+    fac = .5
+    draw_inline_prop(main_col, settings, "auto_check_update", "Auto-check", "", factor=fac)
+    # main_col.prop(settings, "auto_check_update")
+    # sub_col = main_col.column()
+
+    if settings.auto_check_update:
+        # sub_col.enabled = False
+        sub_col = draw_inline_column(main_col, "Interval", factor=fac)
+        sub_col.prop(settings, "updater_interval_days")
+        sub_col.prop(settings, "updater_interval_months")
+    # sub_row = sub_col.row()
+    # sub_row.label(text="Interval between checks")
+    # sub_row = sub_col.row(align=True)
+    # check_col = sub_row.column(align=True)
+    # check_col.prop(settings, "updater_interval_months")
+    # check_col = sub_row.column(align=True)
+    # check_col.prop(settings, "updater_interval_days")
+    # check_col = sub_row.column(align=True)
+
+    # Consider un-commenting for local dev (e.g. to set shorter intervals)
+    # check_col.prop(settings,"updater_interval_hours")
+    # check_col = sub_row.column(align=True)
+    # check_col.prop(settings,"updater_interval_minutes")
+
+    # Checking / managing updates.
+
     last_check = updater.json["last_check"]
     if updater.error is not None and updater.error_msg is not None:
+        row = main_col.row()
+        row.scale_y = 0.7
         row.label(text=updater.error_msg)
     elif last_check:
         last_check = last_check[0:last_check.index(".")]
-        row.label(text="Last update check: " + last_check)
+
+        # Updated to have a more human readable format
+        last_check = datetime.datetime.fromisoformat(last_check)
+        delta = datetime.datetime.now() - last_check
+        last_check = f"{naturaldelta(delta)} ago"
+
+        col = draw_inline_column(main_col, "Last check", factor=fac)
+        col.label(text=last_check)
     else:
-        row.label(text="Last update check: Never")
+        col = draw_inline_column(main_col, "Last check", factor=fac)
+        col.label(text=last_check)
 
 
 def update_settings_ui_condensed(self, context, element=None):
