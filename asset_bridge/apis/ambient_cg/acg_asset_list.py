@@ -106,4 +106,5 @@ class ACG_AssetList(AssetList):
                 self.assets[item.ab_idname] = item
 
 
-register_asset_list(ACG_AssetList)
+def register():
+    register_asset_list(ACG_AssetList)

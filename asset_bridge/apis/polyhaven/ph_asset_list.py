@@ -29,4 +29,5 @@ class PH_AssetList(AssetList):
             self.assets[item.ab_idname] = item
 
 
-register_asset_list(PH_AssetList)
+def register():
+    register_asset_list(PH_AssetList)
