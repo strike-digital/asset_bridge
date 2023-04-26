@@ -34,6 +34,7 @@ import zipfile
 import shutil
 import threading
 import fnmatch
+from pathlib import Path
 from datetime import datetime, timedelta
 
 # Blender imports, used in limited cases.
@@ -894,6 +895,7 @@ class SingletonUpdater:
             # Now extract directly from the first subfolder (not root)
             # this avoids adding the first subfolder to the path length,
             # which can be too long if the download has the SHA in the name.
+            # XXX: MODIFIED!!!!
             zsep = '/'  # Not using os.sep, always the / value even on windows.
             for name in zfile.namelist():
                 if zsep not in name:
@@ -902,10 +904,14 @@ class SingletonUpdater:
                 if name == top_folder + zsep:
                     continue  # skip top level folder
                 sub_path = name[name.index(zsep) + 1:]
+                path = Path(outdir) / sub_path
                 if name.endswith(zsep):
                     try:
-                        os.mkdir(os.path.join(outdir, sub_path))
-                        self.print_verbose("Extract - mkdir: " + os.path.join(outdir, sub_path))
+                        # os.mkdir(os.path.join(outdir, sub_path))
+                        path.mkdir(parents=True, exist_ok=True)
+                        # os.mkdir(path)
+                        # self.print_verbose("Extract - mkdir: " + os.path.join(outdir, sub_path))
+                        self.print_verbose("Extract - mkdir: " + str(path))
                     except OSError as exc:
                         if exc.errno != errno.EEXIST:
                             self._error = "Install failed"
@@ -913,10 +919,13 @@ class SingletonUpdater:
                             self.print_trace()
                             return -1
                 else:
-                    with open(os.path.join(outdir, sub_path), "wb") as outfile:
+                    # with open(os.path.join(outdir, sub_path), "wb") as outfile:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(path, "wb") as outfile:
                         data = zfile.read(name)
                         outfile.write(data)
-                        self.print_verbose("Extract - create: " + os.path.join(outdir, sub_path))
+                        # self.print_verbose("Extract - create: " + os.path.join(outdir, sub_path))
+                        self.print_verbose("Extract - create: " + str(path))
 
         self.print_verbose("Extracted source")
 
