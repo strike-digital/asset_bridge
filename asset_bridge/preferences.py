@@ -5,6 +5,7 @@ from pathlib import Path
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Menu, UILayout, AddonPreferences
+from .addon_updater_ops import UpdaterPreferences, update_settings_ui
 from .previews import ICONS
 
 from .api import get_asset_lists
@@ -26,7 +27,7 @@ from .operators.op_download_previews import AB_OT_download_previews
 from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
 
 
-class ABAddonPreferences(AddonPreferences):
+class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
     bl_idname = __package__
     layout: UILayout
 
@@ -313,8 +314,6 @@ class ABAddonPreferences(AddonPreferences):
         op = section.operator("wm.url_open", text="Leave a review :)        ", icon_value=ICONS.ab_review)
         op.url = "https://blendermarket.com/products/asset-bridge/ratings"
 
-        section = draw_prefs_section(grid, "Contact", self, "show_contact").column(align=True)
-        section.scale_y = section.scale_x = 1.5
         if __IS_DEV__ and self.show_tasks and len(ab.tasks):
             # Debug section showing the currently running tasks
             section = draw_prefs_section(grid, "Tasks", self, "show_tasks")
@@ -328,6 +327,8 @@ class ABAddonPreferences(AddonPreferences):
                 col.label(text=f"Finished: {task.finished}")
                 col.label(text=f"Cancelled: {task.cancelled}")
                 section.separator()
+
+        update_settings_ui(self, context)
 
 
 @BMenu()

@@ -68,7 +68,7 @@ def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGr
 #     finally:
 #         conn.close()
 
-def check_internet(url='http://www.google.com/', timeout=.1):
+def check_internet(url='http://www.google.com/', timeout=3):
     """"
     Check whether the user has an active internet connection
     taken from: https://stackoverflow.com/a/33117579/18864758

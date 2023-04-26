@@ -1,3 +1,4 @@
+import sys
 import bpy
 import typing
 import inspect
@@ -30,20 +31,24 @@ def register():
 
     # Custom attributes to prevent registering, and to enable proper registration order
     for cls in ordered_classes.copy():
-        if hasattr(cls, "__no_reg__") and cls.__no_reg__:
+        mod = sys.modules[cls.__module__]
+        if (hasattr(cls, "__no_reg__") and cls.__no_reg__) or (hasattr(mod, "__no_reg__") and mod.__no_reg__):
             ordered_classes.remove(cls)
 
     ordered_classes.sort(key=lambda cls: cls.__reg_order__ if hasattr(cls, "__reg_order__") else 10000)
 
     for module in manual_modules:
         if hasattr(module, "register"):
+            print(module.__name__)
             module.register()
 
     for cls in ordered_classes:
         bpy.utils.register_class(cls)
 
-    for module in modules:
-        if module.__name__ == __name__ or module in manual_modules:
+    for module in modules.copy():
+        if module.__name__ == __name__ or module in manual_modules or\
+                hasattr(module, "__no_reg__") and module.__no_reg__:
+            modules.remove(module)
             continue
         if hasattr(module, "register"):
             module.register()

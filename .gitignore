@@ -8,3 +8,4 @@ dev.py
 /dev
 /asset_bridge/previews
 /asset_bridge/cache
+/asset_bridge/asset_bridge_updater

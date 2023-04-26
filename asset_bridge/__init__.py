@@ -24,14 +24,16 @@ bl_info = {
 }
 
 from . import auto_load
-
+from . import addon_updater_ops
 
 auto_load.init()
 
 
 def register():
     auto_load.register()
+    addon_updater_ops.register(bl_info)
 
 
 def unregister():
     auto_load.unregister()
+    addon_updater_ops.unregister()
