@@ -121,20 +121,32 @@ def dimensions_to_string(dimensions: list[float] | str) -> str:
     """Show dimensions in metric or imperial units depending on scene settings.
     This is my gift to the americans, burmese and the liberians of the world.
     The dimensions can be either a list or the string representation of a list (used for asset metadata)."""
-    unit_system = bpy.context.scene.unit_settings.system
-    if unit_system in ["METRIC", "NONE"]:
-        coefficient = 1
-        suffix = "m"
-    else:
-        coefficient = 3.2808399
-        suffix = "ft"
     if isinstance(dimensions, str):
         dims = json.loads(dimensions)
     else:
         dims = dimensions
+
+    unit_system = bpy.context.scene.unit_settings.system
+    if unit_system in ["METRIC", "NONE"]:
+        if dims[0] / 1000 > .999999:
+            coefficient = 1
+            suffix = "m"
+        else:
+            coefficient = 1000
+            suffix = "cm"
+    else:
+        coefficient = 3.2808399
+        if dims[0] / 1000 * coefficient > 1:
+            suffix = "ft"
+        else:
+            coefficient = coefficient * 12
+            suffix = "in"
+
     string = ""
     for dim in dims:
-        string += f"{dim / 1000 * coefficient:.0f}{suffix} x "
+        size = dim / 1000 * coefficient
+        decimal = 0 if size > .99999 else 1
+        string += f"{size:.{decimal}f}{suffix} x "
     string = string[:-3]
     return string
 

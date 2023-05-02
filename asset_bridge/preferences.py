@@ -314,6 +314,9 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
 
         op = section.operator("wm.url_open", text="Leave a review :)        ", icon_value=ICONS.ab_review)
         op.url = "https://blendermarket.com/products/asset-bridge/ratings"
+        
+        section = draw_prefs_section(grid, "Auto updates", self, "show_updates").column(align=True)
+        update_settings_ui(self, context, section)
 
         if __IS_DEV__ and self.show_tasks and len(ab.tasks):
             # Debug section showing the currently running tasks
@@ -328,9 +331,6 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
                 col.label(text=f"Finished: {task.finished}")
                 col.label(text=f"Cancelled: {task.cancelled}")
                 section.separator()
-
-        section = draw_prefs_section(grid, "Auto updates", self, "show_updates").column(align=True)
-        update_settings_ui(self, context, section)
 
 
 @BMenu()

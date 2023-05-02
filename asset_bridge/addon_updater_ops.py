@@ -946,7 +946,6 @@ def update_settings_ui(self: UpdaterPreferences, context: Context, layout: UILay
 
     col = row.column()
     if updater.error is not None:
-        print("1")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
@@ -962,11 +961,9 @@ def update_settings_ui(self: UpdaterPreferences, context: Context, layout: UILay
         split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
 
     elif updater.update_ready is None and not updater.async_checking:
-        print("2")
         col.scale_y = 2
         col.operator(AddonUpdaterCheckNow.bl_idname, text="Check for update", icon="URL")
     elif updater.update_ready is None:  # async is running
-        print("3")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
@@ -980,7 +977,6 @@ def update_settings_ui(self: UpdaterPreferences, context: Context, layout: UILay
     elif updater.include_branches and \
             len(updater.tags) == len(updater.include_branch_list) and not \
             updater.manual_only:
-        print("4")
         # No releases found, but still show the appropriate branch.
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
@@ -993,7 +989,6 @@ def update_settings_ui(self: UpdaterPreferences, context: Context, layout: UILay
         split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
 
     elif updater.update_ready and not updater.manual_only:
-        print("5")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
@@ -1004,12 +999,10 @@ def update_settings_ui(self: UpdaterPreferences, context: Context, layout: UILay
         split.operator(AddonUpdaterCheckNow.bl_idname, text="", icon="FILE_REFRESH")
 
     elif updater.update_ready and updater.manual_only:
-        print("6")
         col.scale_y = 2
         dl_now_txt = "Download " + str(updater.update_version)
         col.operator("wm.url_open", text=dl_now_txt).url = updater.website
     else:  # i.e. that updater.update_ready == False.
-        print("7")
         sub_col = col.row(align=True)
         sub_col.scale_y = 1
         split = sub_col.split(align=True)
@@ -1337,7 +1330,7 @@ def register(bl_info):
 
     # Optional, consider turning off for production or allow as an option
     # This will print out additional debugging info to the console
-    updater.verbose = True  # make False for production default
+    updater.verbose = False  # make False for production default
 
     # Optional, customize where the addon updater processing subfolder is,
     # essentially a staging folder used by the updater on its own
@@ -1364,7 +1357,7 @@ def register(bl_info):
     # update. If a pattern file is not found in new update, no action is taken
     # NOTE: This does NOT delete anything proactively, rather only defines what
     # is allowed to be overwritten during an update execution.
-    updater.overwrite_patterns = ["*.png", "*.jpg", "README.md", "LICENSE.txt", "*.json", "*.blend"]
+    updater.overwrite_patterns = ["*.png", "*.jpg", "README.md", "LICENSE.txt", "*.blend"]
     # updater.overwrite_patterns = []
     # other examples:
     # ["*"] means ALL files/folders will be overwritten by update, was the

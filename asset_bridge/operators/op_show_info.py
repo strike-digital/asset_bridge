@@ -56,12 +56,12 @@ class InfoSnippets():
         "Lbrary path",
         """\
         This is the directory that all of the downloaded assets will be stored in.\n
-        It's a good idea to make sure that this is somewhere that won't be change often, as if it is, and you\
-        change/remove the directory, all of the blend files that the downloaded assets were used in won't be able to\
+        It's a good idea to make sure that this is somewhere that won't be change often, as if it is, and you \
+        change/remove the directory, all of the blend files that the downloaded assets were used in won't be able to \
         find them, and will instead render with pink textures as placeholders.\n
 
-        This doesn't apply if the 'auto pack files' setting is enabled, as this will store all of the assets inside\
-        the blend file when they are imported, at the cost of the file size of the blend file being much larger.\
+        This doesn't apply if the 'auto pack files' setting is enabled, as this will store all of the assets inside \
+        the blend file when they are imported, at the cost of the file size of the blend file being much larger. \
         """,
         icon="FILE_FOLDER",
     )
@@ -69,8 +69,8 @@ class InfoSnippets():
     set_up_dummy_assets = InfoSnippet(
         "Set up asset library",
         """\
-        In order for the online assets to show up in the Blender asset browser, the addon first needs to set up\
-        a blend file containing a bunch of dummy assets to represent them. As an example, the object assets are\
+        In order for the online assets to show up in the Blender asset browser, the addon first needs to set up \
+        a blend file containing a bunch of dummy assets to represent them. As an example, the object assets are \
         just represented by empties, but their asset data is set to show up as if it is the online asset.\n
         
         This button simply creates a blend file containing these dummy assets that the addon can then use.

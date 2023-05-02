@@ -4,17 +4,25 @@ import os
 from pathlib import Path
 import sys
 from time import perf_counter
-from typing import Dict
+from typing import TYPE_CHECKING, Dict
 import bpy
 import addon_utils
 from bpy.types import Material, Object, World
 
 addon_utils.enable(Path(__file__).parents[1].name)
-from asset_bridge.api import get_asset_lists
-from asset_bridge.constants import DIRS, FILES
-from asset_bridge.settings import get_asset_settings
-from asset_bridge.helpers.catalog import AssetCatalogFile
-from asset_bridge.apis.asset_utils import HDRI, MATERIAL, MODEL
+
+if TYPE_CHECKING:
+    from ..api import get_asset_lists
+    from ..constants import DIRS, FILES
+    from ..settings import get_asset_settings
+    from ..helpers.catalog import AssetCatalogFile
+    from ..apis.asset_utils import HDRI, MATERIAL, MODEL
+else:
+    from asset_bridge.api import get_asset_lists
+    from asset_bridge.constants import DIRS, FILES
+    from asset_bridge.settings import get_asset_settings
+    from asset_bridge.helpers.catalog import AssetCatalogFile
+    from asset_bridge.apis.asset_utils import HDRI, MATERIAL, MODEL
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
 These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
 
@@ -51,12 +59,12 @@ all_categories: Dict[str, Dict[str, int]] = {}
 
 # Find the popularity of each asset category, separated by type
 for asset_item in asset_list.values():
-    for category in asset_item.categories:
+    for category in asset_item.ab_categories:
         # Increment category popularity by 1
-        categories = all_categories.get(asset_item.type, {})
+        categories = all_categories.get(asset_item.ab_type, {})
         count = categories.get(category, 0)
         categories[category] = count + 1
-        all_categories[asset_item.type] = categories
+        all_categories[asset_item.ab_type] = categories
 
 MAX_CATALOG_DEPTH = 3  # The maximum number of child catalogs that can occur under the main type catalogs
 ui_names = {HDRI: "HDRIs", MATERIAL: "Materials", MODEL: "Models"}
@@ -67,8 +75,8 @@ ui_names = {HDRI: "HDRIs", MATERIAL: "Materials", MODEL: "Models"}
 # You can narrow your search by selecting more catalogs.
 for asset_item in asset_list.values():
     # Sort the categories by popularity
-    categories = all_categories[asset_item.type]
-    cats = sorted(asset_item.categories, key=lambda k: categories[k], reverse=True)[:MAX_CATALOG_DEPTH]
+    categories = all_categories[asset_item.ab_type]
+    cats = sorted(asset_item.ab_categories, key=lambda k: categories[k], reverse=True)[:MAX_CATALOG_DEPTH]
 
     # Remove chains of catalogs that only have one asset in them
     for i in range(len(cats) - 1):
@@ -77,7 +85,7 @@ for asset_item in asset_list.values():
             break
 
     # Set the catlog path path
-    path = f"{asset_list.label}/{ui_names[asset_item.type]}/{'/'.join(cats)}"
+    path = f"{asset_list.label}/{ui_names[asset_item.ab_type]}/{'/'.join(cats)}"
     asset_item._catalog_path = path
     paths.add(path)
 
@@ -103,33 +111,37 @@ progress = 0
 progress_update_interval = .01
 last_update = 0
 
+# Initial: 1.4s, 2.39s
+
+start = perf_counter()
+
 # Create a data block for each asset, and set it's properties
 for i, asset_item in enumerate(asset_list.values()):
     params = {}
-    if asset_item.bl_type == Object:
+    if asset_item.ab_bl_type == Object:
         params["object_data"] = None
-    asset = types_to_data[asset_item.bl_type].new(asset_item.label, **params)
+    asset = types_to_data[asset_item.ab_bl_type].new(asset_item.ab_label, **params)
 
     # Set asset bridge attributes
     data = get_asset_settings(asset)
     data.is_dummy = True
-    data.idname = asset_item.idname
+    data.idname = asset_item.ab_idname
 
     # Set blender asset attributes
     asset.asset_mark()
-    asset.asset_data.author = asset_item.authors[0]
-    asset.asset_data.description = asset_item.idname
-    for tag in asset_item.tags:
+    asset.asset_data.author = asset_item.ab_authors[0]
+    asset.asset_data.description = asset_item.ab_idname
+    for tag in asset_item.ab_tags:
         asset.asset_data.tags.new(tag)
 
-    tags = set(asset_item.tags)
-    if asset_item.type not in tags:
-        asset.asset_data.tags.new(asset_item.type)
+    tags = set(asset_item.ab_tags)
+    if asset_item.ab_type not in tags:
+        asset.asset_data.tags.new(asset_item.ab_type)
     asset.asset_data.tags.new(data.idname)
 
     # Load previews (This is the slowest part, not sure how to speed it up)
     with bpy.context.temp_override(id=asset):
-        bpy.ops.ed.lib_id_load_custom_preview(filepath=str(DIRS.previews / f"{asset_item.idname}.png"))
+        bpy.ops.ed.lib_id_load_custom_preview(filepath=str(DIRS.previews / f"{asset_item.ab_idname}.png"))
 
     # Set the catalog
     # asset.asset_data.catalog_id = catalog[asset_list.label + "/" + asset_item.catalog_path].uuid
@@ -140,6 +152,8 @@ for i, asset_item in enumerate(asset_list.values()):
     if perf_counter() - last_update > progress_update_interval:
         update_progress_file(progress)
         last_update = perf_counter()
+
+print(f"created assets in {perf_counter() - start:.3f}s")
 
 # Save
 blend_file = DIRS.dummy_assets / (asset_list.name + ".blend")
