@@ -2,20 +2,10 @@ from bpy.types import Node, Panel, Object, Material
 
 from ..settings import get_ab_settings, get_asset_settings
 from ..constants import NODES, NODE_GROUPS
-from .ui_helpers import (
-    DummyLayout,
-    wrap_text,
-    draw_inline_prop,
-    draw_inline_column,
-    draw_section_header,
-    draw_node_group_inputs
-)
+from .ui_helpers import (DummyLayout, wrap_text, draw_inline_prop, draw_inline_column, draw_section_header,
+                         draw_node_group_inputs)
 from ..helpers.btypes import BPanel
-from .menu_swap_asset import (
-    AB_MT_swap_hdri_asset,
-    AB_MT_swap_model_asset,
-    AB_MT_swap_material_asset
-)
+from .menu_swap_asset import (AB_MT_swap_hdri_asset, AB_MT_swap_model_asset, AB_MT_swap_material_asset)
 from ..operators.op_show_info import InfoSnippets
 from ..operators.op_toggle_tiling_preview import AB_OT_toggle_tiling_preview
 
@@ -68,8 +58,9 @@ class AB_PT_asset_props_viewport(Panel):
             class HdriNodes(Nodes):
                 __init__ = lambda self: None
 
-                coords = world.node_tree.nodes.get(NODE_GROUPS.hdri_coords),
-                color = world.node_tree.nodes.get(NODE_GROUPS.hdri_color),
+                def __init__(self):
+                    self.coords = world.node_tree.nodes.get(NODE_GROUPS.hdri_coords)
+                    self.color = world.node_tree.nodes.get(NODE_GROUPS.hdri_color)
 
             nodes = HdriNodes()
 

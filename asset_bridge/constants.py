@@ -84,7 +84,7 @@ class Dirs():
         self.dummy_assets = self.library / "dummy_assets"
         FILES.update()
 
-        all_paths = [v for v in (self.__dict__).values() if isinstance(v, Path)]
+        all_paths = [v for v in (self.__dict__ | self.__class__.__dict__).values() if isinstance(v, Path)]
         for dir in all_paths:
             dir.mkdir(parents=True, exist_ok=True)
 
