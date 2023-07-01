@@ -60,6 +60,7 @@ class AB_OT_draw_import_progress(Operator):
         self.image.name = self.task_name
         self.aspect = self.image.size[0] / self.image.size[1]
         self.texture = gpu.texture.from_image(self.image)
+
         self.region = get_active_window_region(V((event.mouse_x, event.mouse_y)), fallback_area_type="VIEW_3D")
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}

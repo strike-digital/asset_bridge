@@ -141,6 +141,9 @@ class AssetListItem(ABC):
         """Download a preview for this asset.
         Returns an empty string if the download was successful or an error message otherwise"""
 
+    def get_high_res_urls(self) -> list[str]:
+        """return a list of high resolution preview image urls for this asset"""
+
     def to_asset(
         self,
         quality_level: str,
@@ -160,6 +163,9 @@ class AssetListItem(ABC):
         if not os.listdir(quality_dir):
             return False
         return True
+
+    def __str__(self):
+        return f"<{self.ab_asset_list.name}_list_item: {self.ab_idname}>"
 
 
 class AssetList(ABC):
@@ -214,6 +220,9 @@ class AssetList(ABC):
     def __init__(self, data) -> None:
         """Initialize a new asset list from the raw data returned by the website API."""
 
+    def __str__(self) -> str:
+        return f"<asset_list: {self.name}>"
+
 
 class Asset(ABC):
     """A functional representation of an asset, used only for downloading or importing assets."""
@@ -264,3 +273,6 @@ class Asset(ABC):
         for (dirpath, dirnames, filenames) in os.walk(self.download_dir):
             files += [Path(dirpath) / file for file in filenames]
         return files
+
+    def __str__(self):
+        return f"<{self.ab_asset_list.name}_asset: {self.list_item.ab_idname}>"

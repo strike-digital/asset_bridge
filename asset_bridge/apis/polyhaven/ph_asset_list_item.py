@@ -124,3 +124,17 @@ class PH_AssetListItem(AssetListItem):
     def download_preview(self, size=128):
         url = f"https://cdn.polyhaven.com/asset_img/thumbs/{self.ab_name}.png?width={size}&height={size}"
         download_file(url, DIRS.previews, f"{self.ab_idname}.png")
+
+    def get_high_res_urls(self) -> list[str]:
+        urls = [
+            f"https://cdn.polyhaven.com/asset_img/thumbs/{self.ab_name}.png?height=780",
+        ]
+        if self.ab_type in {MATERIAL, MODEL}:
+            urls += [
+                f"https://cdn.polyhaven.com/asset_img/renders/{self.ab_name}/clay.png?height=780",
+            ]
+        elif self.ab_type in {HDRI, MATERIAL}:
+            urls += [
+                f"https://cdn.polyhaven.com/asset_img/primary/{self.ab_name}.png?height=780",
+            ]
+        return urls
