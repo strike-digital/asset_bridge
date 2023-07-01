@@ -50,7 +50,7 @@ update_progress_file(0)
 
 # setup catalog file
 catalog = AssetCatalogFile(DIRS.dummy_assets, f"{asset_list.name}.cats.txt", load_from_file=False)
-catalog.add_catalog(asset_list.label)
+# catalog.add_catalog(asset_list.label)
 
 paths = set()
 
@@ -85,7 +85,8 @@ for asset_item in asset_list.values():
             break
 
     # Set the catlog path path
-    path = f"{asset_list.label}/{ui_names[asset_item.ab_type]}/{'/'.join(cats)}"
+    # path = f"{asset_list.label}/{ui_names[asset_item.ab_type]}/{'/'.join(cats)}"
+    path = f"{ui_names[asset_item.ab_type]}/{'/'.join(cats)}"
     asset_item._catalog_path = path
     paths.add(path)
 
@@ -138,6 +139,7 @@ for i, asset_item in enumerate(asset_list.values()):
     if asset_item.ab_type not in tags:
         asset.asset_data.tags.new(asset_item.ab_type)
     asset.asset_data.tags.new(data.idname)
+    asset.asset_data.tags.new(asset_list.label)
 
     # Load previews (This is the slowest part, not sure how to speed it up)
     with bpy.context.temp_override(id=asset):

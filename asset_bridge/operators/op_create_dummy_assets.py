@@ -49,8 +49,8 @@ class AB_OT_create_dummy_assets(Operator):
             process = new_blender_process(
                 Files.script_create_dummy_assets,
                 script_args=["--asset_list", asset_list_name],
-                use_stdout=False,
-                # use_stdout=True,
+                # use_stdout=False,
+                use_stdout=True,
             )
             processes[asset_list_name] = process
 

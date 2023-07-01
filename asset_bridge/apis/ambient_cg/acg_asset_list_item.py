@@ -26,12 +26,6 @@ class ACG_AssetListItem(AssetListItem):
         self.ab_type = asset_types[data_type]
         self.ab_bl_type = bl_types[data_type]
         self.ab_tags = data["tags"]
-        for tag in data["tags"]:
-            if tag not in {"hdri", "3d"}:
-                category = tag
-                break
-        else:
-            category = self.ab_tags[-1]
         self.ab_categories = [t for t in self.ab_tags if t not in {"hdri", "3d"}]
         # self.catalog_path = f"{names[data_type]}/{category}"
 
