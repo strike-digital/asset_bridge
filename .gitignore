@@ -1,5 +1,6 @@
 
 dev.py
+*.blend1
 
 **/__pycache__/*
 /.vscode

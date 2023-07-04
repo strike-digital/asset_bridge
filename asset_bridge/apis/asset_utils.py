@@ -314,7 +314,9 @@ def import_material(
         mat.shadow_method = "CLIP"
 
     if nor_file := texture_files.get("normal"):
-        nor_node = nodes.new("ShaderNodeNormalMap")
+        nor_node = nodes.new("ShaderNodeGroup")
+        nor_node.node_tree = get_node_group(FILES.resources_blend, NODE_GROUPS.normal_map, link_method)
+        # nor_node = nodes.new("ShaderNodeNormalMap")
         nor_node.name = NODES.normal_map
         new_image(nor_file, "Color", "Normal", to_node=nor_node)
         links.new(nor_node.outputs[0], bsdf_node.inputs["Normal"])

@@ -44,6 +44,7 @@ class NodeGroups():
     roughness_map = "AB-roughness_map"
     hdri_coords = "AB-hdri_coords"
     hdri_color = "AB-hdri_color"
+    normal_map = "AB-normal_map"
 
 
 class NodeNames():
