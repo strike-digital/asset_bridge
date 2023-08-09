@@ -121,6 +121,7 @@ class AB_PT_asset_props_viewport(Panel):
                     self.hsv = all_nodes.get(NODES.hsv)
                     self.roughness = all_nodes.get(NODES.roughness)
                     self.opacity = all_nodes.get(NODES.opacity)
+                    self.principled = all_nodes.get(NODES.principled_bsdf)
 
             slot = obj.material_slots[obj.active_material_index]
             slots = [slot for slot in obj.material_slots if slot.material]
@@ -174,10 +175,11 @@ class AB_PT_asset_props_viewport(Panel):
             if not mat or not nodes.any():
                 return True
 
-            principled_nodes = [n for n in mat.node_tree.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled"]
+            # principled_nodes = [n for n in mat.node_tree.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled"]
+            principled_node = nodes.principled
 
             # GENERAL
-            if any([nodes.normal, nodes.scale, nodes.opacity, nodes.roughness]) or len(principled_nodes):
+            if any([nodes.normal, nodes.scale, nodes.opacity, nodes.roughness, nodes.principled]):
                 col = column.column(align=True)
                 draw_section_header(col, "General", show_props, "mat_general")
                 if show_props.mat_general:
@@ -207,11 +209,16 @@ class AB_PT_asset_props_viewport(Panel):
                         socket = rough_math_node.inputs[1]
                         draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount", factor=FACTOR)
                         box.separator(factor=PROP_SPACING)
-                    elif len(principled_nodes):
-                        socket = principled_nodes[0].inputs["Roughness"]
+                    elif principled_node:
+                        socket = principled_node.inputs["Roughness"]
                         if not socket.links:
                             draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount", factor=FACTOR)
                             box.separator(factor=PROP_SPACING)
+
+                    if principled_node and principled_node.inputs["Emission"].links:
+                        socket = principled_node.inputs["Emission Strength"]
+                        draw_inline_prop(box, socket, "default_value", "Emission:", "Strength", factor=FACTOR)
+                        box.separator(factor=PROP_SPACING)
 
             # COLOR
             if hsv_node := nodes.hsv:

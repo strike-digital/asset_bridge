@@ -50,6 +50,7 @@ class NodeGroups():
 class NodeNames():
 
     anti_tiling = "AB-anti_tiling"
+    principled_bsdf = "AB-principled_bsdf"
     mapping = "AB-mapping"
     ao_mix = "AB-ao_mix"
     hsv = "AB-hsv"

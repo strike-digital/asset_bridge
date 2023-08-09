@@ -11,9 +11,9 @@ __all__ = (
     "register",
     "unregister",
 )
+manual_modules = []
 
 modules = None
-manual_modules = []
 ordered_classes = None
 
 
@@ -23,6 +23,7 @@ def init():
 
     modules = get_all_submodules(Path(__file__).parent)
     ordered_classes = get_ordered_classes_to_register(modules)
+    ordered_classes.sort(key=lambda cls: cls.__reg_order__ if hasattr(cls, "__reg_order__") else 10000)
 
 
 def register():
@@ -34,8 +35,6 @@ def register():
         mod = sys.modules[cls.__module__]
         if (hasattr(cls, "__no_reg__") and cls.__no_reg__) or (hasattr(mod, "__no_reg__") and mod.__no_reg__):
             ordered_classes.remove(cls)
-
-    ordered_classes.sort(key=lambda cls: cls.__reg_order__ if hasattr(cls, "__reg_order__") else 10000)
 
     for module in manual_modules:
         if hasattr(module, "register"):

@@ -249,6 +249,7 @@ def import_material(
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
     bsdf_node = nodes["Principled BSDF"]
+    bsdf_node.name = NODES.principled_bsdf
     out_node = nodes["Material Output"]
     image_nodes = []
     disp_node = diff_node = nor_node = rough_group_node = ao_mix_node = hsv_node = None
@@ -303,9 +304,7 @@ def import_material(
         links.new(rough_group_node.outputs[0], bsdf_node.inputs["Roughness"])
 
     if emission_file := texture_files.get("emission"):
-        new_image(emission_file, "Emmission Strength", "Emission")
-        if diff_node:
-            links.new(diff_node.outputs[0], bsdf_node.inputs["Emission"])
+        new_image(emission_file, "Emission", "Emission", non_color=False)
 
     if opacity_file := texture_files.get("opacity"):
         opacity_node = new_image(opacity_file, "Alpha", "Opacity")
