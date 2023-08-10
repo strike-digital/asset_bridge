@@ -198,9 +198,18 @@ class AssetBridgeWmSettings(PropertyGroup):
         if asset_list_item:
             items = []
             for i, level in enumerate(asset_list_item.ab_quality_levels):
-                # Avoid enum bug
+                name, label, description = level
                 icon = "CHECKMARK" if asset_list_item.is_downloaded(level[0]) else "IMPORT"
-                items.append(_make_item(level[0], level[1], level[2], icon, i))
+
+                # If no name is found, should only happen due to a difficult asset.
+                if not name:
+                    name = "NONE"
+                    label = "No quality level..."
+                    description = "This asset has no quality level available, please contact me about this :)"
+                    icon = "X"
+
+                # Avoid enum bug
+                items.append(_make_item(name, label, description, icon, i))
             return items
         return [("NONE", "None", "None")]
 

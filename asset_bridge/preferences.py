@@ -25,6 +25,7 @@ from .operators.op_remove_task import AB_OT_remove_task
 from .operators.op_report_message import report_message
 from .operators.op_download_previews import AB_OT_download_previews
 from .operators.op_check_for_new_assets import AB_OT_check_for_new_assets
+from .operators.op_create_dummy_assets import AB_OT_create_dummy_assets
 
 
 class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
@@ -314,7 +315,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
 
         op = section.operator("wm.url_open", text="Leave a review :)        ", icon_value=ICONS.ab_review)
         op.url = "https://blendermarket.com/products/asset-bridge/ratings"
-        
+
         section = draw_prefs_section(grid, "Auto updates", self, "show_updates").column(align=True)
         update_settings_ui(self, context, section)
 
@@ -344,10 +345,13 @@ class AB_MT_download_previews_menu(Menu):
         op.reload = True
 
         if __IS_DEV__:
-            op = layout.operator(AB_OT_download_previews.bl_idname, icon="FILE_SCRIPT", text="Debug test")
+            op = layout.operator(AB_OT_download_previews.bl_idname, icon="FILE_SCRIPT", text="Debug download")
             op.bl_description = "download a small subset of the assets, for speed"
             op.reload = True
             op.test_number = 100
+
+            op = layout.operator(AB_OT_create_dummy_assets.bl_idname, icon="FILE_SCRIPT", text="Debug set-up library")
+            op.bl_description = "Re-setup the asset library file"
 
         op = layout.operator(AB_OT_open_folder.bl_idname, text="Open previews folder", icon="FILE_FOLDER")
         op.bl_description = "Open the folder containing the preview files"

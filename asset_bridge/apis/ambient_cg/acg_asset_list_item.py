@@ -1,5 +1,6 @@
 import re
 import inspect
+from traceback import format_exc
 
 from bpy.types import World, Object, Material
 
@@ -54,6 +55,9 @@ class ACG_AssetListItem(AssetListItem):
         def sort_quality(level: list[str]):
             """Sort the quality levels"""
             name = level[0]
+            if not name:
+                print(self.ab_label)
+                return 0
             parts = name.split("-")
             value = 0
             if self.ab_type == HDRI:
@@ -70,7 +74,9 @@ class ACG_AssetListItem(AssetListItem):
                 try:
                     value += int(qual)
                 except ValueError as e:
-                    print(f"Error sorting quality levels for asset {self.ab_name}: {e}")
+                    print(
+                        f"Error sorting quality levels for asset {self.ab_name}, quality_level '{qual}':\n{format_exc()}"
+                    )
             return value
 
         self.ab_quality_levels.sort(key=sort_quality)
@@ -123,6 +129,11 @@ class ACG_AssetListItem(AssetListItem):
             This model has an unsupported format. This should be fixed by Ambient CG in the future,
             but currently this model cannot be imported. If you want it to be fixed faster,
             consider donating to their Patreon so that they have the resources to continue :).
+            """)
+        # if any of the quality levels do not have a name
+        elif not all(q[0] != "" for q in self.ab_quality_levels):
+            return inspect.cleandoc("""
+            This asset has corrupted or incomplete quality data, and as such cannot be used.
             """)
         return ""
 

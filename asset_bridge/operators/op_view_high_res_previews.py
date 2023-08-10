@@ -1,8 +1,8 @@
 import bpy
 import gpu
-from gpu.types import GPUBatch, GPUShader
+from gpu.types import GPUBatch
 from gpu_extras.batch import batch_for_shader
-from ..helpers.drawing import get_active_window_region
+from ..helpers.drawing import Shaders, get_active_window_region
 from ..helpers.math import vec_divide
 from mathutils import Vector as V
 from ..constants import DIRS
@@ -42,12 +42,12 @@ class AB_OT_view_high_res_previews(Operator):
         for file in files:
             image = bpy.data.images.load(str(file))
             image.name = "." + image.name
-            image.colorspace_settings.name = 'Linear'
+            image.colorspace_settings.name = 'Linear' if bpy.app.version < (4, 0, 0) else "Linear Rec.709"
             self.images.append(image)
             self.textures.append(gpu.texture.from_image(image))
 
-        self.shader: GPUShader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-        self.image_shader: GPUShader = gpu.shader.from_builtin('2D_IMAGE')
+        self.shader = Shaders.UNIFORM_COLOR
+        self.image_shader = Shaders.IMAGE
 
         self._handle = bpy.types.SpaceFileBrowser.draw_handler_add(
             self.draw_callback_px,

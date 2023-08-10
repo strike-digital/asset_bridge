@@ -1,10 +1,19 @@
 import bpy
 from bpy.types import Region, Context
+import gpu
+from gpu.types import GPUShader
 from mathutils import Vector as V
-from bpy_extras.view3d_utils import (
-    region_2d_to_origin_3d,
-    region_2d_to_vector_3d
-)
+from bpy_extras.view3d_utils import (region_2d_to_origin_3d, region_2d_to_vector_3d)
+
+
+# Unfortunately this is needed for that sweet, sweet syntax highlighting.
+# I don't like Enums since they need an extra step to get the info you want,
+# But they do give their attributes a lovely blue color.
+# class Shaders(Enum if TYPE_CHECKING else object):
+class Shaders():
+    UNIFORM_COLOR: GPUShader = gpu.shader.from_builtin("2D_UNIFORM_COLOR" if bpy.app.version < (4, 0,
+                                                                                                0) else "UNIFORM_COLOR")
+    IMAGE: GPUShader = gpu.shader.from_builtin("2D_IMAGE" if bpy.app.version < (4, 0, 0) else "IMAGE")
 
 
 def mouse_in_window_bounds(mouse_pos, window):
