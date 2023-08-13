@@ -1,11 +1,12 @@
+from enum import Enum
 import inspect
-from typing import Generic, Literal, Type, TypeVar
+from typing import TYPE_CHECKING, Literal
 from dataclasses import dataclass
 
 import blf
 import bpy
-from bpy.props import BoolProperty, FloatProperty, FloatVectorProperty, IntProperty, StringProperty
-from bpy.types import Context, Material, Menu, Object, Operator, Panel, UILayout
+from bpy.props import BoolProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty, StringProperty
+from bpy.types import Context, Event, Material, Menu, Object, Operator, Panel, UILayout
 from mathutils import Vector
 """A module containing helpers to make defining blender types easier (panels, operators etc.)"""
 
@@ -196,7 +197,68 @@ class BPanel():
         return Wrapped
 
 
-T = TypeVar("T")
+property_groups = []
+
+
+@dataclass
+class BPropertyGroup():
+
+    type: bpy.types.ID
+    name: str
+
+    def __call__(self, cls):
+        self.cls = cls
+        global property_groups
+        property_groups.append(self)
+        return cls
+
+    def register(self):
+        setattr(self.type, self.name, PointerProperty(type=self.cls))
+
+    def unregister(self):
+        delattr(self.type, self.name)
+
+
+class Cursor(Enum):
+    """Wraps the poorly documented blender cursor functions to allow for auto-complete"""
+    DEFAULT = "DEFAULT"
+    NONE = 'NONE'
+    WAIT = 'WAIT'
+    CROSSHAIR = 'CROSSHAIR'
+    MOVE_X = 'MOVE_X'
+    MOVE_Y = 'MOVE_Y'
+    KNIFE = 'KNIFE'
+    TEXT = 'TEXT'
+    PAINT_BRUSH = 'PAINT_BRUSH'
+    PAINT_CROSS = 'PAINT_CROSS'
+    DOT = 'DOT'
+    ERASER = 'ERASER'
+    HAND = 'HAND'
+    SCROLL_X = 'SCROLL_X'
+    SCROLL_Y = 'SCROLL_Y'
+    SCROLL_XY = 'SCROLL_XY'
+    EYEDROPPER = 'EYEDROPPER'
+    PICK_AREA = 'PICK_AREA'
+    STOP = 'STOP'
+    COPY = 'COPY'
+    CROSS = 'CROSS'
+    MUTE = 'MUTE'
+    ZOOM_IN = 'ZOOM_IN'
+    ZOOM_OUT = 'ZOOM_OUT'
+
+    @classmethod
+    def set_icon(cls, value: str):
+        if isinstance(value, Enum):
+            value = value.name
+        bpy.context.window.cursor_modal_set(str(value))
+
+    @classmethod
+    def reset_icon(cls):
+        bpy.context.window.cursor_modal_set("DEFAULT")
+
+    @classmethod
+    def set_location(cls, location: tuple):
+        bpy.context.window.cursor_warp(location[0], location[1])
 
 
 @dataclass
@@ -204,6 +266,7 @@ class BOperator():
     """A decorator for defining blender Operators that helps to cut down on boilerplate code,
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the operator class, with whatever arguments you want.
+    To get type hinting for it's extra functions, the class should inherit from BOperator.type instead of Operator
     The only required argument is the category of the operator,
     and the rest can be inferred from the class name and __doc__.
     This works best for operators that use the naming convension ADDON_NAME_OT_operator_name.
@@ -214,9 +277,6 @@ class BOperator():
         label (str): The name of the operator that is displayed in the UI.
         description (str): The description of the operator that is displayed in the UI.
         dynamic_description (bool): Whether to automatically allow bl_description to be altered from the UI.
-        custom_invoke (bool): Whether to automatically log each time an operator is invoked.
-        call_popup (bool): Whether to call a popup after the invoke function is run.
-        
         register (bool): Whether to display the operator in the info window and support the redo panel.
         undo (bool): Whether to push an undo step after the operator is executed.
         undo_grouped (bool): Whether to group multiple consecutive executions of the operator into one undo step.
@@ -228,25 +288,13 @@ class BOperator():
         preset (bool): Display a preset button with the operators settings.
         blocking (bool): Block anything else from using the cursor.
         macro (bool): Use to check if an operator is a macro.
-        logging (int | bool): Whether to log when this operator is called.
-            Default is to use the class logging variable which can be set with set_logging() and is global.
     """
-
-    _logging = False
-
-    @classmethod
-    def set_logging(cls, enable):
-        """Set the global logging state for all operators"""
-        cls._logging = enable
 
     category: str
     idname: str = ""
     label: str = ""
     description: str = ""
     dynamic_description: bool = True
-    custom_invoke: bool = True
-    call_popup: bool = False
-
     register: bool = True
     undo: bool = False
     undo_grouped: bool = False
@@ -257,127 +305,144 @@ class BOperator():
     preset: bool = False
     blocking: bool = False
     macro: bool = False
-    # The default is to use the class logging setting, unless this has a value other than -1.
-    # ik this is the same name as the module, but I don't care.
-    logging: int = -1
 
-    def __call__(self, cls: Type[T]):
+    # Here we need to do some cursed stuff to get type hinting to work
+    if TYPE_CHECKING:
+
+        @property
+        @classmethod
+        def type(cls):
+            """Inherit from this to get proper type hinting for operator classes defined with the BOperator decorator"""
+            return BOperatorType
+
+    def __call__(decorator, cls=None):
         """This takes the decorated class and populate's the bl_ attributes with either the supplied values,
         or a best guess based on the other values"""
-        cls_name_end = cls.__name__.split("OT_")[-1]
-        idname = f"{self.category}." + (self.idname or cls_name_end)
-        label = self.label or cls_name_end.replace("_", " ").title()
+        inherit_from = [cls, Operator]
+        if cls:
+            cls_name_end = cls.__name__.split("OT_")[-1]
+            idname = f"{decorator.category}." + (decorator.idname or cls_name_end)
+            label = decorator.label or cls_name_end.replace("_", " ").title()
 
-        if self.description:
-            op_description = self.description
-        elif cls.__doc__:
-            op_description = cls.__doc__
+            if decorator.description:
+                op_description = decorator.description
+            elif cls.__doc__:
+                op_description = cls.__doc__
+            else:
+                op_description = label
         else:
-            op_description = label
+            inherit_from = [Operator]
+            op_description = idname = label = ""
 
         options = {
-            "REGISTER": self.register,
-            "UNDO": self.undo,
-            "UNDO_GROUPED": self.undo_grouped,
-            "GRAB_CURSOR": self.wrap_cursor,
-            "GRAB_CURSOR_X": self.wrap_cursor_x,
-            "GRAB_CURSOR_Y": self.wrap_cursor_y,
-            "BLOCKING": self.blocking,
-            "INTERNAL": self.internal,
-            "PRESET": self.preset,
-            "MACRO": self.macro,
+            "REGISTER": decorator.register,
+            "UNDO": decorator.undo,
+            "UNDO_GROUPED": decorator.undo_grouped,
+            "GRAB_CURSOR": decorator.wrap_cursor,
+            "GRAB_CURSOR_X": decorator.wrap_cursor_x,
+            "GRAB_CURSOR_Y": decorator.wrap_cursor_y,
+            "BLOCKING": decorator.blocking,
+            "INTERNAL": decorator.internal,
+            "PRESET": decorator.preset,
+            "MACRO": decorator.macro,
         }
 
         options = {k for k, v in options.items() if v}
         if hasattr(cls, "bl_options"):
             options = options.union(cls.bl_options)
-        log = self._logging if self.logging == -1 else bool(self.logging)
 
-        class Wrapped(cls, Operator, Generic[T]):
+        class Wrapped(*inherit_from):
             bl_idname = idname
             bl_label = label
             bl_options = options
-            __original__ = cls
+            layout: UILayout
+            event: Event
+
+            cursor = Cursor
 
             wrap_text = wrap_text
 
-            if self.dynamic_description:
-                bl_description: StringProperty(default=op_description)
+            # Set up a description that can be set from the UI draw function
+            if decorator.dynamic_description:
+                bl_description: StringProperty(default=op_description, options={"HIDDEN"})
 
                 @classmethod
                 def description(cls, context, props):
                     if props:
-                        return props.bl_description.replace("  ", "")
+                        return props.bl_description
                     else:
                         return op_description
             else:
                 bl_description = op_description
 
-            if not hasattr(cls, "execute"):
+            def __init__(self):
+                # Allow auto-complete for execute function return values
+                self.FINISHED = {"FINISHED"}
+                self.CANCELLED = {"CANCELLED"}
+                self.PASS_THROUGH = {"PASS_THROUGH"}
+                self.RUNNING_MODAL = {"RUNNING_MODAL"}
 
-                def execute(self, context):
-                    return {"FINISHED"}
+            def call_popup(self, width=300):
+                """Call a popup that shows the parameters of the operator, or a custom draw function.
+                Doesn't execute the operator.
+                This needs to be returned by the invoke method to work."""
+                return bpy.context.window_manager.invoke_popup(self, width=width)
 
-            if self.custom_invoke or self.call_popup:
+            def call_popup_confirm(self, width=300):
+                """Call a popup that shows the parameters of the operator (or a custom draw function),
+                and a confirmation button.
+                This needs to be returned by the invoke method to work."""
+                return bpy.context.window_manager.invoke_props_dialog(self, width=width)
 
-                def invoke(_self, context: Context, event):
-                    """Here we can log whenever an operator using this decorator is invoked"""
-                    if log:
-                        print(f"Invoke: {idname}")
+            def call_popup_auto_confirm(self):
+                """Call a popup that shows the parameters of the operator, or a custom draw function.
+                Every time the parameters of the operator are changed, the operator is executed automatically.
+                This needs to be returned by the invoke method to work."""
+                return bpy.context.window_manager.invoke_props_popup(self, self.event)
 
-                    if hasattr(super(), "invoke"):
-                        retval = super().invoke(context, event)
+            def start_modal(self):
+                """Initialize this as a modal operator.
+                Should be called and returned by the invoke function"""
+                bpy.context.window_manager.modal_handler_add(self)
+                return self.RUNNING_MODAL
 
-                    if self.call_popup:
-                        return context.window_manager.invoke_props_dialog(_self)
+            def set_event_attrs(self, event):
+                self.event = event
+                self.mouse_window = Vector((event.mouse_x, event.mouse_y))
+                self.mouse_window_prev = Vector((event.mouse_prev_x, event.mouse_prev_y))
+                self.mouse_region = Vector((event.mouse_region_x, event.mouse_region_y))
 
-                    if not hasattr(super(), "invoke"):
-                        retval = _self.execute(context)
-                    return retval
+            def invoke(self, context: Context, event: Event):
+                """Wrap the invoke function so we can set some initial attributes"""
+                self.set_event_attrs(event)
+                if hasattr(super(), "invoke"):
+                    return super().invoke(context, event)
+                else:
+                    return self.execute(context)
 
-            @classmethod
-            def draw_button(
-                _cls,
-                layout: UILayout,
-                text: str = "",
-                text_ctxt: str = "",
-                translate: bool = True,
-                icon: str | int = 'NONE',
-                emboss: bool = True,
-                depress: bool = False,
-                icon_value: int = 0,
-            ) -> 'Wrapped':
-                """Draw this operator as a button.
-                I wanted it to be able to provide proper auto complete for the operator properties,
-                but I can't figure out how to do that for a decorator... It's really annoying.
+            def modal(self, context: Context, event: Event):
+                """Wrap the modal function so we can set some initial attributes"""
+                self.set_event_attrs(event)
+                return super().modal(context, event)
 
-                Args:
-                    text (str): Override automatic text of the item
-                    text_ctxt (str): Override automatic translation context of the given text
-                    translate (bool): Translate the given text, when UI translation is enabled
-                    icon (str | into): Icon, Override automatic icon of the item
-                    emboss (bool): Draw the button itself, not just the icon/text
-                    depress (bool): Draw pressed in
-                    icon_value (int): Icon Value, Override automatic icon of the item
-                
-                Returns:
-                    OperatorProperties: Operator properties to fill in
-                """
-                return layout.operator(
-                    _cls.bl_idname,
-                    text=text,
-                    text_ctxt=text_ctxt,
-                    translate=translate,
-                    icon=icon,
-                    emboss=emboss,
-                    depress=depress,
-                    icon_value=icon_value,
-                )
+            def execute(self, context: Context):
+                """Wrap the execute function to remove the need to return {"FINISHED"}"""
+                ret = super().execute(context)
+                if ret is None:
+                    return self.FINISHED
+                return ret
 
         Wrapped.__doc__ = op_description
-        Wrapped.__name__ = cls.__name__
+        if cls:
+            Wrapped.__name__ = cls.__name__
         return Wrapped
 
+
+class BOperatorType(BOperator("")()):
+    """A type to inherit from that gives proper type hinting for classes using the @BOperator decorator"""
+
+
+BOperator.type = BOperatorType
 
 function_ops = []
 

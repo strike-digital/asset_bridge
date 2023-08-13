@@ -41,8 +41,6 @@ class AB_OT_draw_import_progress(Operator):
         self.done = False
         self.shader = Shaders.UNIFORM_COLOR
         self.image_shader = Shaders.IMAGE
-        # self.shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-        # self.image_shader = gpu.shader.from_builtin('2D_IMAGE')
         handlers.append(
             bpy.types.SpaceView3D.draw_handler_add(
                 self.draw_callback_px,
