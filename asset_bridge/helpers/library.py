@@ -34,9 +34,9 @@ def ensure_bl_asset_library_exists():
         if not asset_lib:
             bpy.ops.preferences.asset_library_add()
             asset_lib = asset_libs[-1]
-            asset_lib = ASSET_LIB_NAME
+            asset_lib.name = ASSET_LIB_NAME
 
-        asset_lib = str(DIRS.dummy_assets)
+        asset_lib.path = str(DIRS.dummy_assets)
         bpy.ops.wm.save_userpref()
 
 
