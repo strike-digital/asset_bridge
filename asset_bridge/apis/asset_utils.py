@@ -13,7 +13,7 @@ from ..settings import get_ab_scene_settings
 
 from ..api import asset_lists
 from ..vendor import requests
-from ..constants import DIRS, FILES, NODES, NODE_GROUPS, __IS_DEV__, ServerError503
+from ..constants import FILES, NODES, NODE_GROUPS, __IS_DEV__, ServerError503
 from .asset_types import AssetList
 from ..helpers.prefs import get_prefs
 from ..ui.ui_helpers import dpifac
@@ -31,7 +31,7 @@ def register_asset_list(new_list: Type[AssetList]):
         start = perf_counter()
         asset_lists[new_list.name] = new_list
         # Get the cached asset list data if it exists
-        list_file = DIRS.cache / (new_list.name + ".json")
+        list_file = new_list.data_cache_file
         asset_list_data = {}
         if list_file.exists():
             with open(list_file, "r") as f:

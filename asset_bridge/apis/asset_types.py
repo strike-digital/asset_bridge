@@ -192,6 +192,11 @@ class AssetList(ABC):
         Requires the icon_path to be set."""
         return get_icon(self.icon_path.stem)
 
+    @classmethod
+    @property
+    def data_cache_file(self) -> Path:
+        return DIRS.cache / (self.name + ".json")
+
     def __getitem__(self, key) -> AssetListItem:
         return self.assets[key]
 
