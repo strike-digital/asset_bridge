@@ -5,3 +5,6 @@ from ..helpers.btypes import BOperator
 @BOperator("asset_bridge")
 class AB_OT_dummy(Operator):
     """Do nothing, sometimes useful for UI stuff."""
+
+    def execute(self, context):
+        return self.FINISHED
