@@ -298,7 +298,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
         draw_inline_prop(col, self, "widget_scale", "Widget scale", "", factor=fac)
         draw_inline_prop(col, self, "widget_anim_speed", "Animation speed", "", factor=fac)
         col = draw_inline_column(col, "Open log file", factor=fac)
-        col.operator(AB_OT_open_log_file.bl_idname, text="Open       ", icon="FILE_TICK")
+        AB_OT_open_log_file.draw_button(col, text="Open       ", icon="FILE_TICK")
         # col.operator(AB_OT_open_log_file.bl_idname, text="", icon="FILE_TICK")
 
         # WEBSITES
