@@ -1,6 +1,7 @@
 import os
 import json
 from pathlib import Path
+from .operators.op_open_log_file import AB_OT_open_log_file
 
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
@@ -9,13 +10,19 @@ from bpy.types import Menu, UILayout, AddonPreferences
 from .api import get_asset_lists
 from .previews import ICONS
 from .settings import new_show_prop, get_ab_settings
-from .constants import (DIRS, FILES, __IS_DEV__, ASSET_LIB_VERSION, CHECK_NEW_ASSETS_TASK_NAME,
-                        PREVIEW_DOWNLOAD_TASK_NAME)
+from .constants import (
+    DIRS,
+    FILES,
+    __IS_DEV__,
+    ASSET_LIB_VERSION,
+    CHECK_NEW_ASSETS_TASK_NAME,
+    PREVIEW_DOWNLOAD_TASK_NAME,
+)
 from .helpers.prefs import get_prefs
-from .ui.ui_helpers import (wrap_text, draw_inline_prop, draw_inline_column, draw_prefs_section, draw_download_previews)
+from .ui.ui_helpers import wrap_text, draw_inline_prop, draw_inline_column, draw_prefs_section, draw_download_previews
 from .helpers.btypes import BMenu
-from .helpers.library import (is_lib_path_invalid, ensure_bl_asset_library_exists)
-from .addon_updater_ops import UpdaterPreferences, update_settings_ui
+from .helpers.library import is_lib_path_invalid, ensure_bl_asset_library_exists
+from .addon_updater_ops import UpdaterPreferences, draw_update_settings_ui
 from .ui.panel_3d_viewport import AB_PT_asset_props_viewport
 from .operators.op_show_info import InfoSnippets
 from .ui.panel_asset_browser import AB_PT_asset_info
@@ -91,10 +98,12 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
 
     lib_path: StringProperty(
         name="External Downloads path",
-        description=" ".join((
-            "The path in which to save the downloaded assets.",
-            "It's reccommended that you select a directory that won't be moved in the future",
-        )),
+        description=" ".join(
+            (
+                "The path in which to save the downloaded assets.",
+                "It's reccommended that you select a directory that won't be moved in the future",
+            )
+        ),
         default="",
         subtype="DIR_PATH",
         get=lambda self: self.get("_lib_path", ""),
@@ -143,7 +152,9 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
         name="Automatically pack files",
         description="Automatically packed imported images into the current file,\
             meaning that if the source file is moved, they will still be accessible in the blend file.\
-            This will result in larger files though.".replace("  ", ""),
+            This will result in larger files though.".replace(
+            "  ", ""
+        ),
         default=False,
     )
 
@@ -152,7 +163,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
         description="The scale of the widget that shows the download progress of an asset in the 3D viewport",
         default=1.0,
         min=0,
-        soft_min=.1,
+        soft_min=0.1,
         soft_max=2,
         subtype="FACTOR",
     )
@@ -162,7 +173,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
         description="The speed of the animations for the download widget in the 3D viewport",
         default=1.0,
         min=0,
-        soft_min=.1,
+        soft_min=0.1,
         soft_max=2,
         subtype="FACTOR",
     )
@@ -233,8 +244,9 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
 
             # Draw info showing the number of previews to download, only if it is not the first time download
             if new_assets_available and task_steps != len(all_assets) and not first_time:
-                needed_previews = set(
-                    a.ab_idname for a in all_assets.values()) - {p.replace(".png", "") for p in preview_files}
+                needed_previews = set(a.ab_idname for a in all_assets.values()) - {
+                    p.replace(".png", "") for p in preview_files
+                }
                 layout.label(text=self.format_download_label(needed_previews))
 
             # Draw the button/progress bar
@@ -270,19 +282,24 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
                 text="Check for new assets",
                 menu=AB_MT_download_previews_menu.__name__,
             )
-            op.bl_description = "Check for new assets, and if they exist, download their previews and update the library."
+            op.bl_description = (
+                "Check for new assets, and if they exist, download their previews and update the library."
+            )
 
         grid = layout.grid_flow(row_major=True, even_columns=True)
 
         # GENERAL
         section = draw_prefs_section(grid, "General", self, "show_general")
-        fac = .5
+        fac = 0.5
         draw_inline_prop(section, self, "auto_pack_files", "Auto pack files", "", factor=fac)
         draw_inline_prop(section, self, "viewport_panel_category", "N-Panel category", "", factor=fac)
         draw_inline_prop(section, self, "browser_panel_location", "Browser panel side", "", factor=fac)
         col = section.column(align=True)
         draw_inline_prop(col, self, "widget_scale", "Widget scale", "", factor=fac)
         draw_inline_prop(col, self, "widget_anim_speed", "Animation speed", "", factor=fac)
+        col = draw_inline_column(col, "Open log file", factor=fac)
+        col.operator(AB_OT_open_log_file.bl_idname, text="Open       ", icon="FILE_TICK")
+        # col.operator(AB_OT_open_log_file.bl_idname, text="", icon="FILE_TICK")
 
         # WEBSITES
         section = draw_prefs_section(
@@ -317,14 +334,15 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
         op.url = "https://blendermarket.com/products/asset-bridge/ratings"
 
         section = draw_prefs_section(grid, "Auto updates", self, "show_updates").column(align=True)
-        update_settings_ui(self, context, section)
+        section.scale_y = 0.8
+        draw_update_settings_ui(self, context, section)
 
         if __IS_DEV__ and self.show_tasks and len(ab.tasks):
             # Debug section showing the currently running tasks
             section = draw_prefs_section(grid, "Tasks", self, "show_tasks")
-            section.scale_y = .7
+            section.scale_y = 0.7
             for task in ab.tasks:
-                col = draw_inline_column(section, task.name, factor=.5)
+                col = draw_inline_column(section, task.name, factor=0.5)
                 row = col.row(align=True)
                 row.label(text=f"Progress obj: {'Yes' if task.progress else 'No'}")
                 op = row.operator(AB_OT_remove_task.bl_idname, text="", icon="X", emboss=False)
@@ -336,7 +354,6 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
 
 @BMenu()
 class AB_MT_download_previews_menu(Menu):
-
     def draw(self, context):
         layout = self.layout
         layout.scale_y = 1.5
@@ -359,7 +376,6 @@ class AB_MT_download_previews_menu(Menu):
 
 
 def register():
-
     # The panel locations need to be updated so that they don't just use the default value the next time the
     # addon is loaded.
     # Do this in a timer to have access to the context.
