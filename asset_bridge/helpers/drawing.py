@@ -11,9 +11,10 @@ from bpy_extras.view3d_utils import (region_2d_to_origin_3d, region_2d_to_vector
 # But they do give their attributes a lovely blue color.
 # class Shaders(Enum if TYPE_CHECKING else object):
 class Shaders():
-    UNIFORM_COLOR: GPUShader = gpu.shader.from_builtin("2D_UNIFORM_COLOR" if bpy.app.version < (4, 0,
-                                                                                                0) else "UNIFORM_COLOR")
-    IMAGE: GPUShader = gpu.shader.from_builtin("2D_IMAGE" if bpy.app.version < (4, 0, 0) else "IMAGE")
+    if not bpy.app.background:
+        UNIFORM_COLOR: GPUShader = gpu.shader.from_builtin("2D_UNIFORM_COLOR" if bpy.app.version < (4, 0,
+                                                                                                    0) else "UNIFORM_COLOR")
+        IMAGE: GPUShader = gpu.shader.from_builtin("2D_IMAGE" if bpy.app.version < (4, 0, 0) else "IMAGE")
 
 
 def mouse_in_window_bounds(mouse_pos, window):

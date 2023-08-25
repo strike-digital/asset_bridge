@@ -179,6 +179,7 @@ class AssetBridgeWmSettings(PropertyGroup):
         name = self.asset_idname
         if not name or name == "NONE":
             return None
+        return get_asset_lists().all_assets.get(name, None)
         return get_asset_lists().all_assets[name]
 
     @property

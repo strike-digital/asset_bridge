@@ -54,7 +54,6 @@ class ACG_Asset(Asset):
                 script_args=("--name", self.import_name, "--output_file", str(self.blend_file)),
                 use_stdout=False,
             )
-
             process.wait()
 
     def import_asset(self, context: Context):

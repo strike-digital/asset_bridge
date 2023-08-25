@@ -47,6 +47,10 @@ prev_world = None
 @handlers.persistent
 def depsgraph_update_pre_handler(scene: Scene, _):
     """Check if an asset has been dragged from the asset browser"""
+
+    if bpy.app.background:
+        return
+
     quality = get_asset_quality(bpy.context)
     reload = bpy.context.window_manager.asset_bridge.reload_asset
 

@@ -1,7 +1,6 @@
 import re
 import inspect
 from traceback import format_exc
-import bpy
 
 from bpy.types import World, Object, Material
 
@@ -10,16 +9,6 @@ from ..asset_types import AssetListItem
 from ..asset_types import AssetMetadataItem as Metadata
 from ..asset_utils import (HDRI, MODEL, MATERIAL, download_file, dimensions_to_string)
 from ...helpers.library import human_readable_file_size
-from ...helpers.timer import Timer
-
-timer = Timer()
-
-
-def hoho():
-    timer.print_all(accuracy=4, print_sum=True)
-
-
-bpy.app.timers.register(hoho, first_interval=.4)
 
 
 class ACG_AssetListItem(AssetListItem):
@@ -29,7 +18,6 @@ class ACG_AssetListItem(AssetListItem):
     ab_authors = ["Lennart Demes"]
 
     def __init__(self, name: str, data: dict):
-        timer.start("1")
         asset_types = {"HDRI": HDRI, "Material": MATERIAL, "3DModel": MODEL}
         bl_types = {"HDRI": World, "Material": Material, "3DModel": Object}
 
@@ -41,8 +29,6 @@ class ACG_AssetListItem(AssetListItem):
         self.ab_tags = data["tags"]
         self.ab_categories = [t for t in self.ab_tags if t not in {"hdri", "3d"}]
         # self.catalog_path = f"{names[data_type]}/{category}"
-        timer.stop("1")
-        timer.start("2")
 
         # Modify the label
         label = name
@@ -52,8 +38,6 @@ class ACG_AssetListItem(AssetListItem):
         label = re.sub("([A-Z])", " \\1", label)[1:]
         label = re.sub("(\\d\\d\\d)", " \\1 ", label)
         self.ab_label = label
-        timer.stop("2")
-        timer.start("3")
 
         # The quality levels to show in the UI, in the format of an EnumProperty items list
         self.quality_data = data["quality_levels"]
@@ -66,8 +50,6 @@ class ACG_AssetListItem(AssetListItem):
             self.ab_quality_levels.append((name, label, f"Download this asset at {label} quality"))
             # self.quality_levels.append((name, name, f"Download this asset at {label} quality"))
 
-        timer.stop("3")
-        timer.start("4")
         model_levels = ["LQ", "SQ", "HQ"]
 
         def sort_quality(level: list[str]):
@@ -97,8 +79,6 @@ class ACG_AssetListItem(AssetListItem):
             return value
 
         self.ab_quality_levels.sort(key=sort_quality)
-        timer.stop("4")
-        timer.start("5")
 
         # Setup info for the metadata panel
         self.ab_metadata = [
@@ -120,8 +100,6 @@ class ACG_AssetListItem(AssetListItem):
             Metadata("Creation method", data["creationMethod"]),
             Metadata("tags", data["tags"]),
         ]
-        timer.stop("5")
-        timer.start("6")
         if data["dimensionX"]:
             self.ab_metadata.append(
                 Metadata(
@@ -142,7 +120,6 @@ class ACG_AssetListItem(AssetListItem):
                 label_icon="FUND",
             ),
         )  # yapf: disable
-        timer.stop("6")
 
     def poll(self):
         # These are models with a weird format.

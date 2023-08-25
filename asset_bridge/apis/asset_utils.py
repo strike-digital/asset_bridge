@@ -65,7 +65,7 @@ def register_asset_list(new_list: Type[AssetList]):
 
 def file_name_from_url(url: str) -> str:
     """Extract the file name from a URL"""
-    return url.split('/')[-1].split("?")[0]
+    return url.split("/")[-1].split("?")[0]
 
 
 def download_file(url: str, download_dir: Path, file_name: str = "", use_progress_file=True):
@@ -80,8 +80,7 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
 
     with requests.get(url, stream=True) as result:
         if result.status_code != 200:
-
-            with open(FILES.log, "w") as f:
+            with open(FILES.download_log, "w") as f:
                 f.write(url)
                 f.write("\n")
                 f.write(str(result.status_code))
@@ -91,7 +90,7 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
                 raise ServerError503(url)
 
             raise requests.ConnectionError()
-        with open(download_file, 'wb') as f:
+        with open(download_file, "wb") as f:
             copyfileobj(result.raw, f)
             # for chunk in result.iter_content(chunk_size=8192):
             #     size = f.write(chunk)
@@ -128,7 +127,7 @@ def dimensions_to_string(dimensions: list[float] | str) -> str:
 
     unit_system = bpy.context.scene.unit_settings.system
     if unit_system in ["METRIC", "NONE"]:
-        if dims[0] / 1000 > .999999:
+        if dims[0] / 1000 > 0.999999:
             coefficient = 1
             suffix = "m"
         else:
@@ -145,7 +144,7 @@ def dimensions_to_string(dimensions: list[float] | str) -> str:
     string = ""
     for dim in dims:
         size = dim / 1000 * coefficient
-        decimal = 0 if size > .99999 else 1
+        decimal = 0 if size > 0.99999 else 1
         string += f"{size:.{decimal}f}{suffix} x "
     string = string[:-3]
     return string
@@ -331,7 +330,7 @@ def import_material(
     mapping_node = nodes.new("ShaderNodeMapping")
     mapping_node.name = NODES.mapping
     mapping_node.label = "Mapping"
-    half_height = (300 * (len(image_nodes) - 1) / 2)
+    half_height = 300 * (len(image_nodes) - 1) / 2
     for i, node in enumerate(image_nodes):
         x = bsdf_node.location.x - (node.width + 180) * dpifac()
         y = bsdf_node.location.y - 300 * i + half_height - 200
@@ -431,7 +430,8 @@ def import_model(context, blend_file, name, link_method="APPEND_REUSE"):
                     break
             else:
                 raise KeyError(
-                    f"Key {name} not found in collections {data_from.collections}\nIn blend file: {blend_file}")
+                    f"Key {name} not found in collections {data_from.collections}\nIn blend file: {blend_file}"
+                )
 
     for obj in bpy.data.objects:
         obj.select_set(False)

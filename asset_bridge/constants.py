@@ -24,7 +24,7 @@ class ServerError503(Exception):
         super().__init__(message)
 
 
-class AssetVersions():
+class AssetVersions:
     """The import version of an asset, used for versioning.
     The order is (Breaking, Important, Minor)."""
 
@@ -38,8 +38,7 @@ ASSET_VERSIONS = AssetVersions()
 
 # The names of useful node groups.
 # I'm now realising that these should probably be enums, but I don't care enough to change it.
-class NodeGroups():
-
+class NodeGroups:
     anti_tiling = "AB-anti_tiling"
     roughness_map = "AB-roughness_map"
     hdri_coords = "AB-hdri_coords"
@@ -47,8 +46,7 @@ class NodeGroups():
     normal_map = "AB-normal_map"
 
 
-class NodeNames():
-
+class NodeNames:
     anti_tiling = "AB-anti_tiling"
     principled_bsdf = "AB-principled_bsdf"
     mapping = "AB-mapping"
@@ -68,8 +66,7 @@ NODES = NodeNames()
 
 
 # I know this isn't really a constant, but hey, sue me.
-class Dirs():
-
+class Dirs:
     addon = Path(__file__).parent
     cache = addon / "cache"
     previews = cache / "previews"
@@ -96,12 +93,12 @@ class Dirs():
             json.dump({"lib_path": str(self.library)}, f, indent=2)
 
 
-class Files():
-
+class Files:
     script_create_dummy_assets = Dirs.scripts / "sc_create_dummy_assets.py"
     resources_blend = Dirs.resources / "resources.blend"
     prefs = Dirs.cache / "prefs.json"
     log = Dirs.cache / "log.txt"
+    download_log = Dirs.cache / "download_log.txt"
 
     def update(self, lib_path: Path = ""):
         lib = lib_path or DIRS.library
@@ -109,6 +106,7 @@ class Files():
         # Sometimes this is initialized without the DIRS being updated, when changing the lib_path
         if hasattr(DIRS, "dummy_assets"):
             self.lib_progress = DIRS.dummy_assets / "progress.json"
+            self.asset_catalog = DIRS.dummy_assets / "blender_assets.cats.txt"
         return self
 
 
