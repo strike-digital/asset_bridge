@@ -233,7 +233,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
                 box.separator()
                 row = box.row(align=True)
                 row.scale_y = 1.5
-                op = row.operator(AB_OT_remove_task.bl_idname, text="Reset", icon="FILE_REFRESH")
+                op = AB_OT_remove_task.draw_button(row, text="Reset", icon="FILE_REFRESH")
                 op.name = PREVIEW_DOWNLOAD_TASK_NAME
                 return
 
@@ -270,7 +270,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
                 text="Check for new assets and set up asset library",
             )
             op.auto_download = True
-            # row.operator(AB_OT_create_dummy_assets.bl_idname, text="Set up asset library")
+            # AB_OT_create_dummy_assets.draw_button(row, text="Set up asset library")
             # AB_OT_create_dummy_assets.
             # print("ho")
             return
@@ -299,7 +299,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
         draw_inline_prop(col, self, "widget_anim_speed", "Animation speed", "", factor=fac)
         col = draw_inline_column(col, "Open log file", factor=fac)
         AB_OT_open_log_file.draw_button(col, text="Open       ", icon="FILE_TICK")
-        # col.operator(AB_OT_open_log_file.bl_idname, text="", icon="FILE_TICK")
+        # AB_OT_open_log_file.draw_button(col, text="", icon="FILE_TICK")
 
         # WEBSITES
         section = draw_prefs_section(
@@ -345,7 +345,7 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
                 col = draw_inline_column(section, task.name, factor=0.5)
                 row = col.row(align=True)
                 row.label(text=f"Progress obj: {'Yes' if task.progress else 'No'}")
-                op = row.operator(AB_OT_remove_task.bl_idname, text="", icon="X", emboss=False)
+                op = AB_OT_remove_task.draw_button(row, text="", icon="X", emboss=False)
                 op.name = task.name
                 col.label(text=f"Finished: {task.finished}")
                 col.label(text=f"Cancelled: {task.cancelled}")
@@ -357,20 +357,20 @@ class AB_MT_download_previews_menu(Menu):
     def draw(self, context):
         layout = self.layout
         layout.scale_y = 1.5
-        op = layout.operator(AB_OT_download_previews.bl_idname, icon="FILE_REFRESH", text="Reload all assets")
+        op = AB_OT_download_previews.draw_button(layout, icon="FILE_REFRESH", text="Reload all assets")
         op.bl_description = "Redownload all previews and re setup the asset catalog again (good for debugging)"
         op.reload = True
 
         if __IS_DEV__:
-            op = layout.operator(AB_OT_download_previews.bl_idname, icon="FILE_SCRIPT", text="Debug download")
+            op = AB_OT_download_previews.draw_button(layout, icon="FILE_SCRIPT", text="Debug download")
             op.bl_description = "download a small subset of the assets, for speed"
             op.reload = True
             op.test_number = 100
 
-            op = layout.operator(AB_OT_create_dummy_assets.bl_idname, icon="FILE_SCRIPT", text="Debug set-up library")
+            op = AB_OT_create_dummy_assets.draw_button(layout, icon="FILE_SCRIPT", text="Debug set-up library")
             op.bl_description = "Re-setup the asset library file"
 
-        op = layout.operator(AB_OT_open_folder.bl_idname, text="Open previews folder", icon="FILE_FOLDER")
+        op = AB_OT_open_folder.draw_button(layout, text="Open previews folder", icon="FILE_FOLDER")
         op.bl_description = "Open the folder containing the preview files"
         op.file_path = str(DIRS.previews)
 

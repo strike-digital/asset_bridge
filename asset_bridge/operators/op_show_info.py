@@ -9,7 +9,6 @@ from ..helpers.btypes import BOperator
 
 @BOperator("asset_bridge")
 class AB_OT_show_info(Operator):
-
     title: StringProperty()
 
     message: StringProperty()
@@ -37,21 +36,19 @@ class AB_OT_show_info(Operator):
 
 
 @dataclass
-class InfoSnippet():
-
+class InfoSnippet:
     title: str
     message: str
     icon: str = "NONE"
 
     def draw(self, layout: UILayout, icon_override=""):
-        op = layout.operator(AB_OT_show_info.bl_idname, text="", icon=icon_override or "INFO")
+        op = AB_OT_show_info.draw_button(layout, text="", icon=icon_override or "INFO")
         op.title = self.title
         op.message = self.message
         op.icon = self.icon
 
 
-class InfoSnippets():
-
+class InfoSnippets:
     lib_path = InfoSnippet(
         "Lbrary path",
         """\

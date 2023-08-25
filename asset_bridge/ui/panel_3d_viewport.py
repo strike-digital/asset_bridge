@@ -2,15 +2,21 @@ from bpy.types import Node, Panel, Object, Material
 
 from ..settings import get_ab_settings, get_asset_settings
 from ..constants import NODES, NODE_GROUPS
-from .ui_helpers import (DummyLayout, wrap_text, draw_inline_prop, draw_inline_column, draw_section_header,
-                         draw_node_group_inputs)
+from .ui_helpers import (
+    DummyLayout,
+    wrap_text,
+    draw_inline_prop,
+    draw_inline_column,
+    draw_section_header,
+    draw_node_group_inputs,
+)
 from ..helpers.btypes import BPanel
-from .menu_swap_asset import (AB_MT_swap_hdri_asset, AB_MT_swap_model_asset, AB_MT_swap_material_asset)
+from .menu_swap_asset import AB_MT_swap_hdri_asset, AB_MT_swap_model_asset, AB_MT_swap_material_asset
 from ..operators.op_show_info import InfoSnippets
 from ..operators.op_toggle_tiling_preview import AB_OT_toggle_tiling_preview
 
 
-class Nodes():
+class Nodes:
     """A helper for storing important nodes in a material"""
 
     def __init__(self, all_nodes):
@@ -44,8 +50,8 @@ class AB_PT_asset_props_viewport(Panel):
             is_dummy = True
         obj: Object = context.object
         show_props = get_ab_settings(context).ui_show
-        FACTOR = .35
-        PROP_SPACING = .4
+        FACTOR = 0.35
+        PROP_SPACING = 0.4
 
         def draw_hdri_props():
             """
@@ -167,10 +173,10 @@ class AB_PT_asset_props_viewport(Panel):
                     "active_material_index",
                     rows=1,
                 )
-                column.separator(factor=.1)
+                column.separator(factor=0.1)
 
             column.template_ID(slot, "material")
-            column.separator(factor=.1)
+            column.separator(factor=0.1)
 
             if not mat or not nodes.any():
                 return True
@@ -270,7 +276,7 @@ class AB_PT_asset_props_viewport(Panel):
                     if not tiling_node.mute:
                         viewing = bool(mat.node_tree.nodes.get(NODES.temp_output))
                         icon = "HIDE_OFF" if viewing else "HIDE_ON"
-                        op = row.operator(AB_OT_toggle_tiling_preview.bl_idname, icon=icon, text="", depress=True)
+                        op = AB_OT_toggle_tiling_preview.draw_button(row, icon=icon, text="", depress=True)
                         op.material_name = mat.name
 
                         box.separator()
@@ -287,7 +293,7 @@ class AB_PT_asset_props_viewport(Panel):
 
             # DISPLACEMENT
             # if (disp_node := nodes.displacement) and context.scene.render.engine == "CYCLES":
-            if (disp_node := nodes.displacement):
+            if disp_node := nodes.displacement:
                 col = column.column(align=True)
                 available = context.scene.render.engine == "CYCLES"
                 row = draw_section_header(
@@ -345,5 +351,5 @@ class AB_PT_asset_props_viewport(Panel):
 
         if not drawn:
             box = layout.box().column(align=True)
-            box.scale_y = .9
+            box.scale_y = 0.9
             wrap_text(context, "Select an imported Asset Bridge asset to see its settings here", box, centered=True)

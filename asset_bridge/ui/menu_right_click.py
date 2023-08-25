@@ -16,7 +16,7 @@ def draw_context_options(self, context):
     row = layout.row(align=True)
     row.enabled = bool(urls)
     text = f"Show High Res Preview{'s' if len(urls) > 1 else ''}"
-    row.operator(AB_OT_view_high_res_previews.bl_idname, text=text)
+    AB_OT_view_high_res_previews.draw_button(row, text=text)
 
 
 def register():

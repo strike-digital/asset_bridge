@@ -14,7 +14,7 @@ from ..operators.op_download_previews import AB_OT_download_previews
 from ..operators.op_initialize_asset_lists import AB_OT_initialize_asset_lists
 
 
-class DummyLayout():
+class DummyLayout:
     """An immitator of the blender UILayout class, used so that the draw function can be run as a poll function"""
 
     def row(*args, **kwargs):
@@ -61,7 +61,7 @@ def wrap_text(
 ) -> list[str]:
     """Take a string and draw it over multiple lines so that it is never concatenated."""
     return_text = []
-    row_text = ''
+    row_text = ""
 
     width = width or context.region.width
     system = context.preferences.system
@@ -76,7 +76,7 @@ def wrap_text(
             return_text.append(row_text)
             row_text = ""
             continue
-        word = f' {word}'
+        word = f" {word}"
         line_len, _ = blf.dimensions(0, row_text + word)
 
         if line_len <= (width - 16):
@@ -195,7 +195,7 @@ def draw_task_progress(layout: UILayout, context: Context, task_name: str, text=
     row.prop(task, "ui_progress_prop", text=text or task.progress.message)
     if draw_cancel:
         row.scale_x = 1.25
-        op = row.operator(AB_OT_cancel_task.bl_idname, text="", icon="X")
+        op = AB_OT_cancel_task.draw_button(row, text="", icon="X")
         op.name = task_name
         op.bl_description = "Cancel task"
 
@@ -222,7 +222,7 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
             )
         else:
             # Draw the download previews button
-            op = layout.operator(AB_OT_download_previews.bl_idname, icon="IMPORT", text=text or "Download previews")
+            op = AB_OT_download_previews.draw_button(layout, icon="IMPORT", text=text or "Download previews")
             op.bl_description = "Download the previews for all assets. This can take from 10s to a couple of minutes \
                 depending on internet access."
 
@@ -248,7 +248,7 @@ def draw_downloads_path(layout: UILayout, context: Context):
 
 def draw_inline_column(layout: UILayout, label: str, factor: float = 0):
     """Create a split, draw a label on one side, and then return the other side"""
-    split = layout.split(factor=factor or .3)
+    split = layout.split(factor=factor or 0.3)
     row = split.row(align=True)
     if not label.endswith(":"):
         label += ":"
@@ -278,7 +278,7 @@ def draw_inline_prop(
 
     Returns:
         UILayout: The row or column that the property is drawn in.
-    """    # """Draw a property with the label on the left"""
+    """  # """Draw a property with the label on the left"""
     col = draw_inline_column(layout, col_label, factor)
     if row:
         col = col.row(align=True)
@@ -291,8 +291,8 @@ def draw_node_group_inputs(
     layout: UILayout,
     context: Context,
     in_boxes: bool = False,
-    spacing: float = 1.,
-    factor: float = .3,
+    spacing: float = 1.0,
+    factor: float = 0.3,
 ):
     """Draw the inputs of a node group, according to specific naming conventions"""
     col = layout.column(align=True)
