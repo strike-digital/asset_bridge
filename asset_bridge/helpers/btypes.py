@@ -1,54 +1,28 @@
 from enum import Enum
 import inspect
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Callable, Literal, TypeVar
 from dataclasses import dataclass
 
-import blf
 import bpy
 from bpy.props import BoolProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty, StringProperty
 from bpy.types import Context, Event, Material, Menu, Object, Operator, Panel, UILayout
 from mathutils import Vector
-
 """A module containing helpers to make defining blender types easier (panels, operators etc.)"""
 
+__all__ = ["BMenu", "BOperator", "BPanel", "BPropertyGroup", "FunctionToOperator"]
+to_register = []
+T = TypeVar("T")
 
-def wrap_text(self, context: Context, text: str, layout: UILayout, centered: bool = False) -> list[str]:
-    """Take a string and draw it over multiple lines so that it is never concatenated."""
-    return_text = []
-    row_text = ""
 
-    width = context.region.width
-    system = context.preferences.system
-    ui_scale = system.ui_scale
-    width = (4 / (5 * ui_scale)) * width
-
-    dpi = 72 if system.ui_scale >= 1 else system.dpi
-    blf.size(0, 11, dpi)
-
-    for word in text.split():
-        word = f" {word}"
-        line_len, _ = blf.dimensions(0, row_text + word)
-
-        if line_len <= (width - 16):
-            row_text += word
-        else:
-            return_text.append(row_text)
-            row_text = word
-
-    if row_text:
-        return_text.append(row_text)
-
-    for text in return_text:
-        row = layout.row()
-        if centered:
-            row.alignment = "CENTER"
-        row.label(text=text)
-
-    return return_text
+def enum_value(enum_or_value: Enum | T) -> T:
+    """If value is an enum item, return enum value, else return value"""
+    if isinstance(enum_or_value, Enum):
+        return enum_or_value.value
+    return enum_or_value
 
 
 @dataclass
-class BMenu:
+class BMenu():
     """A decorator for defining blender menus that helps to cut down on boilerplate code,
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the menu class, with whatever arguments you want.
@@ -84,13 +58,12 @@ class BMenu:
             bl_label = label
             bl_description = panel_description
 
-            wrap_text = wrap_text
             layout: UILayout
 
             if not hasattr(cls, "draw"):
 
                 def draw(self, context: Context):
-                    self.wrap_text(context, "That's a cool menu you've got there", self.layout, centered=True)
+                    self.layout.label(text="That's a cool menu you've got there")
 
         Wrapped.__doc__ = panel_description
         Wrapped.__name__ = cls.__name__
@@ -98,7 +71,7 @@ class BMenu:
 
 
 @dataclass
-class BPanel:
+class BPanel():
     """A decorator for defining blender Panels that helps to cut down on boilerplate code,
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the panel class, with whatever arguments you want.
@@ -124,43 +97,11 @@ class BPanel:
             or to draw them as squares instead (which is the default).
     """
 
-    space_type: Literal[
-        "EMPTY",
-        "VIEW_3D",
-        "NODE_EDITOR",
-        "IMAGE_EDITOR",
-        "SEQUENCE_EDITOR",
-        "CLIP_EDITOR",
-        "DOPESHEET_EDITOR",
-        "GRAPH_EDITOR",
-        "NLA_EDITOR",
-        "TEXT_EDITOR",
-        "CONSOLE",
-        "INFO",
-        "TOPBAR",
-        "STATUSBAR",
-        "OUTLINER",
-        "PROPERTIES",
-        "FILE_BROWSER",
-        "SPREADSHEET",
-        "PREFERENCES",
-    ]
-    region_type: Literal[
-        "UI",
-        "TOOLS",
-        "HEADER",
-        "FOOTER",
-        "TOOL_PROPS",
-        "WINDOW",
-        "CHANNELS",
-        "TEMPORARY",
-        "PREVIEW",
-        "HUD",
-        "NAVIGATION_BAR",
-        "EXECUTE",
-        "TOOL_HEADER",
-        "XR",
-    ]
+    space_type: Literal["EMPTY", "VIEW_3D", "NODE_EDITOR", "IMAGE_EDITOR", "SEQUENCE_EDITOR", "CLIP_EDITOR",
+                        "DOPESHEET_EDITOR", "GRAPH_EDITOR", "NLA_EDITOR", "TEXT_EDITOR", "CONSOLE", "INFO", "TOPBAR",
+                        "STATUSBAR", "OUTLINER", "PROPERTIES", "FILE_BROWSER", "SPREADSHEET", "PREFERENCES",]
+    region_type: Literal["UI", "TOOLS", "HEADER", "FOOTER", "TOOL_PROPS", "WINDOW", "CHANNELS", "TEMPORARY", "PREVIEW",
+                         "HUD", "NAVIGATION_BAR", "EXECUTE", "TOOL_HEADER", "XR",]
     category: str = ""
     label: str = ""
     description: str = ""
@@ -217,13 +158,11 @@ class BPanel:
             if self.popover_width != -1:
                 bl_ui_units_x = self.popover_width
 
-            wrap_text = wrap_text
-
             # Create a default draw function, useful for quick tests
             if not hasattr(cls, "draw"):
 
                 def draw(self, context: Context):
-                    self.wrap_text(context, "That's a cool panel you've got there", self.layout, centered=True)
+                    self.layout.label(text="That's a cool panel you've got there")
 
         Wrapped.__doc__ = panel_description
         Wrapped.__name__ = cls.__name__
@@ -234,7 +173,8 @@ property_groups = []
 
 
 @dataclass
-class BPropertyGroup:
+class BPropertyGroup():
+
     type: bpy.types.ID
     name: str
 
@@ -253,31 +193,30 @@ class BPropertyGroup:
 
 class Cursor(Enum):
     """Wraps the poorly documented blender cursor functions to allow for auto-complete"""
-
     DEFAULT = "DEFAULT"
-    NONE = "NONE"
-    WAIT = "WAIT"
-    CROSSHAIR = "CROSSHAIR"
-    MOVE_X = "MOVE_X"
-    MOVE_Y = "MOVE_Y"
-    KNIFE = "KNIFE"
-    TEXT = "TEXT"
-    PAINT_BRUSH = "PAINT_BRUSH"
-    PAINT_CROSS = "PAINT_CROSS"
-    DOT = "DOT"
-    ERASER = "ERASER"
-    HAND = "HAND"
-    SCROLL_X = "SCROLL_X"
-    SCROLL_Y = "SCROLL_Y"
-    SCROLL_XY = "SCROLL_XY"
-    EYEDROPPER = "EYEDROPPER"
-    PICK_AREA = "PICK_AREA"
-    STOP = "STOP"
-    COPY = "COPY"
-    CROSS = "CROSS"
-    MUTE = "MUTE"
-    ZOOM_IN = "ZOOM_IN"
-    ZOOM_OUT = "ZOOM_OUT"
+    NONE = 'NONE'
+    WAIT = 'WAIT'
+    CROSSHAIR = 'CROSSHAIR'
+    MOVE_X = 'MOVE_X'
+    MOVE_Y = 'MOVE_Y'
+    KNIFE = 'KNIFE'
+    TEXT = 'TEXT'
+    PAINT_BRUSH = 'PAINT_BRUSH'
+    PAINT_CROSS = 'PAINT_CROSS'
+    DOT = 'DOT'
+    ERASER = 'ERASER'
+    HAND = 'HAND'
+    SCROLL_X = 'SCROLL_X'
+    SCROLL_Y = 'SCROLL_Y'
+    SCROLL_XY = 'SCROLL_XY'
+    EYEDROPPER = 'EYEDROPPER'
+    PICK_AREA = 'PICK_AREA'
+    STOP = 'STOP'
+    COPY = 'COPY'
+    CROSS = 'CROSS'
+    MUTE = 'MUTE'
+    ZOOM_IN = 'ZOOM_IN'
+    ZOOM_OUT = 'ZOOM_OUT'
 
     @classmethod
     def set_icon(cls, value: str):
@@ -294,8 +233,26 @@ class Cursor(Enum):
         bpy.context.window.cursor_warp(location[0], location[1])
 
 
+class ExecContext(Enum):
+    """Operator execution contexts"""
+
+    INVOKE = "INVOKE_DEFAULT"
+    EXEC = "EXECUTE_DEFAULT"
+
+    INVOKE_SCREEN = "INVOKE_SCREEN"
+    INVOKE_AREA = "INVOKE_AREA"
+    INVOKE_REGION_PREVIEW = "INVOKE_REGION_PREVIEW"
+    INVOKE_REGION_CHANNELS = "INVOKE_REGION_CHANNELS"
+    INVOKE_REGION_WIN = "INVOKE_REGION_WIN"
+    EXEC_REGION_WIN = "EXEC_REGION_WIN"
+    EXEC_REGION_CHANNELS = "EXEC_REGION_CHANNELS"
+    EXEC_REGION_PREVIEW = "EXEC_REGION_PREVIEW"
+    EXEC_AREA = "EXEC_AREA"
+    EXEC_SCREEN = "EXEC_SCREEN"
+
+
 @dataclass
-class BOperator:
+class BOperator():
     """A decorator for defining blender Operators that helps to cut down on boilerplate code,
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the operator class, with whatever arguments you want.
@@ -393,8 +350,6 @@ class BOperator:
 
             cursor = Cursor
 
-            wrap_text = wrap_text
-
             # Set up a description that can be set from the UI draw function
             if decorator.dynamic_description:
                 bl_description: StringProperty(default=op_description, options={"HIDDEN"})
@@ -405,9 +360,50 @@ class BOperator:
                         return props.bl_description
                     else:
                         return op_description
-
             else:
                 bl_description = op_description
+
+            @classmethod
+            def run(cls, exec_context: ExecContext = None, **kwargs):
+                """Run this operator with the given execution context."""
+                op: Callable = getattr(bpy.ops, cls.bl_idname)
+
+                if exec_context:
+                    exec_context = enum_value(exec_context)
+                    return op(exec_context, **kwargs)
+                else:
+                    return op(**kwargs)
+
+            @classmethod
+            def draw_button(
+                cls,
+                layout: UILayout,
+                text: str = "",
+                icon: str = "NONE",
+                emboss=True,
+                depress=False,
+                icon_value=0,
+                text_ctxt="",
+                translate=True,
+                exec_context: ExecContext = ExecContext.INVOKE,
+                **kwargs,
+            ):
+                """Draw this operator as a button in a provided layout.
+                All extra keyword arguments are set as arguments for the operator."""
+                layout.operator_context = enum_value(exec_context)
+                op = layout.operator(
+                    cls.bl_idname,
+                    text=text,
+                    icon=icon,
+                    icon_value=icon_value,
+                    emboss=emboss,
+                    depress=depress,
+                    text_ctxt=text_ctxt,
+                    translate=translate,
+                )
+                for name, value in kwargs.items():
+                    setattr(op, name, value)
+                return op
 
             def __init__(self):
                 # Allow auto-complete for execute function return values
@@ -447,35 +443,6 @@ class BOperator:
                 self.mouse_window_prev = Vector((event.mouse_prev_x, event.mouse_prev_y))
                 self.mouse_region = Vector((event.mouse_region_x, event.mouse_region_y))
 
-            @classmethod
-            def draw_button(
-                cls,
-                layout: UILayout,
-                text: str = "",
-                icon: str = "NONE",
-                emboss=True,
-                depress=False,
-                icon_value=0,
-                text_ctxt="",
-                translate=True,
-                **kwargs,
-            ):
-                """Draw this operator as a button in a provided layout.
-                All extra keyword arguments are set as arguments for the operator."""
-                op = layout.operator(
-                    cls.bl_idname,
-                    text=text,
-                    icon=icon,
-                    icon_value=icon_value,
-                    emboss=emboss,
-                    depress=depress,
-                    text_ctxt=text_ctxt,
-                    translate=translate,
-                )
-                for name, value in kwargs.items():
-                    setattr(op, name, value)
-                return op
-
             def invoke(self, context: Context, event: Event):
                 """Wrap the invoke function so we can set some initial attributes"""
                 self.set_event_attrs(event)
@@ -508,20 +475,18 @@ class BOperatorType(BOperator("")()):
 
 BOperator.type = BOperatorType
 
-function_ops = []
-
 
 @dataclass
-class FunctionToOperator:
+class FunctionToOperator():
     """A decorator that takes a function and registers an operator that will call it in the execute function.
     It automatically converts the arguments of the function to operator arguments for basic data types,
     and for blender id types (e.g. Objects etc.), the operator takes the name and then automatically gets the data
     block to pass to the wrapped function
 
     The idname of the operator is just bpy.ops.{category}.{function_name}
-
+    
     Maybe this is going overboard and making the code harder to understand, but it works for me.
-
+    
     Args:
         category (str): The category that the operator will be placed in.
         label (str): The label to display in the UI"""
@@ -530,6 +495,7 @@ class FunctionToOperator:
     label: str = ""
 
     def __call__(self, function):
+
         parameters = inspect.signature(function).parameters
         supported_id_types = {
             Material,
@@ -556,7 +522,8 @@ class FunctionToOperator:
             description=function.__doc__,
             label=label,
         )
-        class CustomOperator(Operator):
+        class CustomOperator(BOperator.type):
+
             def execute(self, context):
                 # Get the operator properties and convert them to function key word arguments
 
@@ -599,15 +566,21 @@ class FunctionToOperator:
             CustomOperator.__annotations__[name] = prop
 
         # CustomOperator.__name__ = function.__name__
-        function_ops.append(CustomOperator)
+        to_register.append(CustomOperator)
         return function
 
 
 def register():
-    for op in function_ops:
+    for op in to_register:
         bpy.utils.register_class(op)
+
+    # property_groups.sort(key=get_depth, reverse=True)
+    for pgroup in property_groups:
+        pgroup.register()
 
 
 def unregister():
-    for op in function_ops:
+    for op in to_register:
         bpy.utils.unregister_class(op)
+    for pgroup in property_groups:
+        pgroup.unregister()
