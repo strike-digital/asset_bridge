@@ -1,3 +1,5 @@
+from ..operators.op_open_folder import AB_OT_open_folder
+from ..operators.op_create_ab_collection import AB_OT_create_ab_collection
 from bpy.types import Context, Panel, UILayout
 from bpy_extras.asset_utils import AssetBrowserPanel
 from ..helpers.prefs import get_prefs
@@ -10,7 +12,6 @@ from ..helpers.btypes import BPanel
 
 @BPanel(space_type="FILE_BROWSER", region_type="TOOLS", label="Asset Info")
 class AB_PT_asset_info(Panel, AssetBrowserPanel):
-
     # __no_reg__ = True
     __reg_order__ = 0
 
@@ -65,7 +66,7 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
             draw_section_header(box, "Materials", show, "import_mat", centered=False, icon=icon)
             if show.import_mat:
                 col = box.box().column(align=True)
-                draw_inline_prop(col, ab_scene, "apply_real_world_scale", "Use real world scale", "", factor=.9)
+                draw_inline_prop(col, ab_scene, "apply_real_world_scale", "Use real world scale", "", factor=0.9)
 
             box.separator()
 
@@ -79,12 +80,12 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
                     "import_collection",
                     "Import collection",
                     "",
-                    factor=.5,
+                    factor=0.5,
                     row=True,
                 )
                 collection = ab_scene.import_collection
                 if not collection or collection.name != AB_COLLECTION_NAME:
-                    row.operator("asset_bridge.create_ab_collection", text="", icon="COLLECTION_NEW")
+                    AB_OT_create_ab_collection.draw_button(row, text="", icon="COLLECTION_NEW")
 
     def draw(self, context):
         layout = self.layout
@@ -112,7 +113,7 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
             box = layout.box()
             box.separator()
             box.alert = True
-            box.scale_y = .45
+            box.scale_y = 0.45
             wrap_text(context, message, box, centered=True)
             box.separator()
             return
@@ -125,10 +126,10 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
         bigrow = box.row(align=True)
         row = bigrow.row(align=True)
         if is_downloaded:
-            op = row.operator("asset_bridge.open_folder", text="", icon="FILE_FOLDER", emboss=False)
+            op = AB_OT_open_folder.draw_button(row, text="", icon="FILE_FOLDER", emboss=False)
             op.file_path = str(asset.get_quality_dir(ab.asset_quality))
         else:
-            op = row.operator("asset_bridge.open_folder", text="", icon="IMPORT", emboss=False)
+            op = AB_OT_open_folder.draw_button(row, text="", icon="IMPORT", emboss=False)
             op.file_path = str(DIRS.assets)
 
         row = bigrow.row(align=True)
@@ -142,7 +143,6 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
             row.prop(ab, "reload_asset", text="", icon="FILE_REFRESH", emboss=ab.reload_asset)
 
         if prefs.show_asset_info:
-
             box = col.box()
             box.prop(
                 ab,
