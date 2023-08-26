@@ -10,7 +10,10 @@ from ..operators.op_swap_asset import AB_OT_swap_asset
 
 def draw_swap_op(layout: UILayout, asset_list_item: AssetListItem, qlevel_id: str, qlevel_label: str):
     icon = "CHECKMARK" if asset_list_item.is_downloaded(qlevel_id) else "IMPORT"
+    # op = AB_OT_swap_asset.draw_button(text=qlevel_label, icon=icon)
+    # op
     op: AB_OT_swap_asset = layout.operator("asset_bridge.swap_asset", text=qlevel_label, icon=icon)
+    op.to_quality
     op.bl_description = f"Change this asset's quality level to {qlevel_label}"
     op.to_quality = qlevel_id
     op.asset_id = asset_list_item.ab_idname

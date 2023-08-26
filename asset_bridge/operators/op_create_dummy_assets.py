@@ -2,26 +2,24 @@ import subprocess
 from time import perf_counter
 from typing import Dict
 
-from ..helpers.main_thread import force_ui_update
-
-from ..settings import get_ab_settings
-
-from ..helpers.library import ensure_bl_asset_library_exists
-from .op_report_message import report_message
 import bpy
-from ..helpers.catalog import AssetCatalogFile
-from ..constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME, Files
-from ..helpers.process import new_blender_process
-from ..helpers.btypes import BOperator
+
 from ..api import get_asset_lists
-from bpy.types import Operator
+from ..settings import get_ab_settings
+from ..constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME, Files
+from ..helpers.btypes import BOperator
+from ..helpers.catalog import AssetCatalogFile
+from ..helpers.library import ensure_bl_asset_library_exists
+from ..helpers.process import new_blender_process
+from .op_report_message import report_message
+from ..helpers.main_thread import force_ui_update
 
 last_messages = {}
 process_progress = {}
 
 
 @BOperator("asset_bridge")
-class AB_OT_create_dummy_assets(Operator):
+class AB_OT_create_dummy_assets(BOperator.type):
     """Create the dummy assets representing each online asset"""
 
     def execute(self, context):
@@ -37,10 +35,10 @@ class AB_OT_create_dummy_assets(Operator):
         progress = task.new_progress(max_steps=len(asset_lists.all_assets))
         progress.progress = 0
         force_ui_update(context.area)
-    
+
         # This operator is often chained with the download previews operator, if so, show a different message
-        prefix = ("(2/2)" if continuing else "")
-        progress.message = (f"{prefix} Setting up asset library:")
+        prefix = "(2/2)" if continuing else ""
+        progress.message = f"{prefix} Setting up asset library:"
 
         # Create a blender process for each asset list
         processes: Dict[str, subprocess.Popen] = {}
@@ -55,7 +53,7 @@ class AB_OT_create_dummy_assets(Operator):
             processes[asset_list_name] = process
 
         start = perf_counter()
-        update_interval = .01
+        update_interval = 0.01
 
         def output_log(name, process):
             try:
@@ -94,7 +92,6 @@ class AB_OT_create_dummy_assets(Operator):
                 report_message("ERROR", message=f"Process timed out, please try again.\nError log:\n{log}")
 
             if completed:
-
                 # Combine the separate catalogs
                 catalog = AssetCatalogFile(DIRS.dummy_assets)
                 catalog.reset()

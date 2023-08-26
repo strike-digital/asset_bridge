@@ -1,6 +1,5 @@
 import bpy
 from bpy.props import StringProperty
-from bpy.types import Operator
 from mathutils import Vector
 
 from ..constants import NODES
@@ -8,7 +7,7 @@ from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge")
-class AB_OT_toggle_tiling_preview(Operator):
+class AB_OT_toggle_tiling_preview(BOperator.type):
     """Toggle a preview of the anti tiling effect, to make it easier to see the different segments"""
 
     material_name: StringProperty()

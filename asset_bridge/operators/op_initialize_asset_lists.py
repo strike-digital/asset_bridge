@@ -1,13 +1,14 @@
 from threading import Thread
-import bpy
-from ..api import get_asset_lists
+
 from bpy.props import BoolProperty
-from bpy.types import Operator
+
+from ..api import get_asset_lists
 from ..helpers.btypes import BOperator
+from .op_download_previews import AB_OT_download_previews
 
 
 @BOperator("asset_bridge", label="Get asset lists.", undo=True, register=True)
-class AB_OT_initialize_asset_lists(Operator):
+class AB_OT_initialize_asset_lists(BOperator.type):
     """Re initialize all asset lists with data from the internet rather than from the cache"""
 
     initialize_all: BoolProperty(default=False)
@@ -28,5 +29,5 @@ class AB_OT_initialize_asset_lists(Operator):
             for thread in threads:
                 thread.join()
 
-        bpy.ops.asset_bridge.download_previews()
+        AB_OT_download_previews.run()
         return {"FINISHED"}

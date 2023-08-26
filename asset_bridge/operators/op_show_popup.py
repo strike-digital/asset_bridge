@@ -1,14 +1,13 @@
+from bpy.props import IntProperty, BoolProperty, EnumProperty, StringProperty
 from bpy.utils import register_class, unregister_class
+
 from ..ui.ui_helpers import wrap_text
+from ..helpers.btypes import BOperator, ExecContext
 from ..helpers.main_thread import run_in_main_thread
-from ..helpers.btypes import BOperator
-from bpy.types import Operator
-from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
-import bpy
 
 
 @BOperator("asset_bridge")
-class AB_OT_show_popup(Operator):
+class AB_OT_show_popup(BOperator.type):
     """Show a popup with the given message to the user"""
 
     severity: EnumProperty(
@@ -58,7 +57,7 @@ class AB_OT_show_popup(Operator):
             row.label(text=self.title)
             box = col.box().column(align=True)
 
-        box.scale_y = .8
+        box.scale_y = 0.8
         wrap_text(context, self.message, box, centered=self.centered, width=self.width + 100)
 
     def execute(self, context):
@@ -90,8 +89,8 @@ def show_popup(
         if confirm_func:
             AB_OT_show_popup.confirm_func = confirm_func
 
-        bpy.ops.asset_bridge.show_popup(
-            "INVOKE_DEFAULT",
+        AB_OT_show_popup.run(
+            ExecContext.INVOKE,
             message=message,
             severity=severity,
             title=title,

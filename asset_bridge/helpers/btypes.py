@@ -1,12 +1,13 @@
-from enum import Enum
 import inspect
-from typing import TYPE_CHECKING, Callable, Literal, TypeVar
+from enum import Enum
+from typing import Literal, TypeVar, Union
 from dataclasses import dataclass
 
 import bpy
-from bpy.props import BoolProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty, StringProperty
-from bpy.types import Context, Event, Material, Menu, Object, Operator, Panel, UILayout
+from bpy.props import IntProperty, BoolProperty, FloatProperty, StringProperty, PointerProperty, FloatVectorProperty
+from bpy.types import Menu, Event, Panel, Object, Context, Material, Operator, UILayout
 from mathutils import Vector
+
 """A module containing helpers to make defining blender types easier (panels, operators etc.)"""
 
 __all__ = ["BMenu", "BOperator", "BPanel", "BPropertyGroup", "FunctionToOperator"]
@@ -22,7 +23,7 @@ def enum_value(enum_or_value: Enum | T) -> T:
 
 
 @dataclass
-class BMenu():
+class BMenu:
     """A decorator for defining blender menus that helps to cut down on boilerplate code,
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the menu class, with whatever arguments you want.
@@ -71,7 +72,7 @@ class BMenu():
 
 
 @dataclass
-class BPanel():
+class BPanel:
     """A decorator for defining blender Panels that helps to cut down on boilerplate code,
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the panel class, with whatever arguments you want.
@@ -97,11 +98,43 @@ class BPanel():
             or to draw them as squares instead (which is the default).
     """
 
-    space_type: Literal["EMPTY", "VIEW_3D", "NODE_EDITOR", "IMAGE_EDITOR", "SEQUENCE_EDITOR", "CLIP_EDITOR",
-                        "DOPESHEET_EDITOR", "GRAPH_EDITOR", "NLA_EDITOR", "TEXT_EDITOR", "CONSOLE", "INFO", "TOPBAR",
-                        "STATUSBAR", "OUTLINER", "PROPERTIES", "FILE_BROWSER", "SPREADSHEET", "PREFERENCES",]
-    region_type: Literal["UI", "TOOLS", "HEADER", "FOOTER", "TOOL_PROPS", "WINDOW", "CHANNELS", "TEMPORARY", "PREVIEW",
-                         "HUD", "NAVIGATION_BAR", "EXECUTE", "TOOL_HEADER", "XR",]
+    space_type: Literal[
+        "EMPTY",
+        "VIEW_3D",
+        "NODE_EDITOR",
+        "IMAGE_EDITOR",
+        "SEQUENCE_EDITOR",
+        "CLIP_EDITOR",
+        "DOPESHEET_EDITOR",
+        "GRAPH_EDITOR",
+        "NLA_EDITOR",
+        "TEXT_EDITOR",
+        "CONSOLE",
+        "INFO",
+        "TOPBAR",
+        "STATUSBAR",
+        "OUTLINER",
+        "PROPERTIES",
+        "FILE_BROWSER",
+        "SPREADSHEET",
+        "PREFERENCES",
+    ]
+    region_type: Literal[
+        "UI",
+        "TOOLS",
+        "HEADER",
+        "FOOTER",
+        "TOOL_PROPS",
+        "WINDOW",
+        "CHANNELS",
+        "TEMPORARY",
+        "PREVIEW",
+        "HUD",
+        "NAVIGATION_BAR",
+        "EXECUTE",
+        "TOOL_HEADER",
+        "XR",
+    ]
     category: str = ""
     label: str = ""
     description: str = ""
@@ -173,8 +206,7 @@ property_groups = []
 
 
 @dataclass
-class BPropertyGroup():
-
+class BPropertyGroup:
     type: bpy.types.ID
     name: str
 
@@ -193,30 +225,31 @@ class BPropertyGroup():
 
 class Cursor(Enum):
     """Wraps the poorly documented blender cursor functions to allow for auto-complete"""
+
     DEFAULT = "DEFAULT"
-    NONE = 'NONE'
-    WAIT = 'WAIT'
-    CROSSHAIR = 'CROSSHAIR'
-    MOVE_X = 'MOVE_X'
-    MOVE_Y = 'MOVE_Y'
-    KNIFE = 'KNIFE'
-    TEXT = 'TEXT'
-    PAINT_BRUSH = 'PAINT_BRUSH'
-    PAINT_CROSS = 'PAINT_CROSS'
-    DOT = 'DOT'
-    ERASER = 'ERASER'
-    HAND = 'HAND'
-    SCROLL_X = 'SCROLL_X'
-    SCROLL_Y = 'SCROLL_Y'
-    SCROLL_XY = 'SCROLL_XY'
-    EYEDROPPER = 'EYEDROPPER'
-    PICK_AREA = 'PICK_AREA'
-    STOP = 'STOP'
-    COPY = 'COPY'
-    CROSS = 'CROSS'
-    MUTE = 'MUTE'
-    ZOOM_IN = 'ZOOM_IN'
-    ZOOM_OUT = 'ZOOM_OUT'
+    NONE = "NONE"
+    WAIT = "WAIT"
+    CROSSHAIR = "CROSSHAIR"
+    MOVE_X = "MOVE_X"
+    MOVE_Y = "MOVE_Y"
+    KNIFE = "KNIFE"
+    TEXT = "TEXT"
+    PAINT_BRUSH = "PAINT_BRUSH"
+    PAINT_CROSS = "PAINT_CROSS"
+    DOT = "DOT"
+    ERASER = "ERASER"
+    HAND = "HAND"
+    SCROLL_X = "SCROLL_X"
+    SCROLL_Y = "SCROLL_Y"
+    SCROLL_XY = "SCROLL_XY"
+    EYEDROPPER = "EYEDROPPER"
+    PICK_AREA = "PICK_AREA"
+    STOP = "STOP"
+    COPY = "COPY"
+    CROSS = "CROSS"
+    MUTE = "MUTE"
+    ZOOM_IN = "ZOOM_IN"
+    ZOOM_OUT = "ZOOM_OUT"
 
     @classmethod
     def set_icon(cls, value: str):
@@ -251,8 +284,130 @@ class ExecContext(Enum):
     EXEC_SCREEN = "EXEC_SCREEN"
 
 
+# Define a TypeVar to be able to have proper type hinting and auto complete when using the decorator
+OperatorClass = TypeVar("OperatorClass", bound=Operator)
+
+
+class BOperatorBase(Operator):
+    """The base operator class used by the @BOperator decorator."""
+
+    bl_idname: str
+    bl_label: str
+    bl_options: set[str]
+    bl_description: str
+
+    layout: UILayout
+    event: Event
+
+    cursor = Cursor
+    __no_reg__ = True
+
+    FINISHED = {"FINISHED"}
+    CANCELLED = {"CANCELLED"}
+    PASS_THROUGH = {"PASS_THROUGH"}
+    RUNNING_MODAL = {"RUNNING_MODAL"}
+
+    @classmethod
+    def run(cls, exec_context: ExecContext = None, **kwargs) -> set[str]:
+        """Run this operator with the given execution context."""
+
+        # Get operator function
+        op = bpy.ops
+        for part in cls.bl_idname.split("."):
+            op = getattr(op, part)
+
+        # Execute
+        if exec_context:
+            exec_context = enum_value(exec_context)
+            return op(exec_context, **kwargs)
+        else:
+            return op(**kwargs)
+
+    @classmethod
+    def draw_button(
+        cls: OperatorClass,
+        layout: UILayout,
+        text: str = "",
+        icon: str = "NONE",
+        emboss=True,
+        depress=False,
+        icon_value=0,
+        text_ctxt="",
+        translate=True,
+        exec_context = ExecContext.INVOKE,
+        **kwargs,
+    ) -> OperatorClass:
+        """Draw this operator as a button in a provided layout.
+        All extra keyword arguments are set as arguments for the operator."""
+        layout.operator_context = enum_value(exec_context)
+        op = layout.operator(
+            cls.bl_idname,
+            text=text,
+            icon=icon,
+            icon_value=icon_value,
+            emboss=emboss,
+            depress=depress,
+            text_ctxt=text_ctxt,
+            translate=translate,
+        )
+        for name, value in kwargs.items():
+            setattr(op, name, value)
+        return op
+
+    def call_popup(self, width=300):
+        """Call a popup that shows the parameters of the operator, or a custom draw function.
+        Doesn't execute the operator.
+        This needs to be returned by the invoke method to work."""
+        return bpy.context.window_manager.invoke_popup(self, width=width)
+
+    def call_popup_confirm(self, width=300):
+        """Call a popup that shows the parameters of the operator (or a custom draw function),
+        and a confirmation button.
+        This needs to be returned by the invoke method to work."""
+        return bpy.context.window_manager.invoke_props_dialog(self, width=width)
+
+    def call_popup_auto_confirm(self):
+        """Call a popup that shows the parameters of the operator, or a custom draw function.
+        Every time the parameters of the operator are changed, the operator is executed automatically.
+        This needs to be returned by the invoke method to work."""
+        return bpy.context.window_manager.invoke_props_popup(self, self.event)
+
+    def start_modal(self):
+        """Initialize this as a modal operator.
+        Should be called and returned by the invoke function"""
+        bpy.context.window_manager.modal_handler_add(self)
+        return self.RUNNING_MODAL
+
+    def set_event_attrs(self, event):
+        """Set the `event, mouse_window, mouse_window_prev` and `mouse_region` attributes on the class"""
+        self.event = event
+        self.mouse_window = Vector((event.mouse_x, event.mouse_y))
+        self.mouse_window_prev = Vector((event.mouse_prev_x, event.mouse_prev_y))
+        self.mouse_region = Vector((event.mouse_region_x, event.mouse_region_y))
+
+    def invoke(self, context: Context, event: Event):
+        """Wrap the invoke function so we can set some initial attributes"""
+        self.set_event_attrs(event)
+        if hasattr(super(), "invoke"):
+            return super().invoke(context, event)
+        else:
+            return self.execute(context)
+
+    def modal(self, context: Context, event: Event):
+        """Wrap the modal function so we can set some initial attributes"""
+        self.set_event_attrs(event)
+        return super().modal(context, event)
+
+    def execute(self, context: Context):
+        """Wrap the execute function to remove the need to return {"FINISHED"}"""
+        ret = super().execute(context)
+        if ret is None:
+            return self.FINISHED
+        return ret
+
+
 @dataclass
-class BOperator():
+class BOperator:
     """A decorator for defining blender Operators that helps to cut down on boilerplate code,
     and adds better functionality for autocomplete.
     To use it, add it as a decorator to the operator class, with whatever arguments you want.
@@ -296,33 +451,22 @@ class BOperator():
     blocking: bool = False
     macro: bool = False
 
-    # Here we need to do some cursed stuff to get type hinting to work
-    if TYPE_CHECKING:
+    type = BOperatorBase
+    "Inherit from this to get proper auto complete for the extra attributes and functions"
 
-        @property
-        @classmethod
-        def type(cls):
-            """Inherit from this to get proper type hinting for operator classes defined with the BOperator decorator"""
-            return BOperatorType
-
-    def __call__(decorator, cls=None):
+    def __call__(decorator, cls: OperatorClass) -> Union[OperatorClass, BOperatorBase]:
         """This takes the decorated class and populate's the bl_ attributes with either the supplied values,
         or a best guess based on the other values"""
-        inherit_from = [cls, Operator]
-        if cls:
-            cls_name_end = cls.__name__.split("OT_")[-1]
-            idname = f"{decorator.category}." + (decorator.idname or cls_name_end)
-            label = decorator.label or cls_name_end.replace("_", " ").title()
+        cls_name_end = cls.__name__.split("OT_")[-1]
+        idname = f"{decorator.category}." + (decorator.idname or cls_name_end)
+        label = decorator.label or cls_name_end.replace("_", " ").title()
 
-            if decorator.description:
-                op_description = decorator.description
-            elif cls.__doc__:
-                op_description = cls.__doc__
-            else:
-                op_description = label
+        if decorator.description:
+            op_description = decorator.description
+        elif cls.__doc__:
+            op_description = cls.__doc__
         else:
-            inherit_from = [Operator]
-            op_description = idname = label = ""
+            op_description = label
 
         options = {
             "REGISTER": decorator.register,
@@ -341,152 +485,41 @@ class BOperator():
         if hasattr(cls, "bl_options"):
             options = options.union(cls.bl_options)
 
-        class Wrapped(*inherit_from):
+        class Wrapped(cls, BOperatorBase, Operator):
             bl_idname = idname
             bl_label = label
             bl_options = options
-            layout: UILayout
-            event: Event
 
-            cursor = Cursor
+            __no_reg__ = getattr(cls, "__no_reg__", False)
 
             # Set up a description that can be set from the UI draw function
             if decorator.dynamic_description:
                 bl_description: StringProperty(default=op_description, options={"HIDDEN"})
 
                 @classmethod
-                def description(cls, context, props):
-                    if props:
-                        return props.bl_description
-                    else:
-                        return op_description
+                def description(cls, context, props) -> str:
+                    return props.bl_description if props else op_description
+
             else:
                 bl_description = op_description
 
-            @classmethod
-            def run(cls, exec_context: ExecContext = None, **kwargs):
-                """Run this operator with the given execution context."""
-                op: Callable = getattr(bpy.ops, cls.bl_idname)
-
-                if exec_context:
-                    exec_context = enum_value(exec_context)
-                    return op(exec_context, **kwargs)
-                else:
-                    return op(**kwargs)
-
-            @classmethod
-            def draw_button(
-                cls,
-                layout: UILayout,
-                text: str = "",
-                icon: str = "NONE",
-                emboss=True,
-                depress=False,
-                icon_value=0,
-                text_ctxt="",
-                translate=True,
-                exec_context: ExecContext = ExecContext.INVOKE,
-                **kwargs,
-            ):
-                """Draw this operator as a button in a provided layout.
-                All extra keyword arguments are set as arguments for the operator."""
-                layout.operator_context = enum_value(exec_context)
-                op = layout.operator(
-                    cls.bl_idname,
-                    text=text,
-                    icon=icon,
-                    icon_value=icon_value,
-                    emboss=emboss,
-                    depress=depress,
-                    text_ctxt=text_ctxt,
-                    translate=translate,
-                )
-                for name, value in kwargs.items():
-                    setattr(op, name, value)
-                return op
-
-            def __init__(self):
-                # Allow auto-complete for execute function return values
-                self.FINISHED = {"FINISHED"}
-                self.CANCELLED = {"CANCELLED"}
-                self.PASS_THROUGH = {"PASS_THROUGH"}
-                self.RUNNING_MODAL = {"RUNNING_MODAL"}
-
-            def call_popup(self, width=300):
-                """Call a popup that shows the parameters of the operator, or a custom draw function.
-                Doesn't execute the operator.
-                This needs to be returned by the invoke method to work."""
-                return bpy.context.window_manager.invoke_popup(self, width=width)
-
-            def call_popup_confirm(self, width=300):
-                """Call a popup that shows the parameters of the operator (or a custom draw function),
-                and a confirmation button.
-                This needs to be returned by the invoke method to work."""
-                return bpy.context.window_manager.invoke_props_dialog(self, width=width)
-
-            def call_popup_auto_confirm(self):
-                """Call a popup that shows the parameters of the operator, or a custom draw function.
-                Every time the parameters of the operator are changed, the operator is executed automatically.
-                This needs to be returned by the invoke method to work."""
-                return bpy.context.window_manager.invoke_props_popup(self, self.event)
-
-            def start_modal(self):
-                """Initialize this as a modal operator.
-                Should be called and returned by the invoke function"""
-                bpy.context.window_manager.modal_handler_add(self)
-                return self.RUNNING_MODAL
-
-            def set_event_attrs(self, event):
-                """Set the `event, mouse_window, mouse_window_prev` and `mouse_region` attributes on the class"""
-                self.event = event
-                self.mouse_window = Vector((event.mouse_x, event.mouse_y))
-                self.mouse_window_prev = Vector((event.mouse_prev_x, event.mouse_prev_y))
-                self.mouse_region = Vector((event.mouse_region_x, event.mouse_region_y))
-
-            def invoke(self, context: Context, event: Event):
-                """Wrap the invoke function so we can set some initial attributes"""
-                self.set_event_attrs(event)
-                if hasattr(super(), "invoke"):
-                    return super().invoke(context, event)
-                else:
-                    return self.execute(context)
-
-            def modal(self, context: Context, event: Event):
-                """Wrap the modal function so we can set some initial attributes"""
-                self.set_event_attrs(event)
-                return super().modal(context, event)
-
-            def execute(self, context: Context):
-                """Wrap the execute function to remove the need to return {"FINISHED"}"""
-                ret = super().execute(context)
-                if ret is None:
-                    return self.FINISHED
-                return ret
-
         Wrapped.__doc__ = op_description
-        if cls:
-            Wrapped.__name__ = cls.__name__
+        Wrapped.__name__ = cls.__name__
+
         return Wrapped
 
 
-class BOperatorType(BOperator("")()):
-    """A type to inherit from that gives proper type hinting for classes using the @BOperator decorator"""
-
-
-BOperator.type = BOperatorType
-
-
 @dataclass
-class FunctionToOperator():
+class FunctionToOperator:
     """A decorator that takes a function and registers an operator that will call it in the execute function.
     It automatically converts the arguments of the function to operator arguments for basic data types,
     and for blender id types (e.g. Objects etc.), the operator takes the name and then automatically gets the data
     block to pass to the wrapped function
 
     The idname of the operator is just bpy.ops.{category}.{function_name}
-    
+
     Maybe this is going overboard and making the code harder to understand, but it works for me.
-    
+
     Args:
         category (str): The category that the operator will be placed in.
         label (str): The label to display in the UI"""
@@ -495,7 +528,6 @@ class FunctionToOperator():
     label: str = ""
 
     def __call__(self, function):
-
         parameters = inspect.signature(function).parameters
         supported_id_types = {
             Material,
@@ -523,7 +555,6 @@ class FunctionToOperator():
             label=label,
         )
         class CustomOperator(BOperator.type):
-
             def execute(self, context):
                 # Get the operator properties and convert them to function key word arguments
 

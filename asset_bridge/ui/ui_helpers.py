@@ -215,8 +215,8 @@ def draw_download_previews(layout: UILayout, text="", reload=False, in_box: bool
     else:
         # If not all of the asset lists have been downloaded
         if not lists_obj.all_initialized:
-            layout.operator(
-                AB_OT_initialize_asset_lists.bl_idname,
+            AB_OT_initialize_asset_lists.draw_button(
+                layout,
                 icon="IMPORT",
                 text=text or "Download asset previews",
             )

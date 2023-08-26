@@ -1,18 +1,16 @@
-from ..apis.asset_utils import HDRI, MATERIAL
-from .op_report_message import report_message
-from bpy.props import (BoolProperty, EnumProperty, StringProperty, FloatVectorProperty)
-from bpy.types import Operator
+from bpy.props import BoolProperty, EnumProperty, StringProperty, FloatVectorProperty
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
 from ..helpers.assets import download_and_import_asset
 from ..helpers.btypes import BOperator
 from ..helpers.drawing import point_under_mouse
+from ..apis.asset_utils import HDRI, MATERIAL
+from .op_report_message import report_message
 
 
 @BOperator("asset_bridge")
-class AB_OT_import_asset(Operator):
-
+class AB_OT_import_asset(BOperator.type):
     asset_name: StringProperty(
         description="The name of the asset to import. Leave empty to import the currently selected asset",
         default="",
@@ -60,14 +58,15 @@ class AB_OT_import_asset(Operator):
         return self.execute(context)
 
     def execute(self, context):
-
         # Find 3D coordinates of the point under the mouse cursor
         if self.at_mouse:
             try:
                 location = point_under_mouse(context, self.mouse_pos_region, self.mouse_pos_window)
             except ValueError:
                 message = "Cannot import assets when the preferences window is active. \
-                Blender is weird like that :(".replace("  ", "")
+                Blender is weird like that :(".replace(
+                    "  ", ""
+                )
                 report_message("ERROR", message)
                 return {"CANCELLED"}
         else:
@@ -80,7 +79,9 @@ class AB_OT_import_asset(Operator):
             report_message(
                 "WARNING",
                 "Downloading hdris and materials may not work as expected when Blender has multiple windows open. \
-                Blender is weird :(".replace("  ", ""),
+                Blender is weird :(".replace(
+                    "  ", ""
+                ),
             )
 
         # This is needed to prevent errors

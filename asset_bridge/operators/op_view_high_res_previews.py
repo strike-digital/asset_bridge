@@ -1,21 +1,21 @@
 import bpy
 import gpu
 from gpu.types import GPUBatch
-from gpu_extras.batch import batch_for_shader
-from ..helpers.drawing import Shaders, get_active_window_region
-from ..helpers.math import vec_divide
 from mathutils import Vector as V
-from ..constants import DIRS
-from ..apis.asset_utils import download_file, file_name_from_url
-from bpy.types import Operator
+from gpu_extras.batch import batch_for_shader
+
 from ..settings import get_ab_settings
+from ..constants import DIRS
+from ..helpers.math import vec_divide
 from ..helpers.btypes import BOperator
+from ..helpers.drawing import Shaders, get_active_window_region
+from ..apis.asset_utils import download_file, file_name_from_url
 
 handlers = []
 
 
 @BOperator("asset_bridge")
-class AB_OT_view_high_res_previews(Operator):
+class AB_OT_view_high_res_previews(BOperator.type):
     """Show a high resolution preview for this asset"""
 
     def invoke(self, context, event):
@@ -42,7 +42,7 @@ class AB_OT_view_high_res_previews(Operator):
         for file in files:
             image = bpy.data.images.load(str(file))
             image.name = "." + image.name
-            image.colorspace_settings.name = 'Linear' if bpy.app.version < (4, 0, 0) else "Linear Rec.709"
+            image.colorspace_settings.name = "Linear" if bpy.app.version < (4, 0, 0) else "Linear Rec.709"
             self.images.append(image)
             self.textures.append(gpu.texture.from_image(image))
 
@@ -118,9 +118,9 @@ class AB_OT_view_high_res_previews(Operator):
 
         sh = self.shader
         gpu.state.blend_set("ALPHA")
-        batch: GPUBatch = batch_for_shader(sh, 'TRIS', {"pos": back_coords}, indices=indices)
+        batch: GPUBatch = batch_for_shader(sh, "TRIS", {"pos": back_coords}, indices=indices)
         sh.bind()
-        color = (*[.1] * 3, .7)
+        color = (*[0.1] * 3, 0.7)
         sh.uniform_float("color", color)
         batch.draw(sh)
 
@@ -131,17 +131,14 @@ class AB_OT_view_high_res_previews(Operator):
         size = V((image.size[0], image.size[1]))
 
         coefficient = min(vec_divide(region_size, size))
-        size = size * coefficient * .9
+        size = size * coefficient * 0.9
 
         offset = (region_size - size) / 2
         image_coords = [c * size + offset for c in coords]
         batch = batch_for_shader(
             self.image_shader,
-            'TRIS',
-            {
-                "pos": image_coords,
-                "texCoord": coords
-            },
+            "TRIS",
+            {"pos": image_coords, "texCoord": coords},
             indices=indices,
         )
         self.image_shader.uniform_sampler("image", texture)
@@ -159,13 +156,13 @@ class AB_OT_view_high_res_previews(Operator):
         ]
         arrow_coords = [V(c) for c in arrow_coords]
         size = V([25] * 2)
-        color = (*[1] * 3, .7)
+        color = (*[1] * 3, 0.7)
 
         offset = V((0, 0))
         offset.x = (region_size.x - (size.x * 1.5)) / 2 - size.x
         offset.y += 10
         coords = [c * size + offset for c in arrow_coords]
-        batch: GPUBatch = batch_for_shader(sh, 'TRIS', {"pos": coords})
+        batch: GPUBatch = batch_for_shader(sh, "TRIS", {"pos": coords})
         sh.bind()
         sh.uniform_float("color", color)
         batch.draw(sh)
@@ -176,7 +173,7 @@ class AB_OT_view_high_res_previews(Operator):
         for coord in arrow_coords:
             coord.x = 1.5 - coord.x
         coords = [c * size + offset for c in arrow_coords]
-        batch: GPUBatch = batch_for_shader(sh, 'TRIS', {"pos": coords})
+        batch: GPUBatch = batch_for_shader(sh, "TRIS", {"pos": coords})
         sh.bind()
         sh.uniform_float("color", color)
         batch.draw(sh)

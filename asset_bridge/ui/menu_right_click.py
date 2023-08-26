@@ -1,3 +1,4 @@
+from ..helpers.btypes import ExecContext
 import bpy
 from bpy.types import UILayout
 from ..settings import get_ab_settings
@@ -11,12 +12,11 @@ def draw_context_options(self, context):
         return
 
     layout.separator()
-    layout.operator_context = "INVOKE_DEFAULT"
     urls = get_ab_settings(context).selected_asset.get_high_res_urls()
     row = layout.row(align=True)
     row.enabled = bool(urls)
     text = f"Show High Res Preview{'s' if len(urls) > 1 else ''}"
-    AB_OT_view_high_res_previews.draw_button(row, text=text)
+    AB_OT_view_high_res_previews.draw_button(row, text=text, exec_context=ExecContext.INVOKE)
 
 
 def register():

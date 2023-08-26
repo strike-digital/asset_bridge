@@ -1,12 +1,11 @@
 from bpy.props import StringProperty
-from bpy.types import Operator
 
 from ..settings import AssetTask, get_ab_settings
 from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge")
-class AB_OT_remove_task(Operator):
+class AB_OT_remove_task(BOperator.type):
     """Remove an Asset Bridge task"""
 
     name: StringProperty()

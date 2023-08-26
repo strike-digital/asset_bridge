@@ -1,18 +1,19 @@
-from ..helpers.general import check_internet
 import bpy
 from bpy.props import BoolProperty
-from bpy.types import Operator
 
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..constants import CHECK_NEW_ASSETS_TASK_NAME
 from ..helpers.btypes import BOperator
+from ..helpers.general import check_internet
 from .op_report_message import report_message
 from ..helpers.main_thread import force_ui_update
+from .op_download_previews import AB_OT_download_previews
+from .op_create_dummy_assets import AB_OT_create_dummy_assets
 
 
 @BOperator("asset_bridge", label="Check for new assets")
-class AB_OT_check_for_new_assets(Operator):
+class AB_OT_check_for_new_assets(BOperator.type):
     """Re download the asset lists and check for new assets"""
 
     report_message: BoolProperty(default=True)
@@ -20,7 +21,6 @@ class AB_OT_check_for_new_assets(Operator):
     auto_download: BoolProperty(default=False, description="Whether to automatically download newly found previews")
 
     def execute(self, context):
-
         if not check_internet():
             report_message("ERROR", "Can't check for new assets, no internet connection detected")
             return {"CANCELLED"}
@@ -48,7 +48,7 @@ class AB_OT_check_for_new_assets(Operator):
                     finished,
                     message=f"Getting asset list from {label} ({finished + 1}/{len(threads)})",
                 )
-                return .1
+                return 0.1
 
             task.finish()
             new_assets = lists_obj.new_assets_available()
@@ -59,12 +59,12 @@ class AB_OT_check_for_new_assets(Operator):
                     report_message("INFO", f"There {are} {new_assets} new asset{suffix} to download.")
                     if self.auto_download:
                         print("Auto download")
-                        bpy.ops.asset_bridge.download_previews()
+                        AB_OT_download_previews.run()
             else:
                 if self.report_message:
                     report_message("INFO", "No new assets found, you're up to date!")
                 if self.auto_download:
-                    bpy.ops.asset_bridge.create_dummy_assets()
+                    AB_OT_create_dummy_assets.run()
 
             force_ui_update(area_types={"PREFERENCES"})
 

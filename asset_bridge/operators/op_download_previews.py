@@ -1,14 +1,13 @@
-from collections import deque
 import os
 import random
 from time import perf_counter
 from random import choice
 from itertools import islice
 from threading import Thread
+from collections import deque
 
 import bpy
 from bpy.props import IntProperty, BoolProperty
-from bpy.types import Operator
 
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
@@ -18,11 +17,12 @@ from ..helpers.general import check_internet
 from ..apis.asset_types import AssetListItem
 from .op_report_message import report_message
 from ..helpers.main_thread import run_in_main_thread
+from .op_create_dummy_assets import AB_OT_create_dummy_assets
 from ..vendor.requests.exceptions import ConnectTimeout
 
 
 @BOperator("asset_bridge")
-class AB_OT_download_previews(Operator):
+class AB_OT_download_previews(BOperator.type):
     """Download the previews for all of the assets"""
 
     reload: BoolProperty()
@@ -34,7 +34,6 @@ class AB_OT_download_previews(Operator):
     )
 
     def execute(self, context):
-
         if not check_internet():
             report_message("ERROR", "Cannot download the asset previews as there is no internet connection")
             return {"CANCELLED"}
@@ -89,7 +88,7 @@ class AB_OT_download_previews(Operator):
                 random.seed(len(assets) / len(list(names)))
                 progress.message = f"(1/2) Downloading: {choice(list(names))}.png"
                 if not finished:
-                    return .01
+                    return 0.01
 
             bpy.app.timers.register(update_message)
 
@@ -132,7 +131,7 @@ class AB_OT_download_previews(Operator):
                 main_thread=True,
             )
 
-            run_in_main_thread(bpy.ops.asset_bridge.create_dummy_assets)
+            run_in_main_thread(AB_OT_create_dummy_assets.run)
 
         # Download the previews on a separate thread to avoid freezing the UI
         thread = Thread(target=download_all_previews)

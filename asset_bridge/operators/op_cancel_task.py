@@ -1,14 +1,12 @@
-import bpy
-from ..helpers.main_thread import run_in_main_thread
 from bpy.props import StringProperty
-from bpy.types import Operator
 
 from ..settings import AssetTask, get_ab_settings
-from ..helpers.btypes import BOperator
+from ..helpers.btypes import BOperator, ExecContext
+from ..helpers.main_thread import run_in_main_thread
 
 
 @BOperator("asset_bridge")
-class AB_OT_cancel_task(Operator):
+class AB_OT_cancel_task(BOperator.type):
     """Cancel an Asset Bridge task"""
 
     name: StringProperty()
@@ -30,4 +28,4 @@ def cancel_task(name: str, main_thread=False):
     if main_thread:
         run_in_main_thread(cancel_task, (name, False))
     else:
-        bpy.ops.asset_bridge.cancel_task("INVOKE_DEFAULT", name=name)
+        AB_OT_cancel_task.run(ExecContext.INVOKE, name=name)

@@ -4,31 +4,32 @@ from uuid import uuid1
 from typing import Dict, Callable
 from threading import Thread
 
-from ..constants import ASSET_VERSIONS, ServerError503
-
 import bpy
-from bpy.types import ID, Object, World, Context, Material, Collection, MaterialSlot
+from bpy.types import ID, World, Object, Context, Material, Collection, MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
+from .btypes import ExecContext
 from .general import check_internet, copy_bl_properties
 from .library import get_dir_size
 from .process import format_traceback
-from ..settings import get_ab_scene_settings, get_ab_settings, get_asset_settings
+from ..settings import get_ab_settings, get_asset_settings, get_ab_scene_settings
+from ..constants import ASSET_VERSIONS, ServerError503
 from .main_thread import force_ui_update, run_in_main_thread
 from ..apis.asset_types import Asset
 from ..apis.asset_utils import HDRI
 from ..operators.op_report_message import report_message
+from ..operators.op_draw_import_progress import AB_OT_draw_import_progress
 from ..operators.op_set_real_world_mat_scale import set_real_world_mat_scale
 
 DOWNLOADING: Dict[str, str] = {}  # Contains the idname of the asset, and the name of the download task
 
 
 def download_asset(
-        context: Context,
-        asset: Asset,
-        draw: bool = True,
-        location: V = V(),
+    context: Context,
+    asset: Asset,
+    draw: bool = True,
+    location: V = V(),
 ) -> str:
     """Download a given asset in the background while managing errors, and drawing the progress in the UI.
     It returns the name of the task that tracks the progress of the download. The reason it only returns the name
@@ -58,8 +59,8 @@ def download_asset(
     # If this asset is already downloading, just return the task name for that instead of starting a new one.
     if list_item.ab_idname in DOWNLOADING:
         task_name = DOWNLOADING[list_item.ab_idname]
-        bpy.ops.asset_bridge.draw_import_progress(
-            "INVOKE_DEFAULT",
+        AB_OT_draw_import_progress.run(
+            ExecContext.INVOKE,
             task_name=task_name,
             location=location,
             asset_id=list_item.ab_idname,
@@ -94,29 +95,28 @@ def download_asset(
 
     if draw:
         # Run the draw operator
-        bpy.ops.asset_bridge.draw_import_progress(
-            "INVOKE_DEFAULT",
+        AB_OT_draw_import_progress.run(
+            ExecContext.INVOKE,
             task_name=task.name,
             location=location,
             asset_id=list_item.ab_idname,
         )
 
     def download():
-
         # Delete existing files
         if asset.list_item.ab_type == HDRI:
             # We need to sleep here in to allow the blender UI to reload the hdri file if it is in cycles rendered view.
             # Otherwise the file is deleted first, and cycles loads in as a pink texture, until it is reloaded.
             # This might need to be longer on lower end hardware, but it's a pretty niche bug,
             # that doesn't have a serious impact.
-            sleep(.05)
+            sleep(0.05)
             i = 0
             while True and i < 10:
                 for file in asset.get_files():
                     try:
                         os.remove(file)
                     except PermissionError:
-                        sleep(.05)
+                        sleep(0.05)
                         break
                 else:
                     break
@@ -138,7 +138,7 @@ def download_asset(
                 if (size := get_dir_size(asset.download_dir)) != orig_progress:
                     task.progress.progress = size
                     force_ui_update(area_types="VIEW_3D")
-                return .01
+                return 0.01
             return None
 
         successful = False
@@ -157,7 +157,9 @@ def download_asset(
                 f"Could not download {asset.idname}, got response code 503.\n\n\
                 This means that the web server is temporarily down, potentially for maintenance,\n\
                 or because of capacity problems.\n\n\
-                Try checking {asset.list_item.ab_asset_list.url} to confirm this.".replace("  ", ""),
+                Try checking {asset.list_item.ab_asset_list.url} to confirm this.".replace(
+                    "  ", ""
+                ),
                 main_thread=True,
             )
         except Exception as e:
@@ -237,13 +239,13 @@ def import_asset(context: Context, asset: Asset, location: V = V(), material_slo
 
 
 def download_and_import_asset(
-        context: Context,
-        asset: Asset,
-        material_slot: MaterialSlot = None,
-        draw: bool = True,
-        location: V = V(),
-        on_completion: Callable[[ID], None] = None,
-        on_cancel: Callable = None,
+    context: Context,
+    asset: Asset,
+    material_slot: MaterialSlot = None,
+    draw: bool = True,
+    location: V = V(),
+    on_completion: Callable[[ID], None] = None,
+    on_cancel: Callable = None,
 ):
     """Download and import an asset, taking care of errors, viewport progress etc.
 
@@ -278,6 +280,6 @@ def download_and_import_asset(
             if task:
                 task.finish()
             return
-        return .1
+        return 0.1
 
-    bpy.app.timers.register(check_download, first_interval=.1)
+    bpy.app.timers.register(check_download, first_interval=0.1)

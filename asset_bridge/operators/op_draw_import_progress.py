@@ -1,11 +1,10 @@
 from time import time
-from .op_cancel_task import cancel_task
-from ..helpers.prefs import get_prefs
+
 import bpy
 import gpu
 import bl_math
 from bpy.props import StringProperty, FloatVectorProperty
-from bpy.types import Context, Operator
+from bpy.types import Context
 from mathutils import Color
 from mathutils import Vector as V
 from gpu_extras.batch import batch_for_shader
@@ -14,17 +13,19 @@ from bpy_extras.view3d_utils import location_3d_to_region_2d
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..helpers.math import Rectangle, lerp
+from ..helpers.prefs import get_prefs
+from .op_cancel_task import cancel_task
 from ..helpers.btypes import BOperator
 from ..helpers.drawing import Shaders, get_active_window_region
 from .op_report_message import report_message
+
 # from ..gpu_drawing.shaders import ASSET_PROGRESS_SHADER
 
 handlers = []
 
 
 @BOperator("asset_bridge")
-class AB_OT_draw_import_progress(Operator):
-
+class AB_OT_draw_import_progress(BOperator.type):
     @classmethod
     def poll(cls, context):
         return True
@@ -48,7 +49,8 @@ class AB_OT_draw_import_progress(Operator):
                 "WINDOW",
                 # "POST_VIEW",
                 "POST_PIXEL",
-            ))
+            )
+        )
         self.start_time = time()
         self.factor = 0
         self.finish_time = 0
@@ -145,7 +147,7 @@ class AB_OT_draw_import_progress(Operator):
             time_diff = time() - self.start_time
 
         speed = 1  # Overall animation speed
-        popup_time = .4 / prefs.widget_anim_speed / speed
+        popup_time = 0.4 / prefs.widget_anim_speed / speed
         if time_diff < popup_time:
             time_diff /= popup_time
             time_diff = bl_math.smoothstep(0, popup_time, time_diff)
@@ -158,13 +160,13 @@ class AB_OT_draw_import_progress(Operator):
 
         # Smooth the bar animation
         target = 1 if self.finish_time else task.progress_prop / 100
-        fac = lerp(min(.1 * prefs.widget_anim_speed * speed, 1), self.factor, target)
-        if (target - fac) > .01:  # Avoid unnecessary updates
+        fac = lerp(min(0.1 * prefs.widget_anim_speed * speed, 1), self.factor, target)
+        if (target - fac) > 0.01:  # Avoid unnecessary updates
             redraw = True
         self.factor = fac
 
         if redraw:
-            bpy.app.timers.register(context.area.tag_redraw, first_interval=.01)
+            bpy.app.timers.register(context.area.tag_redraw, first_interval=0.01)
 
         uv = coords
         offset = location_3d_to_region_2d(context.region, context.region.data, location)
@@ -176,7 +178,7 @@ class AB_OT_draw_import_progress(Operator):
         if False:
             coords = [V(c) * size + offset for c in coords]
             color = Color()
-            color.hsv = (.5, 0, 1)
+            color.hsv = (0.5, 0, 1)
             size *= 5
             print(self.aspect)
             gpu.state.blend_set("ALPHA")
@@ -190,7 +192,7 @@ class AB_OT_draw_import_progress(Operator):
             return
 
         # Arrow
-        height = .16
+        height = 0.16
         arrow_coords = [V(c) * size + offset - V((line_width / 2, 0)) for c in [(0, 0), (0, height), (height, height)]]
         # arrow_coords = [c - V((0, height * size.y)) for c in arrow_coords]
         offset.y += height * size.y
@@ -221,7 +223,7 @@ class AB_OT_draw_import_progress(Operator):
         bar_size.y = bar_height
         bar_size.x *= fac
         # shorten to make space for cancel box
-        bar_size.x *= (size.x - bar_height) / max(size.x, .000001)
+        bar_size.x *= (size.x - bar_height) / max(size.x, 0.000001)
         bar_coords = tuple(V(c) * bar_size + offset for c in coords)
 
         # Cancel box
@@ -235,7 +237,7 @@ class AB_OT_draw_import_progress(Operator):
 
         # Add the X button
         cancel_coords = []
-        cancel_size = .7
+        cancel_size = 0.7
         min_offset = c_min + V([bar_height / 2] * 2)
         max_offset = c_max - V([bar_height / 2] * 2)
         c_min = (c_min - min_offset) * cancel_size + min_offset
@@ -248,47 +250,47 @@ class AB_OT_draw_import_progress(Operator):
         background_coords = line_coords[:4]
         sh = self.shader
         gpu.state.blend_set("ALPHA")
-        batch = batch_for_shader(sh, 'TRIS', {"pos": background_coords}, indices=indices)
+        batch = batch_for_shader(sh, "TRIS", {"pos": background_coords}, indices=indices)
         sh.bind()
-        color = (*[.1] * 3, .7)
+        color = (*[0.1] * 3, 0.7)
         sh.uniform_float("color", color)
         batch.draw(sh)
 
         # Image
-        batch = batch_for_shader(self.image_shader, 'TRIS', {"pos": image_coords, "texCoord": coords}, indices=indices)
+        batch = batch_for_shader(self.image_shader, "TRIS", {"pos": image_coords, "texCoord": coords}, indices=indices)
         self.image_shader.uniform_sampler("image", self.texture)
         self.image_shader.bind()
         batch.draw(self.image_shader)
 
         # Colour
-        batch = batch_for_shader(sh, 'TRIS', {"pos": bar_coords}, indices=indices)
+        batch = batch_for_shader(sh, "TRIS", {"pos": bar_coords}, indices=indices)
         sh.bind()
-        alpha = .8
+        alpha = 0.8
         # Hue lerp rather than rgb lerp to get nicer colours
         color = Color()
-        color.hsv = (lerp(fac, 0, 1 / 3), 1, lerp(fac, 1, .8))
+        color.hsv = (lerp(fac, 0, 1 / 3), 1, lerp(fac, 1, 0.8))
         color = list(color) + [alpha]
         sh.uniform_float("color", color)
         batch.draw(sh)
 
         # Lines
         gpu.state.line_width_set(line_width)
-        batch = batch_for_shader(sh, 'LINES', {"pos": line_coords}, indices=line_indeces)
+        batch = batch_for_shader(sh, "LINES", {"pos": line_coords}, indices=line_indeces)
         sh.bind()
-        line_colour = (1, 1, 1, .9)
+        line_colour = (1, 1, 1, 0.9)
         sh.uniform_float("color", line_colour)
         batch.draw(sh)
 
         # Arrow
-        batch = batch_for_shader(sh, 'TRIS', {"pos": arrow_coords})
+        batch = batch_for_shader(sh, "TRIS", {"pos": arrow_coords})
         sh.bind()
         sh.uniform_float("color", line_colour)
         batch.draw(sh)
 
         # Cancel button
-        batch = batch_for_shader(sh, 'LINES', {"pos": cancel_coords})
+        batch = batch_for_shader(sh, "LINES", {"pos": cancel_coords})
         sh.bind()
-        line_colour = (1, 0, 0, .9)
+        line_colour = (1, 0, 0, 0.9)
         sh.uniform_float("color", line_colour)
         batch.draw(sh)
 

@@ -265,14 +265,11 @@ class ABAddonPreferences(UpdaterPreferences, AddonPreferences):
         elif len(dummy_blends) < len(asset_lists):
             InfoSnippets.set_up_dummy_assets.draw(row)
             row.scale_x = 1.5
-            op = row.operator(
-                AB_OT_check_for_new_assets.bl_idname,
+            op = AB_OT_check_for_new_assets.draw_button(
+                row,
                 text="Check for new assets and set up asset library",
             )
             op.auto_download = True
-            # AB_OT_create_dummy_assets.draw_button(row, text="Set up asset library")
-            # AB_OT_create_dummy_assets.
-            # print("ho")
             return
 
         else:

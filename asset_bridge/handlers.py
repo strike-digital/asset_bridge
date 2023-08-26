@@ -1,4 +1,5 @@
 # from asset_bridge.operators import AB_OT_import_asset
+from .helpers.btypes import ExecContext
 from .constants import ASSET_LIB_NAME
 import bpy
 from bpy.app import handlers
@@ -60,8 +61,8 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         name = world.asset_bridge.idname
         bpy.data.worlds.remove(world)
         # print("World!", name)
-        bpy.ops.asset_bridge.import_asset(
-            "INVOKE_DEFAULT",
+        AB_OT_import_asset.run(
+            ExecContext.INVOKE,
             asset_name=name,
             asset_quality=quality,
             link_method=link_method(get_browser_area(name)),
@@ -84,8 +85,8 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 # This is very hacky, and there's almost certainly a good reason not to do it,
                 # But I haven't found it yet ¯\_(ツ)_/¯
                 AB_OT_import_asset.material_slot = slot
-                bpy.ops.asset_bridge.import_asset(
-                    "INVOKE_DEFAULT",
+                AB_OT_import_asset.run(
+                    ExecContext.INVOKE,
                     asset_name=name,
                     at_mouse=True,
                     # location=bpy.context.object.location,
@@ -119,8 +120,8 @@ def depsgraph_update_pre_handler(scene: Scene, _):
         name = obj.asset_bridge.idname
         bpy.data.objects.remove(obj)
         # print("Object!", name)
-        bpy.ops.asset_bridge.import_asset(
-            "INVOKE_DEFAULT",
+        AB_OT_import_asset.run(
+            ExecContext.INVOKE,
             asset_name=name,
             link_method=link_method(get_browser_area(name)),
             at_mouse=True,

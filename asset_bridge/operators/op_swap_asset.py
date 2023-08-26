@@ -1,6 +1,6 @@
 import bpy
 from bpy.props import StringProperty
-from bpy.types import Curve, ID, Mesh, NodeTree, Object, Operator
+from bpy.types import ID, Mesh, Curve, Object, NodeTree
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
@@ -29,14 +29,12 @@ def copy_nodes_settings(from_node_tree: NodeTree, to_node_tree: NodeTree):
 
 
 @BOperator("asset_bridge")
-class AB_OT_swap_asset(Operator):
-
+class AB_OT_swap_asset(BOperator.type):
     to_quality: StringProperty()
 
     asset_id: StringProperty(description="The identifier of the asset to be swapped")
 
     def execute(self, context):
-
         asset_list_item = get_asset_lists().all_assets[self.asset_id]
         asset = asset_list_item.to_asset(self.to_quality, "APPEND_REUSE")  # TODO: infer this automatically
         initial_obj: Object = context.object
@@ -103,8 +101,11 @@ class AB_OT_swap_asset(Operator):
                 to_remove = []
                 for obj in list(bpy.data.objects):
                     settings = get_asset_settings(obj)
-                    if not settings.is_asset_bridge or (settings.uuid in done) or\
-                        (settings.uuid != get_asset_settings(initial_obj).uuid):
+                    if any((
+                        not settings.is_asset_bridge,
+                        settings.uuid in done,
+                        settings.uuid != get_asset_settings(initial_obj).uuid,
+                    )):
                         continue
 
                     # Get a list of all objects in the model asset

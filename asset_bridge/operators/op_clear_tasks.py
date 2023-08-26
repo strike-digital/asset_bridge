@@ -1,11 +1,10 @@
-from bpy.types import Operator
 
 from ..settings import get_ab_settings
 from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge")
-class AB_OT_clear_task(Operator):
+class AB_OT_clear_task(BOperator.type):
     """Clear all Asset Bridge tasks"""
 
     def execute(self, context):

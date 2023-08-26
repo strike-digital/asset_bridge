@@ -1,5 +1,6 @@
 from datetime import datetime
 from threading import Thread
+from .ph_op_open_author_website import AB_OT_open_ph_author_website
 from bpy.types import Material, Object, World
 
 from .ph_asset import PH_Asset
@@ -42,7 +43,7 @@ class PH_AssetListItem(AssetListItem):
             AssetMetadataItem(
                 f"Author{'s' if len(data['authors']) > 1 else ''}",
                 data["authors"],
-                operator="asset_bridge.open_ph_author_website",
+                operator=AB_OT_open_ph_author_website.bl_idname,
                 operator_kwargs=[{"author_name": name} for name in data["authors"]],
             ),
             AssetMetadataItem(

@@ -1,13 +1,12 @@
 import webbrowser
 
 from bpy.props import StringProperty
-from bpy.types import Operator
 
 from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge")
-class AB_OT_open_folder(Operator):
+class AB_OT_open_folder(BOperator.type):
     """Open a folder in the default file explorer"""
 
     file_path: StringProperty(

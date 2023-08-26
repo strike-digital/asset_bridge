@@ -1,12 +1,13 @@
 import bpy
-from bpy.types import Context, Operator
+from bpy.types import Context
+
 from ..settings import get_ab_scene_settings
 from ..constants import AB_COLLECTION_NAME
 from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge", label="Create Asset Bridge collection", undo=True, register=False)
-class AB_OT_create_ab_collection(Operator):
+class AB_OT_create_ab_collection(BOperator.type):
     """Create a collection to import asset bridge models to."""
 
     def execute(self, context: Context):

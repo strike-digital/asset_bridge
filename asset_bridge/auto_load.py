@@ -1,10 +1,11 @@
 import sys
-import bpy
 import typing
 import inspect
 import pkgutil
 import importlib
 from pathlib import Path
+
+import bpy
 
 __all__ = (
     "init",
@@ -45,8 +46,11 @@ def register():
         bpy.utils.register_class(cls)
 
     for module in modules.copy():
-        if module.__name__ == __name__ or module in manual_modules or\
-                hasattr(module, "__no_reg__") and module.__no_reg__:
+        if any((
+            module.__name__ == __name__,
+            module in manual_modules,
+            (hasattr(module, "__no_reg__") and module.__no_reg__),
+        )):
             modules.remove(module)
             continue
         if hasattr(module, "register"):
@@ -145,10 +149,21 @@ def iter_classes_in_module(module):
 
 def get_register_base_types():
     return set(
-        getattr(bpy.types, name) for name in [
-            "Panel", "Operator", "PropertyGroup", "AddonPreferences", "Header", "Menu", "Node", "NodeSocket",
-            "NodeTree", "UIList", "RenderEngine"
-        ])
+        getattr(bpy.types, name)
+        for name in [
+            "Panel",
+            "Operator",
+            "PropertyGroup",
+            "AddonPreferences",
+            "Header",
+            "Menu",
+            "Node",
+            "NodeSocket",
+            "NodeTree",
+            "UIList",
+            "RenderEngine",
+        ]
+    )
 
 
 # Find order to register to solve dependencies

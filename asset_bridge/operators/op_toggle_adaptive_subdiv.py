@@ -1,6 +1,5 @@
 # import bpy
 # from bpy.props import StringProperty
-# from bpy.types import Operator
 # from mathutils import Vector
 
 # from ..constants import NODES
@@ -8,9 +7,9 @@
 
 
 # @BOperator("asset_bridge")
-# class AB_OT_toggle_adaptive_subdiv(Operator):
+# class AB_OT_toggle_adaptive_subdiv(BOperator.type):
 #     """Toggle adaptive subdivision on this object.
-    
+
 #     NOTE: This can be very expensive to calculate, and can slow down initialization of renders a lot,
 #     as well as increasing memory usage substantially. It will provide the best looking displacement,
 #     but be aware that it comes at a cost."""

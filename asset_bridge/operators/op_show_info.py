@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 
 from bpy.props import IntProperty, BoolProperty, StringProperty
-from bpy.types import Operator, UILayout
+from bpy.types import UILayout
 
 from ..ui.ui_helpers import wrap_text
 from ..helpers.btypes import BOperator
 
 
 @BOperator("asset_bridge")
-class AB_OT_show_info(Operator):
+class AB_OT_show_info(BOperator.type):
     title: StringProperty()
 
     message: StringProperty()
