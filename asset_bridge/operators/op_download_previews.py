@@ -36,7 +36,7 @@ class AB_OT_download_previews(BOperator.type):
     def execute(self, context):
         if not check_internet():
             report_message("ERROR", "Cannot download the asset previews as there is no internet connection")
-            return {"CANCELLED"}
+            return self.CANCELLED
 
         ab = get_ab_settings(context)
 
@@ -52,7 +52,7 @@ class AB_OT_download_previews(BOperator.type):
 
         if not assets:
             report_message("INFO", "No new asset previews to download")
-            return {"CANCELLED"}
+            return self.CANCELLED
 
         task = ab.new_task(name=PREVIEW_DOWNLOAD_TASK_NAME)
         progress = task.new_progress(len(assets))
@@ -136,4 +136,3 @@ class AB_OT_download_previews(BOperator.type):
         # Download the previews on a separate thread to avoid freezing the UI
         thread = Thread(target=download_all_previews)
         thread.start()
-        return {"FINISHED"}

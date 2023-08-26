@@ -20,4 +20,3 @@ class AB_OT_create_ab_collection(BOperator.type):
             context.scene.collection.children.link(collection)
         ab_scene = get_ab_scene_settings(context)
         ab_scene.import_collection = collection
-        return {"FINISHED"}

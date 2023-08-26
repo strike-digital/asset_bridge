@@ -65,7 +65,7 @@ class AB_OT_draw_import_progress(BOperator.type):
 
         self.region = get_active_window_region(V((event.mouse_x, event.mouse_y)), fallback_area_type="VIEW_3D")
         context.window_manager.modal_handler_add(self)
-        return {"RUNNING_MODAL"}
+        return self.RUNNING_MODAL
 
     def get_task(self, context):
         """It's best to get a new reference to the task each iteration, as if the tasks list is modified,
@@ -76,7 +76,7 @@ class AB_OT_draw_import_progress(BOperator.type):
     def modal(self, context, event):
         if self.done:
             context.window.cursor_modal_restore()
-            return {"FINISHED"}
+            return self.FINISHED
 
         # Handle pressing the cancel button
         mouse_pos = V((event.mouse_x, event.mouse_y)) - V((self.region.x, self.region.y))
@@ -94,7 +94,7 @@ class AB_OT_draw_import_progress(BOperator.type):
             # self.get_task(context).cancel()
             report_message("INFO", "Download cancelled")
 
-        return {"PASS_THROUGH"}
+        return self.PASS_THROUGH
 
     def finish(self):
         self.done = True
@@ -102,11 +102,11 @@ class AB_OT_draw_import_progress(BOperator.type):
         handlers.remove(self.handler)
         bpy.data.images.remove(self.image)
         bpy.types.SpaceView3D.draw_handler_remove(self.handler, "WINDOW")
-        return {"FINISHED"}
+        return self.FINISHED
 
     def cancelled(self):
         self.finish()
-        return {"CANCELLED"}
+        return self.CANCELLED
 
     def draw_callback_px(self, context: Context, location: V):
         task = self.get_task(context)

@@ -1,4 +1,3 @@
-
 from ..settings import get_ab_settings
 from ..helpers.btypes import BOperator
 
@@ -11,4 +10,3 @@ class AB_OT_clear_task(BOperator.type):
         ab = get_ab_settings(context)
         for task in ab.tasks:
             task.finish(remove=True)
-        return {"FINISHED"}

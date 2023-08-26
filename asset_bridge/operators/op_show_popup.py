@@ -63,7 +63,6 @@ class AB_OT_show_popup(BOperator.type):
     def execute(self, context):
         if self.confirm_func:
             self.confirm_func()
-        return {"FINISHED"}
 
 
 def show_popup(

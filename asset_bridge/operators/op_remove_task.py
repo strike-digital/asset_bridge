@@ -18,4 +18,3 @@ class AB_OT_remove_task(BOperator.type):
         task: AssetTask = ab.tasks[self.name]
 
         task.finish(remove=True)
-        return {"FINISHED"}

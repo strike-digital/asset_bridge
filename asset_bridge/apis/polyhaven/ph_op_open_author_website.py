@@ -19,6 +19,5 @@ class AB_OT_open_ph_author_website(BOperator.type):
             link = "mailto:" + data["email"]
         else:
             self.report({"WARNING"}, "No website found for this author")
-            return {"FINISHED"}
+            return
         bpy.ops.wm.url_open(url=link)
-        return {"FINISHED"}

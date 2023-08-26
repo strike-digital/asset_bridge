@@ -53,7 +53,7 @@ class AB_OT_swap_asset(BOperator.type):
             location = point_under_mouse(context, center, region=region)
             if location is None:
                 # Couldn't find the location. The error is handled inside the function
-                return {"CANCELLED"}
+                return self.CANCELLED
         else:
             location = initial_obj.location
 
@@ -101,11 +101,13 @@ class AB_OT_swap_asset(BOperator.type):
                 to_remove = []
                 for obj in list(bpy.data.objects):
                     settings = get_asset_settings(obj)
-                    if any((
-                        not settings.is_asset_bridge,
-                        settings.uuid in done,
-                        settings.uuid != get_asset_settings(initial_obj).uuid,
-                    )):
+                    if any(
+                        (
+                            not settings.is_asset_bridge,
+                            settings.uuid in done,
+                            settings.uuid != get_asset_settings(initial_obj).uuid,
+                        )
+                    ):
                         continue
 
                     # Get a list of all objects in the model asset
@@ -161,4 +163,3 @@ class AB_OT_swap_asset(BOperator.type):
             location=location,
             on_completion=on_completion,
         )
-        return {"FINISHED"}

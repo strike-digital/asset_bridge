@@ -21,7 +21,6 @@ class AB_OT_cancel_task(BOperator.type):
             raise ValueError(f"Task '{self.name}' has no progress")
 
         task.cancel(remove=False)
-        return {"FINISHED"}
 
 
 def cancel_task(name: str, main_thread=False):

@@ -30,4 +30,3 @@ class AB_OT_initialize_asset_lists(BOperator.type):
                 thread.join()
 
         AB_OT_download_previews.run()
-        return {"FINISHED"}

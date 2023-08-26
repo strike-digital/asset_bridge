@@ -46,11 +46,13 @@ def register():
         bpy.utils.register_class(cls)
 
     for module in modules.copy():
-        if any((
-            module.__name__ == __name__,
-            module in manual_modules,
-            (hasattr(module, "__no_reg__") and module.__no_reg__),
-        )):
+        if any(
+            (
+                module.__name__ == __name__,
+                module in manual_modules,
+                (hasattr(module, "__no_reg__") and module.__no_reg__),
+            )
+        ):
             modules.remove(module)
             continue
         if hasattr(module, "register"):

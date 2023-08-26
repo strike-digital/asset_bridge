@@ -17,7 +17,7 @@ class AB_OT_toggle_tiling_preview(BOperator.type):
         nodes = material.node_tree.nodes
         if out_node := nodes.get(NODES.temp_output):
             nodes.remove(out_node)
-            return {"FINISHED"}
+            return
 
         tiling_node = nodes.get(NODES.anti_tiling)
         if tiling_node:
@@ -27,4 +27,3 @@ class AB_OT_toggle_tiling_preview(BOperator.type):
             out_node.location = tiling_node.location + Vector((0, 140))
             out_node.is_active_output = True
             material.node_tree.links.new(tiling_node.outputs[-1], out_node.inputs[0])
-        return {"FINISHED"}

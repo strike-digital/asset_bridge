@@ -20,12 +20,12 @@ class AB_OT_report_message(BOperator.type):
         # rather than when the user moves their mouse.
         self.timer = context.window_manager.event_timer_add(0.001, window=context.window)
         context.window_manager.modal_handler_add(self)
-        return {"RUNNING_MODAL"}
+        return self.RUNNING_MODAL
 
     def modal(self, context, event):
         context.window_manager.event_timer_remove(self.timer)
         self.report({self.severity}, self.message)
-        return {"FINISHED"}
+        return self.FINISHED
 
 
 def report_message(severity="INFO", message="Message!", main_thread=False):

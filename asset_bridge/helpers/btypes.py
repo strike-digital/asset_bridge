@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import Literal, TypeVar, Union
+from typing import Union, Literal, TypeVar
 from dataclasses import dataclass
 
 import bpy
@@ -334,7 +334,7 @@ class BOperatorBase(Operator):
         icon_value=0,
         text_ctxt="",
         translate=True,
-        exec_context = ExecContext.INVOKE,
+        exec_context=ExecContext.INVOKE,
         **kwargs,
     ) -> OperatorClass:
         """Draw this operator as a button in a provided layout.
@@ -490,7 +490,7 @@ class BOperator:
             bl_label = label
             bl_options = options
 
-            __no_reg__ = getattr(cls, "__no_reg__", False)
+            __no_reg__ = False
 
             # Set up a description that can be set from the UI draw function
             if decorator.dynamic_description:

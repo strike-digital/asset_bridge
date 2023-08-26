@@ -145,4 +145,3 @@ class AB_OT_create_dummy_assets(BOperator.type):
             return update_interval
 
         bpy.app.timers.register(check_processes)
-        return {"FINISHED"}

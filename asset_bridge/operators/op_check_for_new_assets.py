@@ -23,7 +23,7 @@ class AB_OT_check_for_new_assets(BOperator.type):
     def execute(self, context):
         if not check_internet():
             report_message("ERROR", "Can't check for new assets, no internet connection detected")
-            return {"CANCELLED"}
+            return self.CANCELLED
 
         lists_obj = get_asset_lists()
         threads = lists_obj.initialize_all(blocking=False)
@@ -69,4 +69,3 @@ class AB_OT_check_for_new_assets(BOperator.type):
             force_ui_update(area_types={"PREFERENCES"})
 
         bpy.app.timers.register(finish)
-        return {"FINISHED"}

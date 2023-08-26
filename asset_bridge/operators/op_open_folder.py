@@ -16,4 +16,3 @@ class AB_OT_open_folder(BOperator.type):
 
     def execute(self, context):
         webbrowser.open(self.file_path)
-        return {"FINISHED"}

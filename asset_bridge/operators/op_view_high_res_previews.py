@@ -57,7 +57,7 @@ class AB_OT_view_high_res_previews(BOperator.type):
         )
         handlers.append(self._handle)
         context.window_manager.modal_handler_add(self)
-        return {"RUNNING_MODAL"}
+        return self.RUNNING_MODAL
 
     def modal(self, context, event):
         self.event = event
@@ -70,10 +70,10 @@ class AB_OT_view_high_res_previews(BOperator.type):
 
         if any(c < 0 for c in mouse_region) or any(c > r for (c, r) in zip(mouse_region, self.region_size)):
             if mouse_region != V((-1, -1)):
-                return {"PASS_THROUGH"}
+                return self.PASS_THROUGH
 
         if event.type in {"SPACE"}:
-            return {"PASS_THROUGH"}
+            return self.PASS_THROUGH
 
         if mouse_region.y < 50 and self.multiple_images:
             context.window.cursor_modal_set("HAND")
@@ -87,7 +87,7 @@ class AB_OT_view_high_res_previews(BOperator.type):
         if event.type in {"RIGHTMOUSE", "ESC"}:
             return self.cancelled()
 
-        return {"RUNNING_MODAL"}
+        return self.RUNNING_MODAL
 
     def finish(self):
         bpy.types.SpaceFileBrowser.draw_handler_remove(self._handle, "WINDOW")
@@ -95,11 +95,11 @@ class AB_OT_view_high_res_previews(BOperator.type):
         for image in self.images:
             bpy.data.images.remove(image)
         handlers.remove(self._handle)
-        return {"FINISHED"}
+        return self.FINISHED
 
     def cancelled(self):
         self.finish()
-        return {"CANCELLED"}
+        return self.CANCELLED
 
     def draw_callback_px(self, context, files):
         coords = (

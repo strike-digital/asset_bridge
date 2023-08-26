@@ -68,7 +68,7 @@ class AB_OT_import_asset(BOperator.type):
                     "  ", ""
                 )
                 report_message("ERROR", message)
-                return {"CANCELLED"}
+                return self.CANCELLED
         else:
             location = V(self.location)
 
@@ -87,4 +87,4 @@ class AB_OT_import_asset(BOperator.type):
         # This is needed to prevent errors
         material_slot = self.material_slot
         download_and_import_asset(context, asset, material_slot, draw=True, location=location)
-        return {"FINISHED"}
+        return self.FINISHED
