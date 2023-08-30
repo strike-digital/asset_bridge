@@ -84,7 +84,6 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                 # We can't pass a material slot directly, so set it as a class attribute.
                 # This is very hacky, and there's almost certainly a good reason not to do it,
                 # But I haven't found it yet ¯\_(ツ)_/¯
-                AB_OT_import_asset.material_slot = slot
                 AB_OT_import_asset.run(
                     ExecContext.INVOKE,
                     asset_name=name,
@@ -93,6 +92,7 @@ def depsgraph_update_pre_handler(scene: Scene, _):
                     asset_quality=quality,
                     link_method=link_method(get_browser_area(name)),
                     reload=reload,
+                    material_slot=slot,
                 )
                 try:
                     slot.material = prev_materials[obj.name][i]

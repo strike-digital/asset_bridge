@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import Union, Literal, TypeVar
+from typing import TYPE_CHECKING, Union, Literal, TypeVar
 from dataclasses import dataclass
 
 import bpy
@@ -15,7 +15,7 @@ to_register = []
 T = TypeVar("T")
 
 
-def enum_value(enum_or_value: Enum | T) -> T:
+def enum_value(enum_or_value: Enum | T):
     """If value is an enum item, return enum value, else return value"""
     if isinstance(enum_or_value, Enum):
         return enum_or_value.value
@@ -284,6 +284,21 @@ class ExecContext(Enum):
     EXEC_SCREEN = "EXEC_SCREEN"
 
 
+class CustomPropertyType:
+    """Placeholder used to identify a custom property on an operator."""
+    pass
+
+
+def CustomProperty(type: T, description: str):
+    """Define a custom property on an operator (in the same way as bpy.props).
+    You'll only be able to use this property as an argument for the operator when using the
+    BOperator.run() function, otherwise you'll get an error."""
+    if TYPE_CHECKING:
+        return type
+    else:
+        return CustomPropertyType
+
+
 # Define a TypeVar to be able to have proper type hinting and auto complete when using the decorator
 OperatorClass = TypeVar("OperatorClass", bound=Operator)
 
@@ -307,14 +322,36 @@ class BOperatorBase(Operator):
     PASS_THROUGH = {"PASS_THROUGH"}
     RUNNING_MODAL = {"RUNNING_MODAL"}
 
+    custom_args: dict
+    _has_set_custom_args: bool = False
+
+    @classmethod
+    def register(cls):
+        """Wrap the register function"""
+
+        # Find all of the custom properties that are defined as type hints on the class
+        custom_args = {k: v for k, v in cls.__bases__[1].__annotations__.items() if v is CustomPropertyType}
+        cls.custom_args = custom_args
+
+        if hasattr(super(), "register"):
+            super().register()
+
     @classmethod
     def run(cls, exec_context: ExecContext = None, **kwargs) -> set[str]:
-        """Run this operator with the given execution context."""
+        """Run this operator with the given execution context.
+        An extra feature is that you can pass arguments of custom types (not just built in blender ones).
+        They need to be defined in the same way as normal arguments on the class (e.g. my_prop: BoolProperty()),
+        but using the CustomProperty() function instead."""
 
         # Get operator function
         op = bpy.ops
         for part in cls.bl_idname.split("."):
             op = getattr(op, part)
+
+        for name, value in kwargs.copy().items():
+            if name in cls.custom_args:
+                setattr(cls, name, value)
+                del kwargs[name]
 
         # Execute
         if exec_context:
@@ -385,8 +422,21 @@ class BOperatorBase(Operator):
         self.mouse_window_prev = Vector((event.mouse_prev_x, event.mouse_prev_y))
         self.mouse_region = Vector((event.mouse_region_x, event.mouse_region_y))
 
+    def _set_custom_args(self):
+        """Set the custom arguments as attributes on the class instance and clear them from the class object."""
+        if self._has_set_custom_args:
+            return
+
+        for name in self.custom_args:
+            setattr(self, name, getattr(self.__class__, name))
+            setattr(self.__class__, name, None)
+
+        self._has_set_custom_args = True
+
     def invoke(self, context: Context, event: Event):
         """Wrap the invoke function so we can set some initial attributes"""
+        self._set_custom_args()
+
         self.set_event_attrs(event)
         if hasattr(super(), "invoke"):
             return super().invoke(context, event)
@@ -400,6 +450,8 @@ class BOperatorBase(Operator):
 
     def execute(self, context: Context):
         """Wrap the execute function to remove the need to return {"FINISHED"}"""
+        self._set_custom_args()
+
         ret = super().execute(context)
         if ret is None:
             return self.FINISHED
@@ -451,7 +503,11 @@ class BOperator:
     blocking: bool = False
     macro: bool = False
 
-    type = BOperatorBase
+    if TYPE_CHECKING:
+        type = BOperatorBase
+    else:
+        type = Operator
+
     "Inherit from this to get proper auto complete for the extra attributes and functions"
 
     def __call__(decorator, cls: OperatorClass) -> Union[OperatorClass, BOperatorBase]:
@@ -485,7 +541,7 @@ class BOperator:
         if hasattr(cls, "bl_options"):
             options = options.union(cls.bl_options)
 
-        class Wrapped(cls, BOperatorBase, Operator):
+        class Wrapped(BOperatorBase, cls, Operator):
             bl_idname = idname
             bl_label = label
             bl_options = options

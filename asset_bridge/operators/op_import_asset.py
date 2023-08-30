@@ -1,9 +1,10 @@
 from bpy.props import BoolProperty, EnumProperty, StringProperty, FloatVectorProperty
+from bpy.types import MaterialSlot
 from mathutils import Vector as V
 
 from ..api import get_asset_lists
 from ..helpers.assets import download_and_import_asset
-from ..helpers.btypes import BOperator
+from ..helpers.btypes import BOperator, CustomProperty
 from ..helpers.drawing import point_under_mouse
 from ..apis.asset_utils import HDRI, MATERIAL
 from .op_report_message import report_message
@@ -45,23 +46,16 @@ class AB_OT_import_asset(BOperator.type):
         default="APPEND_REUSE",
     )
 
-    material_slot = None
-
-    def invoke(self, context, event):
-        # This is the best way I know to be able to pass custom data to operators
-        self.material_slot = self.__class__.material_slot
-        self.__class__.material_slot = None
-
-        # Store mouse positions
-        self.mouse_pos_region = V((event.mouse_region_x, event.mouse_region_y))
-        self.mouse_pos_window = V((event.mouse_x, event.mouse_y))
-        return self.execute(context)
+    material_slot: CustomProperty(
+        type=MaterialSlot,
+        description="The material slot to apply the imported material to (if the imported asset is a material).",
+    )
 
     def execute(self, context):
         # Find 3D coordinates of the point under the mouse cursor
         if self.at_mouse:
             try:
-                location = point_under_mouse(context, self.mouse_pos_region, self.mouse_pos_window)
+                location = point_under_mouse(context, self.mouse_region, self.mouse_window)
             except ValueError:
                 message = "Cannot import assets when the preferences window is active. \
                 Blender is weird like that :(".replace(
