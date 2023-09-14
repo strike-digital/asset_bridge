@@ -1,19 +1,20 @@
 import os
-from pathlib import Path
 import zipfile
-
-from ...helpers.process import new_blender_process
-from ..asset_utils import MODEL, MATERIAL, HDRI, download_file, import_hdri, import_model, import_material
-from bpy.types import Context
-from ..asset_types import Asset, AssetListItem as ACG_AssetListItem
-
 from typing import TYPE_CHECKING
+from pathlib import Path
+
+from bpy.types import Context
+
+from ..asset_types import Asset
+from ..asset_types import AssetListItem as ACG_AssetListItem
+from ..asset_utils import HDRI, MODEL, MATERIAL, import_hdri, import_model, download_file, import_material
+from ...helpers.process import new_blender_process
+
 if TYPE_CHECKING:
     from .acg_asset_list_item import ACG_AssetListItem  # noqa F811
 
 
 class ACG_Asset(Asset):
-
     def __init__(self, asset_list_item: ACG_AssetListItem, quality_level: str, link_method: str):
         self.list_item = asset_list_item
         self.name = asset_list_item.ab_name
@@ -38,8 +39,9 @@ class ACG_Asset(Asset):
         file = download_file(url, self.download_dir, file_name)
 
         # Unzip
+        print(file)
         if self.file_type == "zip":
-            with zipfile.ZipFile(file, 'r') as zip:
+            with zipfile.ZipFile(file, "r") as zip:
                 zip.extractall(file.parent)
 
             # Remove unnecessary files
@@ -57,7 +59,6 @@ class ACG_Asset(Asset):
             process.wait()
 
     def import_asset(self, context: Context):
-
         if self.type == HDRI:
             world = import_hdri(self.get_files()[0], self.import_name, self.link_method)
             context.scene.world = world

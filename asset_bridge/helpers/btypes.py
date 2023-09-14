@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import TYPE_CHECKING, Union, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Union, Literal, TypeVar
 from dataclasses import dataclass
 
 import bpy
@@ -284,9 +284,11 @@ class ExecContext(Enum):
     EXEC_SCREEN = "EXEC_SCREEN"
 
 
+@dataclass
 class CustomPropertyType:
     """Placeholder used to identify a custom property on an operator."""
-    pass
+
+    type: Any
 
 
 def CustomProperty(type: T, description: str):
@@ -296,7 +298,7 @@ def CustomProperty(type: T, description: str):
     if TYPE_CHECKING:
         return type
     else:
-        return CustomPropertyType
+        return CustomPropertyType(type)
 
 
 # Define a TypeVar to be able to have proper type hinting and auto complete when using the decorator
@@ -330,8 +332,10 @@ class BOperatorBase(Operator):
         """Wrap the register function"""
 
         # Find all of the custom properties that are defined as type hints on the class
-        custom_args = {k: v for k, v in cls.__bases__[1].__annotations__.items() if v is CustomPropertyType}
+        custom_args = {k: v for k, v in cls.__bases__[1].__annotations__.items() if isinstance(v, CustomPropertyType)}
         cls.custom_args = custom_args
+        for name, prop_type in custom_args.items():
+            setattr(cls, name, prop_type.type)
 
         if hasattr(super(), "register"):
             super().register()
@@ -505,10 +509,9 @@ class BOperator:
 
     if TYPE_CHECKING:
         type = BOperatorBase
+        "Inherit from this to get proper auto complete for the extra attributes and functions"
     else:
         type = Operator
-
-    "Inherit from this to get proper auto complete for the extra attributes and functions"
 
     def __call__(decorator, cls: OperatorClass) -> Union[OperatorClass, BOperatorBase]:
         """This takes the decorated class and populate's the bl_ attributes with either the supplied values,

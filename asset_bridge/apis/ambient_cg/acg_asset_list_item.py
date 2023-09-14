@@ -7,12 +7,11 @@ from bpy.types import World, Object, Material
 from .acg_asset import ACG_Asset
 from ..asset_types import AssetListItem
 from ..asset_types import AssetMetadataItem as Metadata
-from ..asset_utils import (HDRI, MODEL, MATERIAL, download_file, dimensions_to_string)
+from ..asset_utils import HDRI, MODEL, MATERIAL, download_file, dimensions_to_string
 from ...helpers.library import human_readable_file_size
 
 
 class ACG_AssetListItem(AssetListItem):
-
     ab_asset_type = ACG_Asset
     ab_prefix = "acg"
     ab_authors = ["Lennart Demes"]
@@ -45,7 +44,7 @@ class ACG_AssetListItem(AssetListItem):
         for name, quality_data in data["quality_levels"].items():
             if "PREVIEW" in name:
                 continue
-            label = name.lower().replace('-', ' ').replace("lq", "Low").replace("sq", "Medium").replace("hq", "High")
+            label = name.lower().replace("-", " ").replace("lq", "Low").replace("sq", "Medium").replace("hq", "High")
             label = f"{label} ({human_readable_file_size(quality_data['size'])})"
             self.ab_quality_levels.append((name, label, f"Download this asset at {label} quality"))
             # self.quality_levels.append((name, name, f"Download this asset at {label} quality"))
@@ -106,7 +105,8 @@ class ACG_AssetListItem(AssetListItem):
                     "Dimensions",
                     [[data["dimensionX"], data["dimensionY"], data["dimensionZ"]]],
                     to_string=dimensions_to_string,
-                ))
+                )
+            )
 
         self.ab_metadata.append(
             Metadata(
@@ -124,16 +124,26 @@ class ACG_AssetListItem(AssetListItem):
     def poll(self):
         # These are models with a weird format.
         if any(q in {"HQ", "SQ", "LQ"} for q in self.quality_data):
-            return inspect.cleandoc("""
+            return inspect.cleandoc(
+                """
             This model has an unsupported format. This should be fixed by Ambient CG in the future,
             but currently this model cannot be imported. If you want it to be fixed faster,
             consider donating to their Patreon so that they have the resources to continue :).
-            """)
+            """
+            )
         # if any of the quality levels do not have a name
         elif not all(q[0] != "" for q in self.ab_quality_levels):
-            return inspect.cleandoc("""
+            return inspect.cleandoc(
+                """
             This asset has corrupted or incomplete quality data, and as such cannot be used.
-            """)
+            """
+            )
+        elif self.ab_idname in {"acg_3DRock002", "acg_3DRock003", "acg_3DRock004"}:
+            return inspect.cleandoc(
+                """
+            This asset is currently not supported.
+            """
+            )
         return ""
 
     def download_preview(self):
