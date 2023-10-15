@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Dict
 from uuid import uuid4
@@ -18,8 +19,7 @@ VERSION 1
 """
 
 
-class AssetCatalog():
-
+class AssetCatalog:
     def __init__(self, uuid, path, name):
         self.uuid = uuid
         self.path = path
@@ -29,7 +29,7 @@ class AssetCatalog():
         return ":".join([self.uuid, self.path, self.name])
 
 
-class AssetCatalogFile():
+class AssetCatalogFile:
     """Represents a file containing the catalog info for a blender asset library."""
 
     def __init__(self, catalog_dir, filename="", load_from_file=True):
@@ -71,7 +71,12 @@ class AssetCatalogFile():
             for line in f.readlines():
                 if line.startswith(("#", "VERSION", "\n")):
                     continue
-                catalog = AssetCatalog(*line.split(":")[:4])
+                parts = line.split(":")[:]
+                last_part = parts[3:]
+                if last_part:
+                    parts[3] = ":".join(last_part)
+                    parts = parts[:3]
+                catalog = AssetCatalog(*parts)
                 catalogs[catalog.path] = catalog
         return catalogs
 

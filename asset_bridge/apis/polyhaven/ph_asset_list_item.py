@@ -27,7 +27,7 @@ class PH_AssetListItem(AssetListItem):
         self.ab_bl_type = bl_types[data["type"]]
         self.ab_authors = list(data["authors"].keys()) or [""]
         self.ab_categories = data["categories"]
-        self.ab_tags = data["tags"] + data["categories"]
+        self.ab_tags = data["tags"] + self.ab_categories
         self.page_url = f"https://polyhaven.com/a/{name}"
 
         self.loading_asset = False
