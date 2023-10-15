@@ -1,13 +1,22 @@
 # from __future__ import annotations
-from time import time_ns, perf_counter
+from time import perf_counter, time_ns
 from typing import TYPE_CHECKING, OrderedDict
 
 import bpy
-from bpy.props import (FloatVectorProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, StringProperty,
-                       PointerProperty, CollectionProperty)
-from bpy.types import ID, Collection, Context, Material, UILayout, PropertyGroup
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    FloatProperty,
+    FloatVectorProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
+from bpy.types import ID, Collection, Context, Material, PropertyGroup, UILayout
 
 from .api import get_asset_lists
+from .helpers.compatibility import get_active_asset, get_asset_metadata
 from .helpers.progress import Progress
 
 
@@ -37,6 +46,7 @@ def _make_item(id, name, descr, icon="", number=0):
 
 class AssetTask(PropertyGroup):
     """Keeps track of some progress needed for asset bridge"""
+
     __reg_order__ = 0
 
     name: StringProperty()
@@ -113,6 +123,7 @@ def new_show_prop(name: str, default=True):
 
 class AssetBridgeShowUISettings(PropertyGroup):
     """Properties for showing and hiding parts of the UI"""
+
     __reg_order__ = 0
 
     # HDRI
@@ -145,6 +156,7 @@ class AssetBridgeWmSettings(PropertyGroup):
     """General settings that can be kept in the window manager.
     This means that they get reset when starting a new blender session,
     but otherwise they are more global than scene settings."""
+
     __reg_order__ = 1
 
     ui_show: PointerProperty(
@@ -183,18 +195,18 @@ class AssetBridgeWmSettings(PropertyGroup):
         return get_asset_lists().all_assets[name]
 
     @property
-    def asset_idname(self):
+    def asset_idname(self) -> str:
         context = bpy.context
-        handle = context.asset_file_handle
+        handle = get_active_asset(context)
         if handle:
-            asset = handle.asset_data
-            self.prev_asset_name = asset.description
-            return asset.description
+            metadata = get_asset_metadata(handle)
+            self.prev_asset_name = metadata.description
+            return metadata.description
         elif self.prev_asset_name != "NONE":
             return self.prev_asset_name
         return "NONE"
 
-    def asset_quality_items(self, context):
+    def asset_quality_items(self, context) -> list[tuple[str]]:
         asset_list_item = self.selected_asset
         if asset_list_item:
             items = []
@@ -245,14 +257,18 @@ class AssetBridgeSceneSettings(PropertyGroup):
         default=False,
         description="Set the scale of the imported material to be accurate to a real world scale when imported.\n\n\
         This only applies to materials that have their dimensions defined, otherwise the texture dimension \
-        will be assumed to be 1m x 1m (the same as if the setting wasn't enabled)".replace("  ", ""),
+        will be assumed to be 1m x 1m (the same as if the setting wasn't enabled)".replace(
+            "  ", ""
+        ),
     )
 
     import_collection: PointerProperty(
         type=Collection,
         name="Default import collection",
         description="The collection in which to place newly imported models.\n\
-        If left blank, this will default to currently active collection.".replace("  ", ""),
+        If left blank, this will default to currently active collection.".replace(
+            "  ", ""
+        ),
     )
 
 
@@ -266,11 +282,15 @@ class AssetBridgeIDSettings(PropertyGroup):
 
     quality_level: StringProperty()
 
-    uuid: StringProperty(description="The identifier of this specific instance of the asset.\
-        Used to determine if there are multiple objects as part of one asset after it has been imported.")
+    uuid: StringProperty(
+        description="The identifier of this specific instance of the asset.\
+        Used to determine if there are multiple objects as part of one asset after it has been imported."
+    )
 
-    index: IntProperty(description="The index of the imported asset,\
-        used for swapping quality levels for models, as they can consist of multiple objects")
+    index: IntProperty(
+        description="The index of the imported asset,\
+        used for swapping quality levels for models, as they can consist of multiple objects"
+    )
 
     # Used to tell if a datablock has been imported by asset bridge
     is_asset_bridge: BoolProperty()
@@ -288,7 +308,6 @@ class AssetBridgeIDSettings(PropertyGroup):
 
 
 class AssetBridgeMaterialSettings(AssetBridgeIDSettings, PropertyGroup):
-
     def enable_displacement_update(self, context: Context):
         self.id_data: Material
         nodes = self.id_data.node_tree.nodes

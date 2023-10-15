@@ -6,10 +6,6 @@ from mathutils import Vector as V
 from bpy_extras.view3d_utils import (region_2d_to_origin_3d, region_2d_to_vector_3d)
 
 
-# Unfortunately this is needed for that sweet, sweet syntax highlighting.
-# I don't like Enums since they need an extra step to get the info you want,
-# But they do give their attributes a lovely blue color.
-# class Shaders(Enum if TYPE_CHECKING else object):
 class Shaders():
     if not bpy.app.background:
         UNIFORM_COLOR: GPUShader = gpu.shader.from_builtin("2D_UNIFORM_COLOR" if bpy.app.version < (4, 0,

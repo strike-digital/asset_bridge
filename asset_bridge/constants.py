@@ -7,6 +7,7 @@ from .helpers.prefs import get_prefs
 
 # This should be changed during the build process in build.py
 __IS_DEV__ = True
+IS_4_0 = bpy.app.version >= (4, 0, 0)
 ASSET_LIB_VERSION = (1, 0, 0)
 ASSET_LIB_NAME = "Asset Bridge"
 PREVIEW_DOWNLOAD_TASK_NAME = "preview_download"

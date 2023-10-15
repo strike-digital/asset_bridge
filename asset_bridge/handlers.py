@@ -1,4 +1,5 @@
 # from asset_bridge.operators import AB_OT_import_asset
+from .helpers.compatibility import get_active_asset
 from .helpers.btypes import ExecContext
 from .constants import ASSET_LIB_NAME
 import bpy
@@ -24,7 +25,7 @@ def get_browser_area(name) -> bpy.types.Area:
                 overrides.append({"window": window, "area": area})
     for override in overrides:
         with bpy.context.temp_override(**override):
-            handle = bpy.context.asset_file_handle
+            handle = get_active_asset(bpy.context)
             if handle and handle.asset_data.description == name:
                 return override["area"]
     else:

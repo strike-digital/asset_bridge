@@ -1,13 +1,19 @@
-from ..operators.op_open_folder import AB_OT_open_folder
-from ..operators.op_create_ab_collection import AB_OT_create_ab_collection
 from bpy.types import Context, Panel, UILayout
 from bpy_extras.asset_utils import AssetBrowserPanel
-from ..helpers.prefs import get_prefs
 
-from ..settings import get_ab_scene_settings, get_ab_settings
-from ..constants import AB_COLLECTION_NAME, DIRS, ASSET_LIB_NAME
-from .ui_helpers import draw_inline_prop, draw_left_aligned_prop, draw_section_header, wrap_text
+from ..constants import AB_COLLECTION_NAME, ASSET_LIB_NAME, DIRS
 from ..helpers.btypes import BPanel
+from ..helpers.compatibility import get_active_asset, get_active_asset_library_name
+from ..helpers.prefs import get_prefs
+from ..operators.op_create_ab_collection import AB_OT_create_ab_collection
+from ..operators.op_open_folder import AB_OT_open_folder
+from ..settings import get_ab_scene_settings, get_ab_settings
+from .ui_helpers import (
+    draw_inline_prop,
+    draw_left_aligned_prop,
+    draw_section_header,
+    wrap_text,
+)
 
 
 @BPanel(space_type="FILE_BROWSER", region_type="TOOLS", label="Asset Info")
@@ -19,10 +25,10 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
     def poll(cls, context):
         if context.area.ui_type != "ASSETS":
             return False
-        if not context.asset_file_handle:
+        if not get_active_asset(context):
             return False
         # In 3.5 the assets can also be viewed in th "All" asset library
-        if ASSET_LIB_NAME != context.area.spaces.active.params.asset_library_ref:
+        if ASSET_LIB_NAME != get_active_asset_library_name(context):
             ab = get_ab_settings(context)
             try:
                 asset = ab.selected_asset
@@ -102,7 +108,7 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
             asset = None
 
         if not asset:
-            if context.area.spaces.active.params.asset_library_ref != ASSET_LIB_NAME:
+            if get_active_asset_library_name(context) != ASSET_LIB_NAME:
                 return
             box = layout.box()
             box.alert = True

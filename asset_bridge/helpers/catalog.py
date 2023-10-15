@@ -71,7 +71,7 @@ class AssetCatalogFile():
             for line in f.readlines():
                 if line.startswith(("#", "VERSION", "\n")):
                     continue
-                catalog = AssetCatalog(*line.split(":"))
+                catalog = AssetCatalog(*line.split(":")[:4])
                 catalogs[catalog.path] = catalog
         return catalogs
 
