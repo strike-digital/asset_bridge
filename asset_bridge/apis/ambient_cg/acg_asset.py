@@ -1,14 +1,22 @@
 import os
 import zipfile
-from typing import TYPE_CHECKING
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bpy.types import Context
 
+from ...helpers.process import new_blender_process
 from ..asset_types import Asset
 from ..asset_types import AssetListItem as ACG_AssetListItem
-from ..asset_utils import HDRI, MODEL, MATERIAL, import_hdri, import_model, download_file, import_material
-from ...helpers.process import new_blender_process
+from ..asset_utils import (
+    HDRI,
+    MATERIAL,
+    MODEL,
+    download_file,
+    import_hdri,
+    import_material,
+    import_model,
+)
 
 if TYPE_CHECKING:
     from .acg_asset_list_item import ACG_AssetListItem  # noqa F811
@@ -39,14 +47,17 @@ class ACG_Asset(Asset):
         file = download_file(url, self.download_dir, file_name)
 
         # Unzip
-        print(file)
         if self.file_type == "zip":
             with zipfile.ZipFile(file, "r") as zip:
                 zip.extractall(file.parent)
 
             # Remove unnecessary files
             for file in file.parent.iterdir():
-                if file.suffix in {".zip", ".usda", ".usdc"} or any(s in file.name for s in {"_PREVIEW", "NormalDX"}):
+                if (
+                    file.suffix in {".zip", ".usda", ".usdc", ".mtlx"}
+                    or any(s in file.name for s in {"_PREVIEW", "NormalDX"})
+                    or "_" not in file.name
+                ):
                     os.remove(file)
 
         # Set up a blend file for this asset
@@ -89,7 +100,7 @@ class ACG_Asset(Asset):
                     # As a fallback, use as a diffuse texture if none is provided
                     if not texture_files.get("diffuse"):
                         texture_files["diffuse"] = file
-                    print(f"Asset Bridge: File has an unknown texture type '{texture_type}'")
+                    print(f"Asset Bridge ACG: File has an unknown texture type '{texture_type}'")
 
             mat = import_material(texture_files=texture_files, name=self.import_name, link_method=self.link_method)
             return mat

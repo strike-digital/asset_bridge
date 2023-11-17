@@ -24,8 +24,8 @@ def get_browser_area(name) -> bpy.types.Area:
                 overrides.append({"window": window, "area": area})
     for override in overrides:
         with bpy.context.temp_override(**override):
-            handle = bpy.context.asset_file_handle
-            if handle and handle.asset_data.description == name:
+            handle = bpy.context.asset
+            if handle and handle.metadata.description == name:
                 return override["area"]
     else:
         if overrides:
@@ -34,11 +34,11 @@ def get_browser_area(name) -> bpy.types.Area:
 
 
 def link_method(area):
-    import_type = area.spaces.active.params.import_type
-    if import_type == "FOLLOW_PREFS":
+    import_method = area.spaces.active.params.import_method
+    if import_method == "FOLLOW_PREFS":
         lib = bpy.context.preferences.filepaths.asset_libraries.get(ASSET_LIB_NAME)
-        import_type = lib.import_method if lib else "APPED_REUSE"
-    return import_type
+        import_method = lib.import_method if lib else "APPED_REUSE"
+    return import_method
 
 
 prev_materials = {}

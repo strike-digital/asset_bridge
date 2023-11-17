@@ -19,10 +19,10 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
     def poll(cls, context):
         if context.area.ui_type != "ASSETS":
             return False
-        if not context.asset_file_handle:
+        if not context.asset:
             return False
         # In 3.5 the assets can also be viewed in th "All" asset library
-        if ASSET_LIB_NAME != context.area.spaces.active.params.asset_library_ref:
+        if ASSET_LIB_NAME != context.area.spaces.active.params.asset_library_reference:
             ab = get_ab_settings(context)
             try:
                 asset = ab.selected_asset
@@ -102,7 +102,7 @@ class AB_PT_asset_info(Panel, AssetBrowserPanel):
             asset = None
 
         if not asset:
-            if context.area.spaces.active.params.asset_library_ref != ASSET_LIB_NAME:
+            if context.area.spaces.active.params.asset_library_reference != ASSET_LIB_NAME:
                 return
             box = layout.box()
             box.alert = True

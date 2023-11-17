@@ -62,8 +62,6 @@ class AB_PT_asset_props_viewport(Panel):
                 return False
 
             class HdriNodes(Nodes):
-                __init__ = lambda self: None
-
                 def __init__(self):
                     self.coords = world.node_tree.nodes.get(NODE_GROUPS.hdri_coords)
                     self.color = world.node_tree.nodes.get(NODE_GROUPS.hdri_color)
@@ -221,7 +219,7 @@ class AB_PT_asset_props_viewport(Panel):
                             draw_inline_prop(box, socket, "default_value", "Roughness:", "Amount", factor=FACTOR)
                             box.separator(factor=PROP_SPACING)
 
-                    if principled_node and principled_node.inputs["Emission"].links:
+                    if principled_node and principled_node.inputs["Emission Color"].links:
                         socket = principled_node.inputs["Emission Strength"]
                         draw_inline_prop(box, socket, "default_value", "Emission:", "Strength", factor=FACTOR)
                         box.separator(factor=PROP_SPACING)

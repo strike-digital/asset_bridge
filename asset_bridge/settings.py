@@ -185,11 +185,11 @@ class AssetBridgeWmSettings(PropertyGroup):
     @property
     def asset_idname(self):
         context = bpy.context
-        handle = context.asset_file_handle
+        handle = context.asset
         if handle:
-            asset = handle.asset_data
-            self.prev_asset_name = asset.description
-            return asset.description
+            metadata = handle.metadata
+            self.prev_asset_name = metadata.description
+            return metadata.description
         elif self.prev_asset_name != "NONE":
             return self.prev_asset_name
         return "NONE"
