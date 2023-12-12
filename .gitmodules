@@ -1,0 +1,3 @@
+[submodule "builder"]
+	path = builder
+	url = https://github.com/strike-digital/addon-builder.git
