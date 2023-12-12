@@ -15,7 +15,7 @@ bl_info = {
     "name": "Asset Bridge 2.2.1",
     "author": "Andrew Stevenson",
     "description": "Easily download and import free assets from the internet.",
-    "blender": (3, 2, 0),
+    "blender": (4, 0, 0),
     "version": (2, 2, 1),
     "location": "3D View > N-Panel > Asset Bridge",
     "warning": "",
