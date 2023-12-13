@@ -1,6 +1,7 @@
 
 dev.py
 *.blend1
+tokens.json
 
 **/__pycache__/*
 /.vscode

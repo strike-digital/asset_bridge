@@ -34,10 +34,15 @@ def main():
     previews_dir = cache_dir / "previews"
     files += [f for f in previews_dir.iterdir()]
 
-    builder.build(Path(__file__).parent, file_list=files, update_bl_info=True)
+    build = builder.build(Path(__file__).parent / "builds", file_list=files, update_bl_info=True)
 
-    # # webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
-    # # webbrowser.open("https://blendermarket.com/creator/products/asset-bridge/edit")
+    print(build.check_tag_exists())
+    print(build.create_tag())
+    print(build.check_tag_exists())
+    # build.upload_github_release(release_message="test")
+
+    # webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
+    # webbrowser.open("https://blendermarket.com/creator/products/asset-bridge/edit")
 
 
 if __name__ == "__main__":
