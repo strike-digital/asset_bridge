@@ -1,15 +1,22 @@
+import argparse
 import subprocess
+from getpass import getpass
 from pathlib import Path
+from threading import Thread
 
-from builder.builder import AddBuildSubstitution, AddonBuilder
+from builder.builder import AddBuildSubstitution, AddonBuild, AddonBuilder
+
+BUILD_DIR = Path(__file__).parent / "builds"
+GITHUB_REPO = "strike-digital/asset_bridge"
+BM_PRODUCT = "asset-bridge"
 
 
-def main():
+def build_addon():
     addon_dir = Path(__file__).parent / "asset_bridge"
     builder = AddonBuilder(
         addon_dir,
         "Asset Bridge",
-        github_repo="strike-digital/asset_bridge",
+        github_repo=GITHUB_REPO,
     )
     builder.set_version_from_github_releases()
 
@@ -34,8 +41,83 @@ def main():
     previews_dir = cache_dir / "previews"
     files += [f for f in previews_dir.iterdir()]
 
-    build = builder.build(Path(__file__).parent / "builds", file_list=files, update_bl_info=True)
-    build.upload_github_release(release_message="test")
+    build = builder.build(BUILD_DIR, file_list=files, update_bl_info=True)
+    return build
+
+
+def get_bm_credentials():
+    email = input("Enter Blender Market email: ")
+    password = getpass("Enter Blender Market password: ")
+    print(f"Got password ({len(password)} chars)")
+    return email, password
+
+
+def upload_github(build: AddonBuild):
+    build.upload_github_release()
+
+
+def upload_bm(build: AddonBuild):
+    email, password = get_bm_credentials()
+    build.upload_blendermarket_file(email, password)
+
+
+def get_latest_build() -> AddonBuild:
+    files: list[list[tuple, Path]] = []
+    for file in BUILD_DIR.iterdir():
+        if not file.is_file() or file.suffix != ".zip":
+            continue
+
+        parts = file.stem.split("-")
+        if len(parts) < 2:
+            continue
+
+        try:
+            int(parts[1])
+        except ValueError:
+            print(f"Error with file {file}")
+            continue
+
+        version = tuple(int(v) for v in parts[1].split("_"))
+        files.append([version, file])
+
+    files.sort(key=lambda x: x[0])
+    file = files[-1][1]
+
+    beta = any(p == "beta" for p in file.stem.split("-"))
+
+    build = AddonBuild(file, version, beta=beta, github_repo=GITHUB_REPO, blendermarket_product=BM_PRODUCT)
+    return build
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build-zip", default=False, action="store_true")
+    parser.add_argument("--upload", choices=["github", "blendermarket", "both"])
+    args = parser.parse_args()
+
+    if args.build_zip:
+        build = build_addon()
+    else:
+        build = get_latest_build()
+
+    build.blendermarket_product = BM_PRODUCT
+
+    if args.upload == "github":
+        upload_github(build)
+
+    elif args.upload == "blendermarket":
+        upload_bm(build)
+
+    elif args.upload == "both":
+        bm_thread = Thread(target=upload_bm)
+        bm_thread.start()
+        gh_thread = Thread(target=upload_github)
+        gh_thread.start()
+
+        bm_thread.join()
+        gh_thread.join()
+
+    # get_bm_credentials()
 
     # webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
     # webbrowser.open("https://blendermarket.com/creator/products/asset-bridge/edit")
