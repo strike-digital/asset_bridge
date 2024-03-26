@@ -1,7 +1,7 @@
 from bpy.props import StringProperty
 
-from ..settings import AssetTask, get_ab_settings
 from ..helpers.btypes import BOperator
+from ..settings import AssetTask, get_ab_settings
 
 
 @BOperator("asset_bridge")

@@ -82,6 +82,9 @@ def get_latest_build() -> AddonBuild:
 
     files.sort(key=lambda x: x[0])
     file = files[-1][1]
+    # if files:
+    # else:
+    # file = BUILD_DIR / f"asset_bridge-{}"
 
     beta = any(p == "beta" for p in file.stem.split("-"))
 
@@ -118,7 +121,6 @@ def main():
         gh_thread.join()
 
     # get_bm_credentials()
-
     # webbrowser.open("https://github.com/strike-digital/asset_bridge/releases/new")
     # webbrowser.open("https://blendermarket.com/creator/products/asset-bridge/edit")
 

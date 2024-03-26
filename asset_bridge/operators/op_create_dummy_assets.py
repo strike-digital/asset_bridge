@@ -4,6 +4,8 @@ from typing import Dict
 
 import bpy
 
+from .op_report_message import report_exceptions
+
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME, Files
@@ -65,6 +67,7 @@ class AB_OT_create_dummy_assets(BOperator.type):
                 f.write(out)
             return out
 
+        @report_exceptions(main_thread=False)
         def check_processes():
             """Check all of the blender processes and get the progress from them"""
 

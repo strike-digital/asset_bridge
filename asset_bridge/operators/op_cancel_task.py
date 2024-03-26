@@ -1,8 +1,8 @@
 from bpy.props import StringProperty
 
-from ..settings import AssetTask, get_ab_settings
 from ..helpers.btypes import BOperator, ExecContext
 from ..helpers.main_thread import run_in_main_thread
+from ..settings import AssetTask, get_ab_settings
 
 
 @BOperator("asset_bridge")
@@ -20,7 +20,8 @@ class AB_OT_cancel_task(BOperator.type):
         if not task.progress:
             raise ValueError(f"Task '{self.name}' has no progress")
 
-        task.cancel(remove=False)
+        # task.cancel(remove=False)
+        task.cancel(remove=True)
 
 
 def cancel_task(name: str, main_thread=False):

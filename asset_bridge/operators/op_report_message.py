@@ -1,7 +1,10 @@
+from functools import wraps
+
 from bpy.props import StringProperty
 
 from ..helpers.btypes import BOperator, ExecContext
 from ..helpers.main_thread import run_in_main_thread
+from ..helpers.process import format_traceback
 
 
 @BOperator("asset_bridge")
@@ -33,3 +36,20 @@ def report_message(severity="INFO", message="Message!", main_thread=False):
         run_in_main_thread(report_message, (severity, message, False))
     else:
         AB_OT_report_message.run(ExecContext.INVOKE, severity=severity, message=str(message))
+
+
+def report_exceptions(main_thread=False):
+    """A decorator to automatically report exceptions in the UI, useful when working with separate threads."""
+    def report_exceptions_decorator(func):
+        @wraps(func)
+        def with_reporting():
+            try:
+                return func()
+            except Exception as e:
+                report_message(
+                    "ERROR",
+                    f"An error occurred while executing function {func.__name__}:\n\n{format_traceback(e)}",
+                    main_thread=main_thread,
+                )
+        return with_reporting
+    return report_exceptions_decorator
