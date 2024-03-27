@@ -84,6 +84,7 @@ class AssetListItem(ABC):
     ab_asset_type: Type[Asset]  # The api asset class
     ab_asset_list: AssetList  # The asset list that this list item is contained within
 
+    ab_is_valid: bool = True  # Don't include this asset
     ab_prefix: str  # Used as a prefix for the assets idname, to ensure that all asset names are unique
     ab_idname: str  # The unique Asset Bridge identifier of this asset
     ab_name: str  # The api name of the asset

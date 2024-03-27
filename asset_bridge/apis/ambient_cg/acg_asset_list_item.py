@@ -1,14 +1,14 @@
-import re
 import inspect
+import re
 from traceback import format_exc
 
-from bpy.types import World, Object, Material
+from bpy.types import Material, Object, World
 
-from .acg_asset import ACG_Asset
+from ...helpers.library import human_readable_file_size
 from ..asset_types import AssetListItem
 from ..asset_types import AssetMetadataItem as Metadata
-from ..asset_utils import HDRI, MODEL, MATERIAL, download_file, dimensions_to_string
-from ...helpers.library import human_readable_file_size
+from ..asset_utils import HDRI, MATERIAL, MODEL, dimensions_to_string, download_file
+from .acg_asset import ACG_Asset
 
 
 class ACG_AssetListItem(AssetListItem):
@@ -39,7 +39,13 @@ class ACG_AssetListItem(AssetListItem):
         self.ab_label = label
 
         # The quality levels to show in the UI, in the format of an EnumProperty items list
-        self.quality_data = data["quality_levels"]
+        try:
+            self.quality_data = data["quality_levels"]
+        except KeyError:
+            print("ERROR", name)
+            self.ab_is_valid = False
+            return
+
         self.ab_quality_levels = []
         for name, quality_data in data["quality_levels"].items():
             if "PREVIEW" in name:

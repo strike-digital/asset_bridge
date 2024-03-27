@@ -1,22 +1,22 @@
 import json
 import math
-from time import perf_counter
-from shutil import copyfileobj
-from typing import Dict, Type, Literal
 from pathlib import Path
+from shutil import copyfileobj
+from time import perf_counter
+from typing import Dict, Literal, Type
 
 import bpy
-from bpy.types import Node, Object, Material, NodeGroup
+from bpy.types import Material, Node, NodeGroup, Object
 from mathutils import Vector as V
-from ..previews import load_icon
-from ..settings import get_ab_scene_settings
 
 from ..api import asset_lists
-from ..vendor import requests
-from ..constants import FILES, NODES, NODE_GROUPS, __IS_DEV__, ServerError503
-from .asset_types import AssetList
+from ..constants import __IS_DEV__, FILES, NODE_GROUPS, NODES, ServerError503
 from ..helpers.prefs import get_prefs
+from ..previews import load_icon
+from ..settings import get_ab_scene_settings
 from ..ui.ui_helpers import dpifac
+from ..vendor import requests
+from .asset_types import AssetList
 
 HDRI = "hdri"
 MATERIAL = "material"
@@ -89,7 +89,9 @@ def download_file(url: str, download_dir: Path, file_name: str = "", use_progres
             if result.status_code == 503:
                 raise ServerError503(url)
 
-            raise requests.ConnectionError()
+            raise requests.ConnectionError(
+                f"Could not download file at url:\n{url}\nbecause of a connection error (code {result.status_code})"
+            )
         with open(download_file, "wb") as f:
             copyfileobj(result.raw, f)
             # for chunk in result.iter_content(chunk_size=8192):

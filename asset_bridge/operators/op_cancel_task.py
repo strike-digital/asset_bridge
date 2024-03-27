@@ -22,7 +22,7 @@ class AB_OT_cancel_task(BOperator.type):
 
         # task.cancel(remove=False)
         task.cancel(remove=True)
-
+    
 
 def cancel_task(name: str, main_thread=False):
     if main_thread:

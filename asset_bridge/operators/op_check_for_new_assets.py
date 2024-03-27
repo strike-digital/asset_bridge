@@ -6,7 +6,7 @@ from ..settings import get_ab_settings
 from ..constants import CHECK_NEW_ASSETS_TASK_NAME
 from ..helpers.btypes import BOperator
 from ..helpers.general import check_internet
-from .op_report_message import report_message
+from .op_report_message import report_exceptions, report_message
 from ..helpers.main_thread import force_ui_update
 from .op_download_previews import AB_OT_download_previews
 from .op_create_dummy_assets import AB_OT_create_dummy_assets
@@ -30,6 +30,7 @@ class AB_OT_check_for_new_assets(BOperator.type):
         task = get_ab_settings(context).new_task(name=CHECK_NEW_ASSETS_TASK_NAME)
         task.new_progress(max_steps=len(threads))
 
+        @report_exceptions(main_thread=False)
         def finish():
             if task.cancelled:
                 report_message("INFO", "Cancelled checking for new assets")

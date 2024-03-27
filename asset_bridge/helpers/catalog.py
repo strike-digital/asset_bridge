@@ -37,12 +37,40 @@ class AssetCatalogFile():
         self.catalog_file = Path(catalog_dir) / (filename or "blender_assets.cats.txt")
         self.catalogs = {}
         self.ensure_exists()
+        self.validate_file()
         if load_from_file:
             self.update_catalog_from_file()
 
     def __getitem__(self, name) -> AssetCatalog:
         return self.catalogs[name]
 
+    def get_catalog_lines(self) -> list[str]:
+        with open(self.catalog_file, "r") as f:
+            lines = f.readlines()
+
+        catalog_lines = []
+        for line in lines:
+            if line.startswith(("#", "VERSION", "\n")):
+                continue
+            catalog_lines.append(line)
+        return catalog_lines
+
+    def validate_file(self):
+        """Ensure the file is in the correct format for processing."""
+        new_lines = []
+
+        # Remove extra : symbols
+        for line in self.get_catalog_lines():
+            if line.count(":") > 2:
+                parts = line.split(":")
+                new_line = ":".join([parts[0], ";".join(parts[1:-1]), parts[-1]])
+                new_lines.append(new_line)
+        
+        with open(self.catalog_file, "w") as f:
+            f.write(CATALOG_HEADER)
+            for line in new_lines:
+                f.write(line)
+        
     def write(self):
         """Update the catalog file on the disk"""
         with open(self.catalog_file, "w") as f:
@@ -71,7 +99,10 @@ class AssetCatalogFile():
             for line in f.readlines():
                 if line.startswith(("#", "VERSION", "\n")):
                     continue
-                catalog = AssetCatalog(*line.split(":"))
+                try:
+                    catalog = AssetCatalog(*line.split(":"))
+                except Exception as e:
+                    raise Exception(f"Error parsing line: {line}\n") from e
                 catalogs[catalog.path] = catalog
         return catalogs
 

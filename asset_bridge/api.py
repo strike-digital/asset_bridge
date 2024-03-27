@@ -76,7 +76,9 @@ class AllAssetLists():
         else:
             asset_list = asset_list(asset_list_data)
         self.asset_lists[asset_list.name] = asset_list
-        for item in asset_list.values():
+        for item in dict(asset_list).values():
+            if not item.ab_is_valid:
+                del asset_list.assets[item.ab_idname]
             item.ab_asset_list = asset_list
 
         # Write the new cached data
