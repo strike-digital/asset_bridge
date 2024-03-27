@@ -2,6 +2,7 @@
 dev.py
 *.blend1
 tokens.json
+todo.md
 
 **/__pycache__/*
 /.vscode

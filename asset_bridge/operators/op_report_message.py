@@ -42,9 +42,9 @@ def report_exceptions(main_thread=False):
     """A decorator to automatically report exceptions in the UI, useful when working with separate threads."""
     def report_exceptions_decorator(func):
         @wraps(func)
-        def with_reporting():
+        def with_reporting(*args, **kwargs):
             try:
-                return func()
+                return func(*args, **kwargs)
             except Exception as e:
                 report_message(
                     "ERROR",

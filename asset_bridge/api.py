@@ -112,9 +112,10 @@ class AllAssetLists():
 
     def new_assets_available(self):
         """Return the number of assets that still need to be downloaded"""
-        preview_files = os.listdir(DIRS.previews)
-        difference = len(self.all_assets) - len(preview_files)
-        return clamp(difference, 0, len(self.all_assets))
+        preview_names = {os.path.splitext(os.path.basename(p))[0] for p in os.listdir(DIRS.previews)}
+        asset_names = set(self.all_assets.keys())
+        difference = asset_names - preview_names
+        return len(difference)
 
     def __init__(self):
         self.asset_lists = OrderedDict()

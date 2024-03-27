@@ -10,6 +10,8 @@ from mathutils import Vector as V
 from gpu_extras.batch import batch_for_shader
 from bpy_extras.view3d_utils import location_3d_to_region_2d
 
+from .op_report_message import report_exceptions
+
 from ..api import get_asset_lists
 from ..settings import get_ab_settings
 from ..helpers.math import Rectangle, lerp
@@ -36,12 +38,26 @@ class AB_OT_draw_import_progress(BOperator.type):
 
     asset_id: StringProperty()
 
+    @report_exceptions()
     def invoke(self, context, event):
         global handlers
 
         self.done = False
         self.shader = Shaders.UNIFORM_COLOR
         self.image_shader = Shaders.IMAGE
+        self.start_time = time()
+        self.factor = 0
+        self.finish_time = 0
+
+        self.cancel_box = Rectangle()
+        asset_list_item = get_asset_lists().all_assets[self.asset_id]
+        self.image = bpy.data.images.load(str(asset_list_item.preview_file))
+        self.image.name = self.task_name
+        self.aspect = self.image.size[0] / self.image.size[1]
+        self.texture = gpu.texture.from_image(self.image)
+
+        self.region = get_active_window_region(V((event.mouse_x, event.mouse_y)), fallback_area_type="VIEW_3D")
+
         handlers.append(
             bpy.types.SpaceView3D.draw_handler_add(
                 self.draw_callback_px,
@@ -51,19 +67,8 @@ class AB_OT_draw_import_progress(BOperator.type):
                 "POST_PIXEL",
             )
         )
-        self.start_time = time()
-        self.factor = 0
-        self.finish_time = 0
-
-        self.cancel_box = Rectangle()
         self.handler = handlers[-1]
-        asset_list_item = get_asset_lists().all_assets[self.asset_id]
-        self.image = bpy.data.images.load(str(asset_list_item.preview_file))
-        self.image.name = self.task_name
-        self.aspect = self.image.size[0] / self.image.size[1]
-        self.texture = gpu.texture.from_image(self.image)
 
-        self.region = get_active_window_region(V((event.mouse_x, event.mouse_y)), fallback_area_type="VIEW_3D")
         context.window_manager.modal_handler_add(self)
         return self.RUNNING_MODAL
 
