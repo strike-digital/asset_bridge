@@ -1,14 +1,15 @@
 from datetime import datetime
 from threading import Thread
-from .ph_op_open_author_website import AB_OT_open_ph_author_website
+
 from bpy.types import Material, Object, World
 
-from .ph_asset import PH_Asset
-from ..asset_utils import HDRI, MATERIAL, MODEL, dimensions_to_string, download_file
-from ..asset_types import AssetListItem, AssetMetadataItem
-from ...helpers.main_thread import force_ui_update
-from ...helpers.library import human_readable_file_size
 from ...constants import DIRS
+from ...helpers.library import human_readable_file_size
+from ...helpers.main_thread import force_ui_update
+from ..asset_types import AssetListItem, AssetMetadataItem
+from ..asset_utils import HDRI, MATERIAL, MODEL, dimensions_to_string, download_file
+from .ph_asset import PH_Asset
+from .ph_op_open_author_website import AB_OT_open_ph_author_website
 
 
 class PH_AssetListItem(AssetListItem):
@@ -26,7 +27,11 @@ class PH_AssetListItem(AssetListItem):
         self.ab_type = asset_types[data["type"]]
         self.ab_bl_type = bl_types[data["type"]]
         self.ab_authors = list(data["authors"].keys()) or [""]
-        self.ab_categories = data["categories"]
+        self.ab_categories = [c for c in data["categories"] if ":" not in c]
+        # self.ab_categories = data["categories"]
+        for cat in self.ab_categories:
+            if ":" in cat:
+                print(cat)
         self.ab_tags = data["tags"] + data["categories"]
         self.page_url = f"https://polyhaven.com/a/{name}"
 
@@ -59,7 +64,8 @@ class PH_AssetListItem(AssetListItem):
                     "Dimensions",
                     [data["dimensions"]],
                     to_string=dimensions_to_string,
-                ))
+                )
+            )
             self.ab_material_size = data["dimensions"][0] / 1000
 
         if "evs" in data:
@@ -72,19 +78,23 @@ class PH_AssetListItem(AssetListItem):
             AssetMetadataItem(
                 "Date published",
                 datetime.fromtimestamp(data["date_published"]).strftime(format="%d/%m/%Y"),
-            ))
+            )
+        )
 
         if "date_taken" in data:
             self.ab_metadata.append(
                 AssetMetadataItem(
                     "Date taken",
                     datetime.fromtimestamp(data["date_taken"]).strftime(format="%d/%m/%Y"),
-                ))
+                )
+            )
 
-        self.ab_metadata.append(AssetMetadataItem(
-            "Tags",
-            data["tags"],
-        ))
+        self.ab_metadata.append(
+            AssetMetadataItem(
+                "Tags",
+                data["tags"],
+            )
+        )
         self.ab_metadata.append(
             AssetMetadataItem(
                 "Support",
@@ -92,7 +102,8 @@ class PH_AssetListItem(AssetListItem):
                 "wm.url_open",
                 operator_kwargs={"url": "https://www.patreon.com/polyhaven/overview"},
                 label_icon="FUND",
-            ))
+            )
+        )
 
     @property
     def ab_quality_levels(self):

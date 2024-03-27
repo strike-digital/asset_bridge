@@ -31,16 +31,6 @@ for obj in bpy.context.scene.objects:
     obj.select_set(True)
     collection.objects.link(obj)
 
-# for mat in bpy.data.materials:
-#     mat: Material
-#     if mat.use_nodes:
-#         for node in mat.node_tree.nodes:
-#             node: bpy.types.Node
-#             if node.bl_idname == "ShaderNodeTexImage":
-#                 if node.outputs[0] and node.outputs[0].links:
-#                     to_node = node.outputs[0].links[0].to_node
-#                     if to_node.bl_idname == "ShaderNodeNormalMap"
-
 for image in bpy.data.images:
     name_parts = image.name.split("_")
     if "Color" not in name_parts[-1]:

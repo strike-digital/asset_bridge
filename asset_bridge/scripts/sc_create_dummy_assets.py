@@ -53,7 +53,7 @@ update_progress_file(0)
 catalog = AssetCatalogFile(DIRS.dummy_assets, f"{asset_list.name}.cats.txt", load_from_file=False)
 # catalog.add_catalog(asset_list.label)
 
-paths = set()
+paths: set[str] = set()
 
 # A dict the popularities of each asset category, separated by type
 all_categories: Dict[str, Dict[str, int]] = {}
@@ -88,6 +88,7 @@ for asset_item in asset_list.values():
     # Set the catlog path path
     # path = f"{asset_list.label}/{ui_names[asset_item.ab_type]}/{'/'.join(cats)}"
     path = f"{ui_names[asset_item.ab_type]}/{'/'.join(cats)}"
+    # path = path.replace(":", ";")
     asset_item._catalog_path = path
     paths.add(path)
 
