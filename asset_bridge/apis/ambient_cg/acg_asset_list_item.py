@@ -153,9 +153,11 @@ class ACG_AssetListItem(AssetListItem):
         return ""
 
     def download_preview(self):
-        url = f"https://cdn3.struffelproductions.com/file/ambientCG/media/sphere/128-PNG/{self.ab_name}_PREVIEW.png"
+        # url = f"https://cdn3.struffelproductions.com/file/ambientCG/media/sphere/128-PNG/{self.ab_name}_PREVIEW.png"
+        url = f"https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/128-JPG-242424/{self.ab_name}.jpg"
         download_file(url, self.previews_dir, self.preview_name)
 
     def get_high_res_urls(self) -> list[str]:
-        url = f"https://cdn3.struffelproductions.com/file/ambientCG/media/sphere/1024-JPG-242424/{self.ab_name}_PREVIEW.jpg"
+        # url = f"https://cdn3.struffelproductions.com/file/ambientCG/media/sphere/1024-JPG-242424/{self.ab_name}_PREVIEW.jpg"
+        url = f"https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-JPG-242424/{self.ab_name}.jpg"
         return [url]
