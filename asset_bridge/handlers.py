@@ -1,12 +1,13 @@
 # from asset_bridge.operators import AB_OT_import_asset
-from .helpers.btypes import ExecContext
-from .constants import ASSET_LIB_NAME
 import bpy
 from bpy.app import handlers
 from bpy.types import Scene
 
-from .settings import get_ab_settings
+from .constants import ASSET_LIB_NAME
+from .helpers.btypes import ExecContext
+from .helpers.main_thread import run_in_main_thread
 from .operators.op_import_asset import AB_OT_import_asset
+from .settings import get_ab_settings
 
 
 def get_asset_quality(context):
@@ -118,8 +119,11 @@ def depsgraph_update_pre_handler(scene: Scene, _):
     objs = [o for o in scene.objects if o.asset_bridge.is_dummy]
     for obj in objs:
         name = obj.asset_bridge.idname
-        bpy.data.objects.remove(obj)
-        # print("Object!", name)
+        obj.asset_bridge.is_dummy = False
+
+        # For some reason in 4.1 this creates a popup for the user saying "Object not found",
+        # Unless it is run in the next cycle with a timer.
+        run_in_main_thread(bpy.data.objects.remove, [obj])
         AB_OT_import_asset.run(
             ExecContext.INVOKE,
             asset_name=name,
