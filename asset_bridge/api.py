@@ -4,7 +4,6 @@ from threading import Thread
 from collections import OrderedDict
 
 from .constants import DIRS
-from .helpers.math import clamp
 from .helpers.process import format_traceback
 from .apis.asset_types import AssetList, AssetListItem
 from .operators.op_report_message import report_message
@@ -79,6 +78,7 @@ class AllAssetLists():
         for item in dict(asset_list).values():
             if not item.ab_is_valid:
                 del asset_list.assets[item.ab_idname]
+                continue
             item.ab_asset_list = asset_list
 
         # Write the new cached data

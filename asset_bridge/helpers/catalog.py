@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Dict
 from uuid import uuid4
@@ -18,7 +19,7 @@ VERSION 1
 """
 
 
-class AssetCatalog():
+class AssetCatalog:
 
     def __init__(self, uuid, path, name):
         self.uuid = uuid
@@ -29,7 +30,7 @@ class AssetCatalog():
         return ":".join([self.uuid, self.path, self.name])
 
 
-class AssetCatalogFile():
+class AssetCatalogFile:
     """Represents a file containing the catalog info for a blender asset library."""
 
     def __init__(self, catalog_dir, filename="", load_from_file=True):
@@ -37,8 +38,8 @@ class AssetCatalogFile():
         self.catalog_file = Path(catalog_dir) / (filename or "blender_assets.cats.txt")
         self.catalogs = {}
         self.ensure_exists()
-        self.validate_file()
         if load_from_file:
+            self.validate_file()
             self.update_catalog_from_file()
 
     def __getitem__(self, name) -> AssetCatalog:
@@ -65,18 +66,23 @@ class AssetCatalogFile():
                 parts = line.split(":")
                 new_line = ":".join([parts[0], ";".join(parts[1:-1]), parts[-1]])
                 new_lines.append(new_line)
-        
+                continue
+            new_lines.append(line)
+
         with open(self.catalog_file, "w") as f:
             f.write(CATALOG_HEADER)
             for line in new_lines:
                 f.write(line)
-        
+
     def write(self):
         """Update the catalog file on the disk"""
+        out_string = CATALOG_HEADER
+        for catalog in self.catalogs.values():
+            out_string += f"{catalog.uuid}:{catalog.path}:{catalog.name}\n"
         with open(self.catalog_file, "w") as f:
-            f.write(CATALOG_HEADER)
-            for catalog in self.catalogs.values():
-                f.write(f"{catalog.uuid}:{catalog.path}:{catalog.name}\n")
+            # f.write(CATALOG_HEADER)
+            f.write(out_string)
+        return out_string
 
     def merge(self, other_catalog: AssetCatalogFile):
         """Combine two AssetCatalogFile objects, merging all entries"""
@@ -90,9 +96,9 @@ class AssetCatalogFile():
 
     def update_catalog_from_file(self):
         """Read and set the catalogs from the file"""
-        self.catalogs = self.get_catalogs()
+        self.catalogs = self.get_catalogs_from_file()
 
-    def get_catalogs(self) -> Dict[str, AssetCatalog]:
+    def get_catalogs_from_file(self) -> Dict[str, AssetCatalog]:
         """Read the catalogs from the file"""
         catalogs = {}
         with open(self.catalog_file, "r") as f:

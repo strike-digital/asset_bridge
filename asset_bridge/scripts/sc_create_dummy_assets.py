@@ -1,28 +1,29 @@
 import argparse
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from time import perf_counter
 from typing import TYPE_CHECKING, Dict
-import bpy
+
 import addon_utils
+import bpy
 from bpy.types import Material, Object, World
 
 addon_utils.enable(Path(__file__).parents[1].name)
 
 if TYPE_CHECKING:
     from ..api import get_asset_lists
-    from ..constants import DIRS, FILES
-    from ..settings import get_asset_settings
-    from ..helpers.catalog import AssetCatalogFile
     from ..apis.asset_utils import HDRI, MATERIAL, MODEL
+    from ..constants import DIRS, FILES
+    from ..helpers.catalog import AssetCatalogFile
+    from ..settings import get_asset_settings
 else:
     from asset_bridge.api import get_asset_lists
-    from asset_bridge.constants import DIRS, FILES
-    from asset_bridge.settings import get_asset_settings
-    from asset_bridge.helpers.catalog import AssetCatalogFile
     from asset_bridge.apis.asset_utils import HDRI, MATERIAL, MODEL
+    from asset_bridge.constants import DIRS, FILES
+    from asset_bridge.helpers.catalog import AssetCatalogFile
+    from asset_bridge.settings import get_asset_settings
 """Creates all of the dummy assets for the given asset list that will be shown in the asset browser.
 These are empty materials, objects etc. which are swapped out automatically when they are dragged into the scene"""
 
@@ -30,7 +31,7 @@ These are empty materials, objects etc. which are swapped out automatically when
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--asset_list_name")
-args = sys.argv[sys.argv.index('--') + 1:]
+args = sys.argv[sys.argv.index("--") + 1 :]
 args = parser.parse_args(args)
 
 asset_list = get_asset_lists()[args.asset_list_name]
@@ -81,7 +82,7 @@ for asset_item in asset_list.values():
     # Remove chains of catalogs that only have one asset in them
     for i in range(len(cats) - 1):
         if categories[cats[i]] <= 1:
-            cats = cats[:i + 1]
+            cats = cats[: i + 1]
             break
 
     # Set the catlog path path
@@ -94,14 +95,13 @@ for asset_item in asset_list.values():
 intermediate_paths = set()
 
 for path in paths:
-    parts = path.split('/')
-    # print(parts, name, flush=True)
+    parts = path.split("/")
     catalog.ensure_catalog_exists(parts[-1], path)
     for i, part in enumerate(parts[:-1]):
-        intermediate_paths.add("/".join(parts[:i + 1]))
+        intermediate_paths.add("/".join(parts[: i + 1]))
 
 for path in intermediate_paths:
-    catalog.ensure_catalog_exists(path.split('/')[-1], path)
+    catalog.ensure_catalog_exists(path.split("/")[-1], path)
 
 catalog.write()
 
@@ -109,7 +109,7 @@ catalog.write()
 types_to_data: dict = {World: bpy.data.worlds, Object: bpy.data.objects, Material: bpy.data.materials}
 
 progress = 0
-progress_update_interval = .01
+progress_update_interval = 0.01
 last_update = 0
 
 # Initial: 1.4s, 2.39s
