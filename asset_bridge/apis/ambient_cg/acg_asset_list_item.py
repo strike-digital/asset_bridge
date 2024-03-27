@@ -42,7 +42,7 @@ class ACG_AssetListItem(AssetListItem):
         try:
             self.quality_data = data["quality_levels"]
         except KeyError:
-            print("ERROR", name)
+            # If no quality levels, asset is not valid
             self.ab_is_valid = False
             return
 
