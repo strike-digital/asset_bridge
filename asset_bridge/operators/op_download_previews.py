@@ -15,7 +15,7 @@ from ..constants import DIRS, PREVIEW_DOWNLOAD_TASK_NAME
 from ..helpers.btypes import BOperator
 from ..helpers.general import check_internet
 from ..apis.asset_types import AssetListItem
-from .op_report_message import report_message
+from .op_report_message import report_exceptions, report_message
 from ..helpers.main_thread import run_in_main_thread
 from .op_create_dummy_assets import AB_OT_create_dummy_assets
 from ..vendor.requests.exceptions import ConnectTimeout
@@ -97,10 +97,11 @@ class AB_OT_download_previews(BOperator.type):
             # Start 40 threads, each downloading previews from a queue.
             # Not sure if this is an optimal number for all machines, or just mine.
             # TODO: Test on the laptop.
-            target_threads = 40
+            target_threads = 20
 
             download_queue = deque(assets.values())
 
+            @report_exceptions(main_thread=True)
             def download_previews():
                 """Continuously download previews until the queue is empty"""
                 while download_queue:
