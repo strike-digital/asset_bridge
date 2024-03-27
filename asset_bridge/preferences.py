@@ -358,14 +358,14 @@ class AB_MT_download_previews_menu(Menu):
         op.bl_description = "Redownload all previews and re setup the asset catalog again (good for debugging)"
         op.reload = True
 
-        if __IS_DEV__:
-            op = AB_OT_download_previews.draw_button(layout, icon="FILE_SCRIPT", text="Debug download")
-            op.bl_description = "download a small subset of the assets, for speed"
-            op.reload = True
-            op.test_number = 100
+        # if __IS_DEV__:
+        op = AB_OT_download_previews.draw_button(layout, icon="FILE_SCRIPT", text="Debug download")
+        op.bl_description = "download a small subset of the assets, for speed"
+        op.reload = True
+        op.test_number = 100
 
-            op = AB_OT_create_dummy_assets.draw_button(layout, icon="FILE_SCRIPT", text="Debug set-up library")
-            op.bl_description = "Re-setup the asset library file"
+        op = AB_OT_create_dummy_assets.draw_button(layout, icon="FILE_SCRIPT", text="Debug set-up library")
+        op.bl_description = "Re-setup the asset library file"
 
         op = AB_OT_open_folder.draw_button(layout, text="Open previews folder", icon="FILE_FOLDER")
         op.bl_description = "Open the folder containing the preview files"
