@@ -71,7 +71,7 @@ MAX_CATALOG_DEPTH = 3  # The maximum number of child catalogs that can occur und
 ui_names = {HDRI: "HDRIs", MATERIAL: "Materials", MODEL: "Models"}
 
 # Find the catalog path for each asset.
-# This works by ordering the assets' categories by popularity, and using that to constuct the path.
+# This works by ordering the assets' categories by popularity, and using that to construct the path.
 # That way, general categories appear at the top of the tree, with many assets in them, and below that
 # You can narrow your search by selecting more catalogs.
 for asset_item in asset_list.values():

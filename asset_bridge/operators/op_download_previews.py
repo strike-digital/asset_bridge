@@ -97,7 +97,7 @@ class AB_OT_download_previews(BOperator.type):
             # Start 40 threads, each downloading previews from a queue.
             # Not sure if this is an optimal number for all machines, or just mine.
             # TODO: Test on the laptop.
-            target_threads = 20
+            target_threads = 10
 
             download_queue = deque(assets.values())
 

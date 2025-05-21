@@ -11,14 +11,16 @@ GITHUB_REPO = "strike-digital/asset_bridge"
 BM_PRODUCT = "asset-bridge"
 
 
-def build_addon():
+def build_addon(version: str):
     addon_dir = Path(__file__).parent / "asset_bridge"
     builder = AddonBuilder(
         addon_dir,
         "Asset Bridge",
+        version = tuple(int(part) for part in version.split(".")) if version else None,
         github_repo=GITHUB_REPO,
     )
-    builder.set_version_from_github_releases()
+    if not version:
+        builder.set_version_from_github_releases()
 
     constants_matcher = "__IS_DEV__.*=.*"
     AddBuildSubstitution(
@@ -95,11 +97,12 @@ def get_latest_build() -> AddonBuild:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--build-zip", default=False, action="store_true")
+    parser.add_argument("--version", default="")
     parser.add_argument("--upload", choices=["github", "blendermarket", "both"])
     args = parser.parse_args()
 
     if args.build_zip:
-        build = build_addon()
+        build = build_addon(args.version)
     else:
         build = get_latest_build()
 
@@ -112,9 +115,9 @@ def main():
         upload_bm(build)
 
     elif args.upload == "both":
-        bm_thread = Thread(target=upload_bm)
+        bm_thread = Thread(target=upload_bm, args=[build])
         bm_thread.start()
-        gh_thread = Thread(target=upload_github)
+        gh_thread = Thread(target=upload_github, args=[build])
         gh_thread.start()
 
         bm_thread.join()

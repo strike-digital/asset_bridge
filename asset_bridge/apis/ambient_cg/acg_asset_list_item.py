@@ -26,7 +26,7 @@ class ACG_AssetListItem(AssetListItem):
         self.ab_type = asset_types[data_type]
         self.ab_bl_type = bl_types[data_type]
         self.ab_tags = data["tags"]
-        self.ab_categories = [t for t in self.ab_tags if t not in {"hdri", "3d"}]
+        self.ab_categories = [t for t in self.ab_tags if t not in {"hdri", "3d"} and not re.match("\d+", t)]
         # self.catalog_path = f"{names[data_type]}/{category}"
 
         # Modify the label

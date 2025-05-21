@@ -3,6 +3,7 @@ from time import perf_counter
 from bpy.types import Property, PropertyGroup
 
 from ..vendor import requests
+from .process import format_traceback
 
 
 def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGroup, print_errors=False):
@@ -67,8 +68,8 @@ def copy_bl_properties(from_data_block: PropertyGroup, to_data_block: PropertyGr
 #         conn.close()
 
 
-def check_internet(url='http://www.google.com/', timeout=3):
-    """"
+def check_internet(url="http://www.google.com/", timeout=5):
+    """ "
     Check whether the user has an active internet connection
     taken from: https://stackoverflow.com/a/33117579/18864758
     """
@@ -77,7 +78,8 @@ def check_internet(url='http://www.google.com/', timeout=3):
         _ = requests.head(url, timeout=timeout)
         return True
         print(f"{perf_counter() - start:.5f}")
-    except (requests.ConnectionError, requests.ReadTimeout):
+    except (requests.ConnectionError, requests.ReadTimeout) as e:
+        print(format_traceback(e))
         return False
         print("No internet connection available.")
     return False
